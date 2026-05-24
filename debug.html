@@ -1,44 +1,37 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>Debug2</title></head>
+<head><meta charset="UTF-8"><title>Debug3</title></head>
 <body>
-<h1>Debug2 - Import Test</h1>
+<h1>Debug3</h1>
 <div id="log"></div>
 <script type="module">
   const log = (msg, color='black') => {
-    document.getElementById('log').innerHTML += `<p style="color:${color}">${msg}</p>`;
+    document.getElementById('log').innerHTML += `<p style="color:${color};font-size:18px">${msg}</p>`;
   };
-  log('start');
-  try {
-    log('importing auth...');
-    const { Auth } = await import('./js/auth.js');
-    log('auth OK', 'green');
-    
-    log('importing router...');
-    const { Router } = await import('./js/router.js');
-    log('router OK', 'green');
-
-    log('importing dashboard...');
-    const { renderDashboard } = await import('./js/dashboard.js');
-    log('dashboard OK', 'green');
-
-    log('importing add-record...');
-    const { renderAddRecord } = await import('./js/add-record.js');
-    log('add-record OK', 'green');
-
-    log('importing accounts...');
-    const { renderAccounts } = await import('./js/accounts.js');
-    log('accounts OK', 'green');
-
-    log('importing settings...');
-    const { renderSettings } = await import('./js/settings.js');
-    log('settings OK', 'green');
-
-    log('ALL IMPORTS OK!', 'blue');
-  } catch(e) {
-    log('ERROR: ' + e.message, 'red');
-    log('Stack: ' + e.stack, 'red');
-  }
+  
+  // app.jsと同じinit処理を再現
+  const { Auth } = await import('./js/auth.js');
+  log('1. Auth imported');
+  
+  const session = await Auth.getSession();
+  log('2. session: ' + (session ? 'LOGGED IN' : 'NOT LOGGED IN'), session ? 'green' : 'orange');
+  
+  // loadingエレメントの確認
+  const loading = document.getElementById('loading-test');
+  log('3. loading element exists: ' + (loading ? 'YES' : 'NO'));
+  
+  // hideLoading相当の処理
+  setTimeout(() => {
+    log('4. hideLoading called');
+    if (loading) {
+      loading.classList.add('hide');
+      log('5. hide class added');
+    }
+  }, 1000);
 </script>
+<div id="loading-test" style="position:fixed;inset:0;background:darkgreen;z-index:9999;display:flex;align-items:center;justify-content:center;transition:opacity 0.3s;">
+  <p style="color:white;font-size:24px">LOADING TEST - should disappear in 1 sec</p>
+</div>
+<style>#loading-test.hide { opacity:0; pointer-events:none; }</style>
 </body>
 </html>
