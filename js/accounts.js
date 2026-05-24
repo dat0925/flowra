@@ -2,7 +2,7 @@
 //  accounts.js  口座管理画面
 // ─────────────────────────────────────
 import { DB } from './db.js';
-import { fmt } from './app.js';
+import { fmt } from './utils.js';
 
 const ACCT_TYPES = [
   { value: 'cash',   label: '現金' },
