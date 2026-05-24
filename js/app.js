@@ -31,32 +31,49 @@ function hideLoading() {
 
 // ── 初期化 ──────────────────────────
 async function init() {
-  try {
-    const session = await Auth.getSession();
+  // ログインボタンは最初にバインドしておく
+  document.getElementById('btn-google-login')?.addEventListener('click', () => {
+    Auth.signInWithGoogle();
+  });
 
-    if (!session) {
+  // onAuthStateChange を主軸にする（OAuthコールバックのハッシュ処理後に確実に発火）
+  Auth.onAuthStateChange((event, session) => {
+    if (session) {
+      // ログイン済み or OAuth コールバック後
+      document.getElementById('screen-login').hidden = true;
+      showApp(session.user);
+      hideLoading();
+    } else {
+      // 未ログイン or ログアウト後
       hideLoading();
       document.getElementById('screen-login').hidden = false;
-      document.getElementById('btn-google-login')?.addEventListener('click', () => {
-        Auth.signInWithGoogle();
-      });
-      return;
     }
+  });
 
-    showApp(session.user);
-    hideLoading();
-
+  // 初回: すでにセッションがあれば即反映（onAuthStateChangeが発火しない場合のフォールバック）
+  try {
+    const session = await Auth.getSession();
+    if (session) {
+      document.getElementById('screen-login').hidden = true;
+      showApp(session.user);
+      hideLoading();
+    } else if (!window.location.hash.includes('access_token')) {
+      // OAuthコールバックでない場合のみログイン画面を表示
+      // （access_tokenがある場合はonAuthStateChangeの発火を待つ）
+      hideLoading();
+      document.getElementById('screen-login').hidden = false;
+    }
   } catch (e) {
     console.error('init error:', e);
     hideLoading();
     document.getElementById('screen-login').hidden = false;
-    document.getElementById('btn-google-login')?.addEventListener('click', () => {
-      Auth.signInWithGoogle();
-    });
   }
 }
 
+let _appInitialized = false;
 function showApp(user) {
+  if (_appInitialized) return;
+  _appInitialized = true;
   document.getElementById('screen-login').hidden = true;
   document.getElementById('app').hidden = false;
 
@@ -96,11 +113,6 @@ document.getElementById('modal-overlay')?.addEventListener('click', e => {
   if (e.target.id === 'modal-overlay') closeModal();
 });
 
-// 認証状態変化を監視
-Auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_IN' && session) {
-    window.location.reload();
-  }
-});
+
 
 init();
