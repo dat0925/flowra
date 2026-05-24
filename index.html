@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#1C2B22">
+  <title>Flowra</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ── ログイン画面 ── -->
+  <div id="screen-login" class="screen" hidden>
+    <div class="login-wrap">
+      <div class="login-logo">
+        <div class="login-logo-mark">
+          <svg width="28" height="32" viewBox="0 0 28 32" fill="none">
+            <path d="M14 1 C14 1 26 5 26 14 C26 20.5 21 25 14 25 C7 25 2 20.5 2 14 C2 5 14 1 14 1Z"
+              fill="rgba(255,255,255,0.15)" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+            <path d="M14 1 L14 25" stroke="rgba(255,255,255,0.3)" stroke-width="0.8"/>
+            <path d="M2 20 Q8 15 14 17 Q20 19 26 12"
+              stroke="#C5A84F" stroke-width="1.5" fill="none" opacity="0.9" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="login-logo-text">Flow<span>ra</span></div>
+      </div>
+      <p class="login-tagline">お金の流れが、静かに見える。</p>
+      <button id="btn-google-login" class="btn-google">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+          <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+          <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
+          <path d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.039l3.007-2.332z" fill="#FBBC05"/>
+          <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z" fill="#EA4335"/>
+        </svg>
+        Google でログイン
+      </button>
+    </div>
+  </div>
+
+  <!-- ── アプリ本体 ── -->
+  <div id="app" hidden>
+
+    <!-- サイドバー（PC/iPad） -->
+    <aside id="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo-mark">
+          <svg width="14" height="16" viewBox="0 0 14 16" fill="none">
+            <path d="M7 0.5 C7 0.5 13 3 13 8 C13 11.5 10.5 14 7 14 C3.5 14 1 11.5 1 8 C1 3 7 0.5 7 0.5Z"
+              fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M7 0.5 L7 14" stroke="rgba(255,255,255,0.3)" stroke-width="0.7"/>
+            <path d="M1 10.5 Q4 8 7 9 Q10 10 13 6.5"
+              stroke="#C5A84F" stroke-width="1.2" fill="none" opacity="0.9" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="logo-text">Flow<span>ra</span></div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a class="nav-item active" data-page="dashboard">
+          <svg class="nav-icon" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          ホーム
+        </a>
+        <a class="nav-item" data-page="records">
+          <svg class="nav-icon" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          記録一覧
+        </a>
+        <a class="nav-item" data-page="accounts">
+          <svg class="nav-icon" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          口座管理
+        </a>
+        <a class="nav-item" data-page="settings">
+          <svg class="nav-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          設定
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="user-row" id="sidebar-user">
+          <div class="avatar" id="user-avatar">?</div>
+          <div class="user-info">
+            <div class="user-name" id="user-name">読み込み中…</div>
+            <div class="user-team" id="user-team">—</div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- メインコンテンツ -->
+    <div id="main">
+
+      <!-- モバイルヘッダー -->
+      <header id="mobile-header">
+        <div class="mh-row">
+          <div class="mobile-logo">Flow<span>ra</span></div>
+          <div class="mh-right">
+            <div class="avatar sm" id="mobile-avatar">?</div>
+          </div>
+        </div>
+        <div class="mh-month-row">
+          <button class="mnav-btn" id="btn-month-prev">
+            <svg viewBox="0 0 24 24" width="14" height="14"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <span id="mobile-month-label">—</span>
+          <button class="mnav-btn" id="btn-month-next">
+            <svg viewBox="0 0 24 24" width="14" height="14"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- デスクトップトップバー -->
+      <div id="topbar">
+        <div class="topbar-title" id="topbar-title">ホーム</div>
+        <div class="topbar-right">
+          <div class="month-nav">
+            <button class="mnav-btn" id="btn-month-prev-d">
+              <svg viewBox="0 0 24 24" width="13" height="13"><polyline points="15 18 9 12 15 6"/></svg>
+            </button>
+            <span id="desktop-month-label">—</span>
+            <button class="mnav-btn" id="btn-month-next-d">
+              <svg viewBox="0 0 24 24" width="13" height="13"><polyline points="9 18 15 12 9 6"/></svg>
+            </button>
+          </div>
+          <button class="btn-add" id="btn-add-desktop">
+            <svg viewBox="0 0 24 24" width="14" height="14"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            記録を追加
+          </button>
+        </div>
+      </div>
+
+      <!-- 画面コンテンツ -->
+      <div id="page-content"></div>
+    </div>
+
+    <!-- ボトムナビ（モバイル） -->
+    <nav id="bottom-nav">
+      <div class="b-tab active" data-page="dashboard">
+        <svg viewBox="0 0 24 24" class="b-icon"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>ホーム</span>
+      </div>
+      <div class="b-tab" data-page="records">
+        <svg viewBox="0 0 24 24" class="b-icon"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        <span>記録</span>
+      </div>
+      <div class="b-tab-plus" id="btn-add-mobile">
+        <svg viewBox="0 0 24 24" width="22" height="22"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+      <div class="b-tab" data-page="accounts">
+        <svg viewBox="0 0 24 24" class="b-icon"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        <span>口座</span>
+      </div>
+      <div class="b-tab" data-page="settings">
+        <svg viewBox="0 0 24 24" class="b-icon"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>設定</span>
+      </div>
+    </nav>
+
+    <!-- 記録追加モーダル -->
+    <div id="modal-overlay" hidden>
+      <div id="modal-add-record">
+        <div class="modal-handle"></div>
+        <div id="modal-content"></div>
+      </div>
+    </div>
+
+  </div><!-- /#app -->
+
+  <!-- ローディング -->
+  <div id="loading">
+    <div class="loading-logo">
+      <svg width="36" height="40" viewBox="0 0 36 40" fill="none">
+        <path d="M18 1 C18 1 34 7 34 18 C34 26 28 32 18 32 C8 32 2 26 2 18 C2 7 18 1 18 1Z"
+          fill="rgba(74,124,89,0.2)" stroke="#4A7C59" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M18 1 L18 32" stroke="rgba(74,124,89,0.3)" stroke-width="1"/>
+        <path d="M2 25 Q9 19 18 21 Q27 23 34 15"
+          stroke="#C5A84F" stroke-width="2" fill="none" opacity="0.9" stroke-linecap="round"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- アプリJS（モジュール順） -->
+  <script type="module" src="js/config.js"></script>
+  <script type="module" src="js/auth.js"></script>
+  <script type="module" src="js/db.js"></script>
+  <script type="module" src="js/router.js"></script>
+  <script type="module" src="js/dashboard.js"></script>
+  <script type="module" src="js/add-record.js"></script>
+  <script type="module" src="js/accounts.js"></script>
+  <script type="module" src="js/settings.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
