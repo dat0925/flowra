@@ -2,7 +2,7 @@
 //  add-record.js  記録追加モーダル
 // ─────────────────────────────────────
 import { DB }        from './db.js';
-import { openModal, closeModal, showToast } from './app.js';
+import { openModal, closeModal, showToast } from './utils.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
