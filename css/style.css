@@ -67,7 +67,7 @@ svg {
   z-index: 9999;
   transition: opacity 0.3s;
 }
-#loading.hide { opacity: 0; pointer-events: none; }
+#loading.hide { opacity: 0; pointer-events: none; display: none; }
 
 .loading-logo svg {
   animation: pulse 2s ease-in-out infinite;
