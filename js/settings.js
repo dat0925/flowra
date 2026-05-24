@@ -3,7 +3,7 @@
 // ─────────────────────────────────────
 import { Auth } from './auth.js';
 import { DB }   from './db.js';
-import { showToast } from './app.js';
+import { showToast } from './utils.js';
 
 export async function renderSettings() {
   const content = document.getElementById('page-content');
