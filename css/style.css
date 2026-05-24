@@ -42,6 +42,9 @@ body {
   overflow-x: hidden;
 }
 
+/* hidden属性を確実に適用（display:flexより優先） */
+[hidden] { display: none !important; }
+
 a { text-decoration: none; color: inherit; }
 button { font-family: inherit; cursor: pointer; }
 
