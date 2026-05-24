@@ -47,84 +47,83 @@ document.getElementById('modal-overlay')?.addEventListener('click', e => {
   if (e.target.id === 'modal-overlay') closeModal();
 });
 
+// ── ローディング非表示ユーティリティ ──
+function hideLoading() {
+  const loading = document.getElementById('loading');
+  if (!loading) return;
+  loading.classList.add('hide');
+  setTimeout(() => loading.remove(), 400);
+}
+
 // ── 初期化 ──────────────────────────
 async function init() {
-  const loading = document.getElementById('loading');
+  try {
+    const session = await Auth.getSession();
 
-  // 認証状態を確認
-  const session = await Auth.getSession();
+    if (!session) {
+      hideLoading();
+      document.getElementById('screen-login').hidden = false;
+      document.getElementById('btn-google-login')?.addEventListener('click', () => {
+        Auth.signInWithGoogle();
+      });
+      return;
+    }
 
-  if (!session) {
-    // 未ログイン → ログイン画面
-    loading.classList.add('hide');
-    setTimeout(() => loading.remove(), 400);
+    // ログイン済み → アプリ表示
+    showApp(session.user);
+    hideLoading();
+
+  } catch (e) {
+    console.error('init error:', e);
+    // エラーが起きてもローディングは必ず消す
+    hideLoading();
     document.getElementById('screen-login').hidden = false;
-
     document.getElementById('btn-google-login')?.addEventListener('click', () => {
       Auth.signInWithGoogle();
     });
-    return;
   }
-
-  // ログイン済み → アプリ表示
-  const user = session.user;
-  showApp(user);
-
-  loading.classList.add('hide');
-  setTimeout(() => loading.remove(), 400);
 }
 
 function showApp(user) {
   document.getElementById('screen-login').hidden = true;
   document.getElementById('app').hidden = false;
 
-  // ユーザー情報をUIに反映
   const initial = Auth.getInitial(user);
   const name    = Auth.getDisplayName(user);
   document.getElementById('user-avatar').textContent    = initial;
   document.getElementById('mobile-avatar').textContent  = initial;
   document.getElementById('user-name').textContent      = name;
 
-  // 月変更時にダッシュボードを再描画
   MonthState.onChange(() => {
     if (Router.currentPage === 'dashboard') renderDashboard();
-    if (Router.currentPage === 'records')   {
-      // records も再描画
-      Router.navigate('records');
-    }
+    if (Router.currentPage === 'records')   Router.navigate('records');
   });
 
-  // 画面ハンドラ登録
   Router.register('dashboard', renderDashboard);
   Router.register('accounts',  renderAccounts);
   Router.register('settings',  renderSettings);
   Router.register('records', async () => {
-    // 記録一覧は dashboard に統合（後で分離可）
     renderDashboard();
   });
 
-  // ナビ初期化
   Router.init();
 
-  // 追加ボタン
   const openAdd = () => {
     renderAddRecord(() => {
       closeModal();
       showToast('✓ 記録を保存しました');
-      renderDashboard(); // 保存後にダッシュボード更新
+      renderDashboard();
     });
   };
   document.getElementById('btn-add-desktop')?.addEventListener('click', openAdd);
   document.getElementById('btn-add-mobile')?.addEventListener('click', openAdd);
 
-  // 初期画面
   Router.navigate('dashboard');
 }
 
 // 認証状態変化を監視
 Auth.onAuthStateChange((event, session) => {
   if (event === 'SIGNED_IN' && session) {
-    // OAuthリダイレクト後のリロード
     window.location.reload();
   }
 });
