@@ -6,7 +6,7 @@
 // SUPABASE_URL      : Project URL
 // SUPABASE_ANON_KEY : anon / public key
 //
-const SUPABASE_URL      = 'YOUR_SUPABASE_URL';
+const SUPABASE_URL      = 'https://copyzpsyagscqrvkrwjo.supabase.co';
 const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
 
 export const supabase = window.supabase.createClient(
