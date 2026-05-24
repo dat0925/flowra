@@ -7,47 +7,11 @@ import { renderDashboard }    from './dashboard.js';
 import { renderAddRecord }    from './add-record.js';
 import { renderAccounts }     from './accounts.js';
 import { renderSettings }     from './settings.js';
+import { fmt, showToast, openModal, closeModal } from './utils.js';
 
-// ── ユーティリティ ──────────────────
-export function fmt(amount) {
-  return Number(amount).toLocaleString('ja-JP');
-}
+export { fmt, showToast, openModal, closeModal };
 
-export function showToast(msg, duration = 2500) {
-  let toast = document.getElementById('toast');
-  if (!toast) {
-    toast = document.createElement('div');
-    toast.id = 'toast';
-    toast.className = 'toast';
-    document.body.appendChild(toast);
-  }
-  toast.textContent = msg;
-  toast.classList.add('show');
-  clearTimeout(toast._timer);
-  toast._timer = setTimeout(() => toast.classList.remove('show'), duration);
-}
-
-// ── モーダル ────────────────────────
-export function openModal(contentHTML) {
-  const overlay = document.getElementById('modal-overlay');
-  const content = document.getElementById('modal-content');
-  content.innerHTML = contentHTML;
-  overlay.hidden = false;
-  document.body.style.overflow = 'hidden';
-}
-
-export function closeModal() {
-  const overlay = document.getElementById('modal-overlay');
-  overlay.hidden = true;
-  document.body.style.overflow = '';
-}
-
-// モーダル外クリックで閉じる
-document.getElementById('modal-overlay')?.addEventListener('click', e => {
-  if (e.target.id === 'modal-overlay') closeModal();
-});
-
-// ── ローディング非表示ユーティリティ ──
+// ── ローディング非表示 ──────────────
 function hideLoading() {
   const loading = document.getElementById('loading');
   if (!loading) return;
@@ -69,13 +33,11 @@ async function init() {
       return;
     }
 
-    // ログイン済み → アプリ表示
     showApp(session.user);
     hideLoading();
 
   } catch (e) {
     console.error('init error:', e);
-    // エラーが起きてもローディングは必ず消す
     hideLoading();
     document.getElementById('screen-login').hidden = false;
     document.getElementById('btn-google-login')?.addEventListener('click', () => {
@@ -90,9 +52,9 @@ function showApp(user) {
 
   const initial = Auth.getInitial(user);
   const name    = Auth.getDisplayName(user);
-  document.getElementById('user-avatar').textContent    = initial;
-  document.getElementById('mobile-avatar').textContent  = initial;
-  document.getElementById('user-name').textContent      = name;
+  document.getElementById('user-avatar').textContent   = initial;
+  document.getElementById('mobile-avatar').textContent = initial;
+  document.getElementById('user-name').textContent     = name;
 
   MonthState.onChange(() => {
     if (Router.currentPage === 'dashboard') renderDashboard();
@@ -102,9 +64,7 @@ function showApp(user) {
   Router.register('dashboard', renderDashboard);
   Router.register('accounts',  renderAccounts);
   Router.register('settings',  renderSettings);
-  Router.register('records', async () => {
-    renderDashboard();
-  });
+  Router.register('records', () => { renderDashboard(); });
 
   Router.init();
 
@@ -120,6 +80,11 @@ function showApp(user) {
 
   Router.navigate('dashboard');
 }
+
+// モーダル外クリックで閉じる
+document.getElementById('modal-overlay')?.addEventListener('click', e => {
+  if (e.target.id === 'modal-overlay') closeModal();
+});
 
 // 認証状態変化を監視
 Auth.onAuthStateChange((event, session) => {
