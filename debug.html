@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>Debug</title></head>
+<body>
+<h1>Debug</h1>
+<div id="log"></div>
+<script type="module">
+  const log = (msg) => {
+    document.getElementById('log').innerHTML += '<p>' + msg + '</p>';
+    console.log(msg);
+  };
+  log('1. module script started');
+  try {
+    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    log('2. supabase imported OK');
+    const sb = createClient('https://copyzpsyagscqrvkrwjo.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcHl6cHN5YWdzY3Fydmtyd2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MTI4NTEsImV4cCI6MjA5NTE4ODg1MX0.4g0Rzo4TyM0NPWF53swUWhLD4nDYMSOD7KB9ZBW80Kc');
+    log('3. client created OK');
+    const { data: { session } } = await sb.auth.getSession();
+    log('4. getSession OK: ' + (session ? 'logged in' : 'not logged in'));
+  } catch(e) {
+    log('ERROR: ' + e.message);
+  }
+</script>
+</body>
+</html>
