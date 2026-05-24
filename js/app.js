@@ -1,3 +1,13 @@
+// ローディングを即座に非表示（モジュール読み込み完了時）
+window.addEventListener('DOMContentLoaded', () => {}, false);
+document.addEventListener('DOMContentLoaded', () => {
+  // フォールバック：3秒後に強制的にローディングを消す
+  setTimeout(() => {
+    const l = document.getElementById('loading');
+    if (l) { l.style.display = 'none'; }
+  }, 3000);
+});
+
 // ─────────────────────────────────────
 //  app.js  エントリーポイント
 // ─────────────────────────────────────
