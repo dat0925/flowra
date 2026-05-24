@@ -3,7 +3,7 @@
 // ─────────────────────────────────────
 import { DB }         from './db.js';
 import { MonthState } from './router.js';
-import { fmt }        from './app.js';
+import { fmt }        from './utils.js';
 
 // 口座タイプ別アイコン・カラー
 const ACCT_ICON = {
