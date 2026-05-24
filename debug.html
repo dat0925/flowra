@@ -1,24 +1,43 @@
 <!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8"><title>Debug</title></head>
+<head><meta charset="UTF-8"><title>Debug2</title></head>
 <body>
-<h1>Debug</h1>
+<h1>Debug2 - Import Test</h1>
 <div id="log"></div>
 <script type="module">
-  const log = (msg) => {
-    document.getElementById('log').innerHTML += '<p>' + msg + '</p>';
-    console.log(msg);
+  const log = (msg, color='black') => {
+    document.getElementById('log').innerHTML += `<p style="color:${color}">${msg}</p>`;
   };
-  log('1. module script started');
+  log('start');
   try {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
-    log('2. supabase imported OK');
-    const sb = createClient('https://copyzpsyagscqrvkrwjo.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcHl6cHN5YWdzY3Fydmtyd2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MTI4NTEsImV4cCI6MjA5NTE4ODg1MX0.4g0Rzo4TyM0NPWF53swUWhLD4nDYMSOD7KB9ZBW80Kc');
-    log('3. client created OK');
-    const { data: { session } } = await sb.auth.getSession();
-    log('4. getSession OK: ' + (session ? 'logged in' : 'not logged in'));
+    log('importing auth...');
+    const { Auth } = await import('./js/auth.js');
+    log('auth OK', 'green');
+    
+    log('importing router...');
+    const { Router } = await import('./js/router.js');
+    log('router OK', 'green');
+
+    log('importing dashboard...');
+    const { renderDashboard } = await import('./js/dashboard.js');
+    log('dashboard OK', 'green');
+
+    log('importing add-record...');
+    const { renderAddRecord } = await import('./js/add-record.js');
+    log('add-record OK', 'green');
+
+    log('importing accounts...');
+    const { renderAccounts } = await import('./js/accounts.js');
+    log('accounts OK', 'green');
+
+    log('importing settings...');
+    const { renderSettings } = await import('./js/settings.js');
+    log('settings OK', 'green');
+
+    log('ALL IMPORTS OK!', 'blue');
   } catch(e) {
-    log('ERROR: ' + e.message);
+    log('ERROR: ' + e.message, 'red');
+    log('Stack: ' + e.stack, 'red');
   }
 </script>
 </body>
