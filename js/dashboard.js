@@ -140,7 +140,7 @@ function renderContent(content, accounts, transactions, year, month, fromCache =
     <div class="summary-row">
       <div class="s-card total">
         <div class="s-card-label">総残高</div>
-        <div class="s-amount"><span class="s-currency">¥</span><span class="s-number">${fmt(total)}</span></div>
+        <div class="s-amount">${total < 0 ? '<span class="s-currency" style="color:rgba(255,255,255,0.5)">−¥</span><span class="s-number">' + fmt(Math.abs(total)) + '</span>' : '<span class="s-currency">¥</span><span class="s-number">' + fmt(total) + '</span>'}</div>
         <div class="s-sub">全口座合計${fromCache ? ' <span style="font-size:10px;opacity:0.4;">●</span>' : ''}</div>
       </div>
       <div class="s-card income-card">
@@ -169,7 +169,7 @@ function renderContent(content, accounts, transactions, year, month, fromCache =
           </div>
         </div>
         <div class="acct-balance" style="color:${a.balance<0?'var(--red)':'var(--ink)'}">
-          <span class="acct-balance-cur">¥</span>${fmt(Math.abs(a.balance))}
+          ${a.balance < 0 ? '<span class="acct-balance-cur" style="color:var(--red)">−¥</span>' : '<span class="acct-balance-cur">¥</span>'}${fmt(Math.abs(a.balance))}
         </div>
       </div>`).join('');
 

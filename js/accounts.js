@@ -81,7 +81,7 @@ export async function renderAccounts() {
         </div>
         <div style="display:flex;align-items:center;gap:10px;">
           <div class="acct-balance" style="color:${a.balance<0?'var(--red)':'var(--ink)'}">
-            <span class="acct-balance-cur">¥</span>${fmt(Math.abs(a.balance))}
+            ${a.balance < 0 ? '<span class="acct-balance-cur">−¥</span>' : '<span class="acct-balance-cur">¥</span>'}${fmt(Math.abs(a.balance))}
           </div>
           <button class="btn-acct-edit" data-id="${a.id}"
             style="width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--warm);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--mid);flex-shrink:0;">
