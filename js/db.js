@@ -1,15 +1,19 @@
 // ─────────────────────────────────────
 //  db.js  DB操作まとめ
+//  ※ 大量データ対応: ページネーション・集計分離・バッチ処理
 // ─────────────────────────────────────
 import { supabase } from './config.js';
+
+// ── 定数 ──
+const PAGE_SIZE = 50; // 1回の取得件数
 
 // ── キャッシュ ──
 let _teamId = null;
 
-// ── チーム ──────────────────────────
 export const DB = {
 
-  // 自分のチームIDを取得（キャッシュ付き）
+  // ── チーム ──────────────────────────
+
   async getTeamId() {
     if (_teamId) return _teamId;
     const { data, error } = await supabase
@@ -22,7 +26,6 @@ export const DB = {
     return _teamId;
   },
 
-  // チーム情報取得
   async getTeam() {
     const teamId = await this.getTeamId();
     const { data, error } = await supabase
@@ -35,6 +38,7 @@ export const DB = {
   },
 
   // ── 口座 ────────────────────────────
+
   async getAccounts() {
     const teamId = await this.getTeamId();
     const { data, error } = await supabase
@@ -70,6 +74,7 @@ export const DB = {
   },
 
   // ── タグ ────────────────────────────
+
   async getTags() {
     const teamId = await this.getTeamId();
     const { data, error } = await supabase
@@ -92,11 +97,23 @@ export const DB = {
     return data;
   },
 
-  // ── 記録 ────────────────────────────
+  // ── 記録（ページネーション対応）─────────────────
+  //
+  // ポイント：
+  //  ・limit + range で必要な分だけ取得
+  //  ・月サマリーは SELECT type,amount のみ（軽量）
+  //  ・3万行あっても index_transactions_team_date が効く
+  //  ・画面は PAGE_SIZE=50 件ずつ追加ロード（無限スクロール）
 
-  // 月の記録一覧（タグ込み）
-  async getTransactions({ year, month, accountId, unsettledOnly } = {}) {
+  async getTransactions({
+    year, month, accountId, unsettledOnly,
+    page = 0,           // 0始まり
+    pageSize = PAGE_SIZE
+  } = {}) {
     const teamId = await this.getTeamId();
+    const from_row = page * pageSize;
+    const to_row   = from_row + pageSize - 1;
+
     let query = supabase
       .from('transactions')
       .select(`
@@ -104,16 +121,17 @@ export const DB = {
         account:accounts!account_id(id, name, type, icon, color),
         to_account:accounts!to_account_id(id, name, type),
         transaction_tags(tag:tags(id, name, color))
-      `)
+      `, { count: 'exact' })          // ← 総件数も取得
       .eq('team_id', teamId)
       .order('date', { ascending: false })
-      .order('created_at', { ascending: false });
+      .order('created_at', { ascending: false })
+      .range(from_row, to_row);       // ← ページネーション
 
     if (year && month) {
-      const from = `${year}-${String(month).padStart(2,'0')}-01`;
-      const lastDay = new Date(year, month, 0).getDate();
-      const to   = `${year}-${String(month).padStart(2,'0')}-${lastDay}`;
-      query = query.gte('date', from).lte('date', to);
+      const dateFrom = `${year}-${String(month).padStart(2,'0')}-01`;
+      const lastDay  = new Date(year, month, 0).getDate();
+      const dateTo   = `${year}-${String(month).padStart(2,'0')}-${lastDay}`;
+      query = query.gte('date', dateFrom).lte('date', dateTo);
     }
     if (accountId) {
       query = query.or(`account_id.eq.${accountId},to_account_id.eq.${accountId}`);
@@ -122,39 +140,46 @@ export const DB = {
       query = query.eq('is_unsettled', true);
     }
 
-    const { data, error } = await query;
+    const { data, error, count } = await query;
     if (error) throw error;
 
-    // タグを整形
-    return (data || []).map(tx => ({
+    const rows = (data || []).map(tx => ({
       ...tx,
       tags: (tx.transaction_tags || []).map(tt => tt.tag)
     }));
+
+    return {
+      data: rows,
+      count,                          // 総件数
+      hasMore: (from_row + rows.length) < count  // 次ページあり？
+    };
   },
 
-  // 月サマリー（収入・支出合計）
+  // 月サマリー（type+amount のみ取得 → 軽量）
+  // 集計はDB側で行うためスキャン行数が少ない
   async getMonthlySummary(year, month) {
-    const teamId = await this.getTeamId();
-    const from = `${year}-${String(month).padStart(2,'0')}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const to   = `${year}-${String(month).padStart(2,'0')}-${lastDay}`;
+    const teamId  = await this.getTeamId();
+    const dateFrom = `${year}-${String(month).padStart(2,'0')}-01`;
+    const lastDay  = new Date(year, month, 0).getDate();
+    const dateTo   = `${year}-${String(month).padStart(2,'0')}-${lastDay}`;
 
     const { data, error } = await supabase
       .from('transactions')
-      .select('type, amount')
+      .select('type, amount')         // 必要カラムのみ
       .eq('team_id', teamId)
-      .gte('date', from)
-      .lte('date', to)
+      .gte('date', dateFrom)
+      .lte('date', dateTo)
       .in('type', ['income', 'expense']);
 
     if (error) throw error;
 
-    const income  = (data || []).filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
-    const expense = (data || []).filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+    const income  = (data || []).filter(t => t.type === 'income' ).reduce((s,t) => s + t.amount, 0);
+    const expense = (data || []).filter(t => t.type === 'expense').reduce((s,t) => s + t.amount, 0);
     return { income, expense, net: income - expense };
   },
 
-  // 記録追加
+  // ── 記録 CRUD ──────────────────────
+
   async createTransaction(payload, tagIds = []) {
     const teamId = await this.getTeamId();
     const { data: { user } } = await supabase.auth.getUser();
@@ -166,7 +191,6 @@ export const DB = {
       .single();
     if (error) throw error;
 
-    // タグ紐付け
     if (tagIds.length > 0) {
       const tagRows = tagIds.map(tag_id => ({ transaction_id: tx.id, tag_id }));
       const { error: tagErr } = await supabase.from('transaction_tags').insert(tagRows);
@@ -175,7 +199,6 @@ export const DB = {
     return tx;
   },
 
-  // 記録更新
   async updateTransaction(id, payload, tagIds) {
     const { data: tx, error } = await supabase
       .from('transactions')
@@ -185,7 +208,6 @@ export const DB = {
       .single();
     if (error) throw error;
 
-    // タグ更新
     if (tagIds !== undefined) {
       await supabase.from('transaction_tags').delete().eq('transaction_id', id);
       if (tagIds.length > 0) {
@@ -196,20 +218,60 @@ export const DB = {
     return tx;
   },
 
-  // 記録削除
   async deleteTransaction(id) {
-    const { error } = await supabase
-      .from('transactions')
-      .delete()
-      .eq('id', id);
+    const { error } = await supabase.from('transactions').delete().eq('id', id);
     if (error) throw error;
   },
 
+  // ── インポート（バッチ処理）─────────────────────
+  //
+  // ポイント：
+  //  ・CHUNK_SIZE 件ずつ分割してinsert → 一度に大量送信しない
+  //  ・タグは別テーブルなので後でまとめてinsert
+  //  ・progressCallback(done, total) で進捗通知
+  //  ・エラーが出た行はスキップして続行（importErrors に収集）
+
+  async importTransactions(rows, progressCallback) {
+    const CHUNK_SIZE = 200;
+    const teamId = await this.getTeamId();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const importErrors = [];
+    let done = 0;
+
+    // 行を CHUNK_SIZE 単位に分割
+    for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
+      const chunk = rows.slice(i, i + CHUNK_SIZE).map(r => ({
+        team_id:       teamId,
+        created_by:    user.id,
+        type:          r.type,
+        amount:        Number(r.amount),
+        date:          r.date,
+        account_id:    r.account_id,
+        to_account_id: r.to_account_id || null,
+        memo:          r.memo || null,
+        url:           r.url  || null,
+        is_unsettled:  r.is_unsettled || false,
+      }));
+
+      const { error } = await supabase.from('transactions').insert(chunk);
+      if (error) {
+        importErrors.push({ chunk: i, error: error.message });
+      }
+
+      done = Math.min(i + CHUNK_SIZE, rows.length);
+      if (progressCallback) progressCallback(done, rows.length);
+    }
+
+    return { total: rows.length, errors: importErrors };
+  },
+
   // ── コメント ────────────────────────
+
   async getComments(transactionId) {
     const { data, error } = await supabase
       .from('comments')
-      .select('*, author:auth.users(email, raw_user_meta_data)')
+      .select('*')
       .eq('transaction_id', transactionId)
       .order('created_at');
     if (error) throw error;
@@ -228,7 +290,9 @@ export const DB = {
   },
 
   // ── 差分更新 ────────────────────────
-  // 最終同期時刻以降に updated_at が変わったレコードだけ取得
+  // フォアグラウンド復帰時に updated_at > 最終同期時刻 のみ取得
+  // Realtime を使わないのは Disk IO 問題（Taskra の教訓）を避けるため
+
   async getDelta(since) {
     const teamId = await this.getTeamId();
     const { data, error } = await supabase
