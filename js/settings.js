@@ -1,7 +1,8 @@
 // ─────────────────────────────────────
 //  settings.js  設定画面
 // ─────────────────────────────────────
-import { Auth } from './auth.js';
+import { Auth }  from './auth.js';
+import { Sound } from './sound.js';
 import { DB }   from './db.js';
 import { showToast } from './utils.js';
 
@@ -69,6 +70,29 @@ export async function renderSettings() {
         </div>
       </div>
 
+      <!-- サウンド設定 -->
+      <div class="panel" style="margin-bottom:16px;">
+        <div class="panel-head"><div class="panel-title">アプリ設定</div></div>
+        <div class="toggle-wrap">
+          <div class="toggle-left">
+            <div class="row-icon" style="background:var(--sage-bg);">
+              <svg viewBox="0 0 24 24" style="stroke:var(--sage);width:15px;height:15px;">
+                <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+              </svg>
+            </div>
+            <div>
+              <div class="toggle-title">SE音</div>
+              <div class="toggle-sub">記録保存時の効果音</div>
+            </div>
+          </div>
+          <div class="toggle ${Sound.isEnabled() ? 'on' : ''}" id="toggle-sound">
+            <div class="toggle-knob"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- バージョン情報 -->
       <div style="text-align:center;font-size:11px;color:var(--mid-lt);margin-top:24px;">
         Flowra v0.1.0 — Supabase + PWA
@@ -83,6 +107,14 @@ export async function renderSettings() {
     document.getElementById('btn-copy-invite')?.addEventListener('click', () => {
       navigator.clipboard.writeText(window.location.origin + '?invite=' + (team?.id || ''))
         .then(() => showToast('招待リンクをコピーしました'));
+    });
+
+    // サウンドトグル
+    document.getElementById('toggle-sound')?.addEventListener('click', function() {
+      const newVal = !Sound.isEnabled();
+      Sound.setEnabled(newVal);
+      this.classList.toggle('on', newVal);
+      if (newVal) Sound.playTap(); // ONにした瞬間に音を鳴らす
     });
 
     // タグ追加

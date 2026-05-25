@@ -2,6 +2,7 @@
 //  add-record.js  記録追加モーダル
 // ─────────────────────────────────────
 import { DB }        from './db.js';
+import { Sound }     from './sound.js';
 import { openModal, closeModal, showToast } from './utils.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -274,6 +275,7 @@ export async function renderAddRecord(onSave) {
         is_unsettled:  state.isUnsettled,
       };
       await DB.createTransaction(payload, [...state.selectedTags]);
+      Sound.playSave();
       if (onSave) onSave();
     } catch (err) {
       showToast('エラー: ' + err.message);
