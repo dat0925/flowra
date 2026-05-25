@@ -11,6 +11,8 @@ export const supabase = window.supabase.createClient(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
+      detectSessionInUrl: true,
+      storageKey: 'flowra-auth',
     }
   }
 );

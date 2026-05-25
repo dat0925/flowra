@@ -36,10 +36,19 @@ async function init() {
     Auth.signInWithGoogle();
   });
 
-  // onAuthStateChange を主軸にする（OAuthコールバックのハッシュ処理後に確実に発火）
+  // OAuthコールバック（URLにcode or access_tokenが含まれる場合）は
+  // onAuthStateChange の SIGNED_IN イベントを待つ
+  const isOAuthCallback =
+    window.location.hash.includes('access_token') ||
+    window.location.search.includes('code=');
+
+  // onAuthStateChange を主軸にする
   Auth.onAuthStateChange((event, session) => {
     if (session) {
-      // ログイン済み or OAuth コールバック後
+      // URLからOAuthパラメータを消す（ブラウザ履歴を汚さない）
+      if (isOAuthCallback) {
+        history.replaceState(null, '', window.location.pathname);
+      }
       document.getElementById('screen-login').hidden = true;
       showApp(session.user);
       hideLoading();
@@ -50,16 +59,17 @@ async function init() {
     }
   });
 
-  // 初回: すでにセッションがあれば即反映（onAuthStateChangeが発火しない場合のフォールバック）
+  // OAuthコールバック中は onAuthStateChange の発火を待つ（ここでは何もしない）
+  if (isOAuthCallback) return;
+
+  // 通常ページロード: すでにセッションがあれば即反映
   try {
     const session = await Auth.getSession();
     if (session) {
       document.getElementById('screen-login').hidden = true;
       showApp(session.user);
       hideLoading();
-    } else if (!window.location.hash.includes('access_token')) {
-      // OAuthコールバックでない場合のみログイン画面を表示
-      // （access_tokenがある場合はonAuthStateChangeの発火を待つ）
+    } else {
       hideLoading();
       document.getElementById('screen-login').hidden = false;
     }
