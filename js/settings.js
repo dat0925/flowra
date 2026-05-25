@@ -84,7 +84,7 @@ export async function renderSettings() {
             </div>
             <div>
               <div class="toggle-title">SE音</div>
-              <div class="toggle-sub">記録保存時の効果音</div>
+              <div class="toggle-sub">保存・操作時の効果音</div>
             </div>
           </div>
           <div class="toggle ${Sound.isEnabled() ? 'on' : ''}" id="toggle-sound">

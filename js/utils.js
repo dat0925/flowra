@@ -1,6 +1,7 @@
 // ─────────────────────────────────────
 //  utils.js  共通ユーティリティ
 // ─────────────────────────────────────
+import { Sound } from './sound.js';
 
 export function fmt(amount) {
   return Number(amount).toLocaleString('ja-JP');
@@ -26,10 +27,12 @@ export function openModal(contentHTML) {
   content.innerHTML = contentHTML;
   overlay.hidden = false;
   document.body.style.overflow = 'hidden';
+  Sound.playOpen();  // モーダルを開く音
 }
 
 export function closeModal() {
   const overlay = document.getElementById('modal-overlay');
   overlay.hidden = true;
   document.body.style.overflow = '';
+  Sound.playClose(); // モーダルを閉じる音
 }

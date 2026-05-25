@@ -1,6 +1,7 @@
 // ─────────────────────────────────────
 //  router.js  画面遷移・月ナビ
 // ─────────────────────────────────────
+import { Sound } from './sound.js';
 
 // 現在の月（グローバル状態）
 export const MonthState = {
@@ -47,6 +48,7 @@ export const Router = {
   // 画面遷移
   navigate(page) {
     this.currentPage = page;
+    Sound.playTap(); // 画面遷移音
 
     // サイドバーのアクティブ状態
     document.querySelectorAll('.nav-item').forEach(el => {

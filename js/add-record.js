@@ -297,6 +297,7 @@ export async function renderAddRecord(onSave) {
           state.selectedTags.add(id);
           chip.className = 'tag-chip on';
         }
+        Sound.playTap();
       });
     });
 
@@ -304,6 +305,7 @@ export async function renderAddRecord(onSave) {
     document.getElementById('toggle-unsettled')?.addEventListener('click', function() {
       state.isUnsettled = !state.isUnsettled;
       this.classList.toggle('on', state.isUnsettled);
+      Sound.playTap();
     });
 
     // 保存
