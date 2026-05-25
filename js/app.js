@@ -8,6 +8,7 @@ import { renderAddRecord }    from './add-record.js';
 import { renderAccounts }     from './accounts.js';
 import { renderSettings }     from './settings.js';
 import { fmt, showToast, openModal, closeModal } from './utils.js';
+import { renderRecords }     from './records.js';
 
 export { fmt, showToast, openModal, closeModal };
 
