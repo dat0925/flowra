@@ -104,6 +104,11 @@ svg {
   gap: 12px;
   margin-bottom: 16px;
 }
+.login-logo-img {
+  width: 56px; height: 56px;
+  border-radius: 14px;
+  object-fit: cover;
+}
 .login-logo-mark {
   width: 48px; height: 48px;
   background: var(--sage);
