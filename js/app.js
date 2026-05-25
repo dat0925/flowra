@@ -1,13 +1,3 @@
-// ローディングを即座に非表示（モジュール読み込み完了時）
-window.addEventListener('DOMContentLoaded', () => {}, false);
-document.addEventListener('DOMContentLoaded', () => {
-  // フォールバック：3秒後に強制的にローディングを消す
-  setTimeout(() => {
-    const l = document.getElementById('loading');
-    if (l) { l.style.display = 'none'; }
-  }, 3000);
-});
-
 // ─────────────────────────────────────
 //  app.js  エントリーポイント
 // ─────────────────────────────────────
@@ -29,54 +19,64 @@ function hideLoading() {
   setTimeout(() => loading.remove(), 400);
 }
 
+// ── ログイン画面を表示 ──────────────
+function showLogin() {
+  hideLoading();
+  document.getElementById('screen-login').hidden = false;
+}
+
 // ── 初期化 ──────────────────────────
 async function init() {
-  // ログインボタンは最初にバインドしておく
+  // ログインボタンのバインド
   document.getElementById('btn-google-login')?.addEventListener('click', () => {
     Auth.signInWithGoogle();
   });
 
-  // OAuthコールバック（URLにcode or access_tokenが含まれる場合）は
-  // onAuthStateChange の SIGNED_IN イベントを待つ
+  // PKCEコールバック判定（?code= がURLにある場合）
   const isOAuthCallback =
     window.location.hash.includes('access_token') ||
     window.location.search.includes('code=');
 
   // onAuthStateChange を主軸にする
+  // SIGNED_IN はOAuthコールバック後・セッション復元時どちらでも発火する
   Auth.onAuthStateChange((event, session) => {
-    if (session) {
-      // URLからOAuthパラメータを消す（ブラウザ履歴を汚さない）
-      if (isOAuthCallback) {
+    console.log('[Auth] event:', event, 'session:', !!session);
+
+    if (event === 'SIGNED_IN' && session) {
+      // OAuthパラメータをURLから除去
+      if (window.location.search.includes('code=') || window.location.hash.includes('access_token')) {
         history.replaceState(null, '', window.location.pathname);
       }
-      document.getElementById('screen-login').hidden = true;
       showApp(session.user);
       hideLoading();
-    } else {
-      // 未ログイン or ログアウト後
-      hideLoading();
-      document.getElementById('screen-login').hidden = false;
+    } else if (event === 'SIGNED_OUT') {
+      showLogin();
     }
   });
 
-  // OAuthコールバック中は onAuthStateChange の発火を待つ（ここでは何もしない）
-  if (isOAuthCallback) return;
+  // OAuthコールバック中はSupabaseがURLのcodeを処理するのを待つ
+  // → onAuthStateChange の SIGNED_IN が発火するので何もしない
+  if (isOAuthCallback) {
+    console.log('[Auth] OAuth callback detected, waiting for SIGNED_IN...');
+    // タイムアウト保険: 10秒以内にSIGNED_INが来なければログイン画面へ
+    setTimeout(() => {
+      if (!_appInitialized) showLogin();
+    }, 10000);
+    return;
+  }
 
-  // 通常ページロード: すでにセッションがあれば即反映
+  // 通常ページロード: 既存セッションを確認
   try {
     const session = await Auth.getSession();
     if (session) {
-      document.getElementById('screen-login').hidden = true;
       showApp(session.user);
       hideLoading();
     } else {
-      hideLoading();
-      document.getElementById('screen-login').hidden = false;
+      showLogin();
     }
   } catch (e) {
     console.error('init error:', e);
-    hideLoading();
-    document.getElementById('screen-login').hidden = false;
+    showLogin();
   }
 }
 
@@ -84,6 +84,7 @@ let _appInitialized = false;
 function showApp(user) {
   if (_appInitialized) return;
   _appInitialized = true;
+
   document.getElementById('screen-login').hidden = true;
   document.getElementById('app').hidden = false;
 
@@ -122,7 +123,5 @@ function showApp(user) {
 document.getElementById('modal-overlay')?.addEventListener('click', e => {
   if (e.target.id === 'modal-overlay') closeModal();
 });
-
-
 
 init();

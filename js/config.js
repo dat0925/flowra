@@ -11,7 +11,8 @@ export const supabase = window.supabase.createClient(
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      detectSessionInUrl: true,
+      detectSessionInUrl: true,  // PKCEコールバックのcodeを自動処理
+      flowType: 'pkce',          // PKCE フローを明示
       storageKey: 'flowra-auth',
     }
   }
