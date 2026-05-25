@@ -75,7 +75,7 @@ function showApp(user) {
   Router.register('dashboard', renderDashboard);
   Router.register('accounts',  renderAccounts);
   Router.register('settings',  renderSettings);
-  Router.register('records', () => { renderDashboard(); });
+  Router.register('records', renderRecords);
 
   Router.init();
 
