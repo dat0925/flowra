@@ -37,10 +37,11 @@ export async function renderRecords() {
   const { year, month } = MonthState;
 
   try {
-    const [summary, transactions] = await Promise.all([
+    const [summary, result] = await Promise.all([
       DB.getMonthlySummary(year, month),
-      DB.getTransactions({ year, month }),
+      DB.getTransactions({ year, month, pageSize: 500 }), // 記録一覧は多め取得
     ]);
+    const transactions = result.data;
 
     // フィルター適用
     let filtered = transactions.filter(tx => {
