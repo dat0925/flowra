@@ -69,11 +69,24 @@ export async function renderAddRecord(onSave) {
 
     const tagsHTML = `
       <div class="form-section">
-        <div class="tags-wrap">
-          ${tags.map(t => `
-            <div class="tag-chip ${state.selectedTags.has(t.id) ? 'on' : 'off'}" data-tag-id="${t.id}">${t.name}</div>
-          `).join('')}
-          <div class="tag-chip off new" id="btn-new-tag">＋</div>
+        <div style="display:flex;align-items:center;gap:6px;padding:11px 18px 4px;">
+          <span style="font-size:12px;color:var(--mid);font-weight:500;">タグ</span>
+          <button id="btn-tag-help"
+            style="width:18px;height:18px;border-radius:50%;border:1.5px solid var(--mid-lt);background:none;
+            display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);font-size:10px;font-weight:700;line-height:1;flex-shrink:0;">
+            ?
+          </button>
+        </div>
+        <div class="tags-wrap" style="padding-top:6px;">
+          ${tags.length === 0
+            ? `<div style="font-size:12.5px;color:var(--mid-lt);padding:4px 0 8px;display:flex;align-items:center;gap:6px;">
+                タグがありません
+                <span id="btn-go-tags" style="color:var(--sage);cursor:pointer;font-weight:500;text-decoration:underline;">設定で追加 →</span>
+               </div>`
+            : tags.map(t => `
+                <div class="tag-chip ${state.selectedTags.has(t.id) ? 'on' : 'off'}" data-tag-id="${t.id}">${t.name}</div>
+              `).join('')
+          }
         </div>
       </div>`;
 
@@ -178,6 +191,61 @@ export async function renderAddRecord(onSave) {
     // 閉じる
     document.getElementById('btn-close-modal')?.addEventListener('click', closeModal);
     document.getElementById('btn-cancel')?.addEventListener('click', closeModal);
+
+    // タグ ヘルプツールチップ
+    document.getElementById('btn-tag-help')?.addEventListener('click', e => {
+      e.stopPropagation();
+      const existing = document.getElementById('tag-tooltip');
+      if (existing) { existing.remove(); return; }
+
+      const tooltip = document.createElement('div');
+      tooltip.id = 'tag-tooltip';
+      tooltip.style.cssText = `
+        position:fixed;z-index:9999;
+        background:var(--ink);color:#fff;
+        font-size:12.5px;line-height:1.7;
+        padding:14px 16px;border-radius:12px;
+        max-width:260px;
+        box-shadow:0 8px 24px rgba(0,0,0,0.25);
+      `;
+      tooltip.innerHTML = `
+        <div style="font-weight:600;margin-bottom:6px;color:var(--sage-lt);">タグとは？</div>
+        記録に分類ラベルをつける機能です。<br>
+        <br>
+        <span style="color:var(--gold);">できること</span><br>
+        ・記録一覧でタグ絞り込み<br>
+        ・食費・交通費など自由に作成<br>
+        ・1件の記録に複数タグ付与可<br>
+        <br>
+        <span style="opacity:0.5;font-size:11px;">設定 → タグ管理から追加できます</span>
+        <button id="btn-tooltip-close" style="display:block;margin-top:10px;width:100%;padding:7px;border-radius:8px;border:none;background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-size:12px;">
+          閉じる
+        </button>`;
+
+      // ボタンの位置に合わせて表示
+      const rect = e.target.getBoundingClientRect();
+      const top  = rect.bottom + 8;
+      const left = Math.min(rect.left, window.innerWidth - 280);
+      tooltip.style.top  = `${top}px`;
+      tooltip.style.left = `${left}px`;
+
+      document.body.appendChild(tooltip);
+
+      document.getElementById('btn-tooltip-close')?.addEventListener('click', () => tooltip.remove());
+      // 外タップで閉じる
+      setTimeout(() => {
+        document.addEventListener('click', function handler() {
+          tooltip.remove();
+          document.removeEventListener('click', handler);
+        }, { once: true });
+      }, 100);
+    });
+
+    // タグなし → 設定へ
+    document.getElementById('btn-go-tags')?.addEventListener('click', () => {
+      closeModal();
+      import('./router.js').then(({ Router }) => Router.navigate('settings'));
+    });
 
     // タイプ切り替え
     ['income','expense','transfer'].forEach(type => {
