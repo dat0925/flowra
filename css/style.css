@@ -932,3 +932,25 @@ svg {
     font-size: 16px !important;
   }
 }
+
+/* ══════════════════════════════
+   COLOR PICKER（口座カラー選択）
+══════════════════════════════ */
+.color-picker {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.color-swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.12s, border 0.12s;
+  flex-shrink: 0;
+}
+.color-swatch:hover { transform: scale(1.08); }
+.color-swatch.selected { transform: scale(1.08); }

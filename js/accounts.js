@@ -1,5 +1,6 @@
 // ─────────────────────────────────────
 //  accounts.js  口座管理画面
+//  カラーカスタマイズ対応（8色パレット）
 // ─────────────────────────────────────
 import { DB }        from './db.js';
 import { fmt, showToast, openModal, closeModal } from './app.js';
@@ -13,17 +14,53 @@ const ACCT_TYPES = [
   { value: 'other',  label: 'その他' },
 ];
 
-const ACCT_ICON = {
-  cash:   { bg: '#F0EDE8', stroke: '#7A9485' },
-  bank:   { bg: '#EEF3FF', stroke: '#3B6FBF' },
-  ic:     { bg: '#EEF5F1', stroke: '#4A7C59' },
-  qr:     { bg: '#FFF2EB', stroke: '#C4602A' },
-  credit: { bg: '#F5F0FF', stroke: '#7B5EA7' },
-  other:  { bg: '#F0EDE8', stroke: '#7A9485' },
+// 8色パレット（背景色 + アイコン色のペア）
+const COLOR_PALETTE = [
+  { id: 'green',  bg: '#EEF5F1', stroke: '#4A7C59', label: 'グリーン' },
+  { id: 'blue',   bg: '#EEF3FF', stroke: '#3B6FBF', label: 'ブルー' },
+  { id: 'orange', bg: '#FFF2EB', stroke: '#C4602A', label: 'オレンジ' },
+  { id: 'purple', bg: '#F5F0FF', stroke: '#7B5EA7', label: 'パープル' },
+  { id: 'stone',  bg: '#F0EDE8', stroke: '#7A9485', label: 'ストーン' },
+  { id: 'gold',   bg: '#FBF5E6', stroke: '#B8973E', label: 'ゴールド' },
+  { id: 'red',    bg: '#FBF0F0', stroke: '#B83232', label: 'レッド' },
+  { id: 'ink',    bg: '#E8EDE9', stroke: '#2F5239', label: 'フォレスト' },
+];
+
+// 種別ごとのデフォルトカラー
+const TYPE_DEFAULT_COLOR = {
+  cash:   'stone',
+  bank:   'blue',
+  ic:     'green',
+  qr:     'orange',
+  credit: 'purple',
+  other:  'stone',
 };
+
+// SVGパス（種別ごとに異なるアイコン）
+const TYPE_ICON_PATH = {
+  cash:   '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/>',
+  bank:   '<path d="M3 22V8l9-6 9 6v14H3z"/><path d="M9 22V12h6v10"/>',
+  ic:     '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 6h6M9 10h6"/><circle cx="12" cy="16" r="1"/>',
+  qr:     '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h4"/><circle cx="12" cy="16" r="1"/>',
+  credit: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
+  other:  '<rect x="2" y="5" width="20" height="14" rx="2"/>',
+};
+
+function getColor(acct) {
+  const colorId = acct.color || TYPE_DEFAULT_COLOR[acct.type] || 'stone';
+  return COLOR_PALETTE.find(c => c.id === colorId) || COLOR_PALETTE[4];
+}
 
 function typeLabel(type) {
   return ACCT_TYPES.find(t => t.value === type)?.label || type;
+}
+
+function acctIconHTML(acct, size = 36) {
+  const c = getColor(acct);
+  const path = TYPE_ICON_PATH[acct.type] || TYPE_ICON_PATH.other;
+  return `<div class="acct-icon" style="background:${c.bg};width:${size}px;height:${size}px;">
+    <svg viewBox="0 0 24 24" style="stroke:${c.stroke}">${path}</svg>
+  </div>`;
 }
 
 export async function renderAccounts() {
@@ -32,15 +69,11 @@ export async function renderAccounts() {
     const accounts = await DB.getAccounts();
     const total = accounts.reduce((s, a) => s + a.balance, 0);
 
-    const itemsHTML = accounts.map((a, i) => {
-      const ic = ACCT_ICON[a.type] || ACCT_ICON.other;
-      return `
+    const itemsHTML = accounts.map((a, i) => `
       ${i > 0 ? '<div class="acct-divider"></div>' : ''}
       <div class="acct-item">
         <div class="acct-left">
-          <div class="acct-icon" style="background:${ic.bg};">
-            <svg viewBox="0 0 24 24" style="stroke:${ic.stroke}"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-          </div>
+          ${acctIconHTML(a)}
           <div>
             <div class="acct-name">${a.name}</div>
             <div class="acct-type-label">${typeLabel(a.type)}</div>
@@ -58,14 +91,11 @@ export async function renderAccounts() {
             </svg>
           </button>
         </div>
-      </div>`;
-    }).join('');
+      </div>`).join('');
 
     content.innerHTML = `
       <div class="panel" style="margin-bottom:16px;">
-        <div class="panel-head">
-          <div class="panel-title">口座一覧</div>
-        </div>
+        <div class="panel-head"><div class="panel-title">口座一覧</div></div>
         ${accounts.length > 0 ? itemsHTML : '<div class="empty-state" style="padding:32px 24px;"><div class="empty-state-title">口座がありません</div></div>'}
         <div class="acct-total">
           <div class="acct-total-label">合計残高</div>
@@ -97,6 +127,12 @@ export async function renderAccounts() {
                 <input class="text-input" id="new-acct-balance" type="number" inputmode="numeric" placeholder="0">
               </div>
             </div>
+            <div class="form-row no-tap" style="border-bottom:none;">
+              <div class="row-body">
+                <div class="row-label" style="margin-bottom:10px;">カラー</div>
+                <div id="new-color-picker" class="color-picker"></div>
+              </div>
+            </div>
           </div>
           <button class="btn-primary" id="btn-save-acct">
             <svg viewBox="0 0 24 24" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>
@@ -105,24 +141,27 @@ export async function renderAccounts() {
         </div>
       </div>`;
 
-    // ── 追加 ──
+    // カラーピッカー初期化（追加フォーム）
+    let selectedColor = 'stone';
+    renderColorPicker('new-color-picker', selectedColor, id => { selectedColor = id; });
+
+    // 追加
     document.getElementById('btn-save-acct')?.addEventListener('click', async () => {
       const name    = document.getElementById('new-acct-name').value.trim();
       const type    = document.getElementById('new-acct-type').value;
       const balance = parseInt(document.getElementById('new-acct-balance').value || '0', 10);
       if (!name) { showToast('口座名を入力してください'); return; }
       try {
-        await DB.createAccount({ name, type, balance });
+        await DB.createAccount({ name, type, balance, color: selectedColor });
         showToast('✓ 口座を追加しました');
         renderAccounts();
       } catch (e) { showToast('エラー: ' + e.message); }
     });
 
-    // ── 編集ボタン → モーダル ──
+    // 編集ボタン
     document.querySelectorAll('.btn-acct-edit').forEach(btn => {
       btn.addEventListener('click', () => {
-        const id = btn.dataset.id;
-        const acct = accounts.find(a => a.id === id);
+        const acct = accounts.find(a => a.id === btn.dataset.id);
         if (acct) openEditModal(acct);
       });
     });
@@ -132,7 +171,38 @@ export async function renderAccounts() {
   }
 }
 
+// カラーピッカーを描画
+function renderColorPicker(containerId, selectedId, onChange) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = COLOR_PALETTE.map(c => `
+    <div class="color-swatch ${c.id === selectedId ? 'selected' : ''}"
+      data-color-id="${c.id}"
+      style="background:${c.bg};border:2px solid ${c.id === selectedId ? c.stroke : 'transparent'};"
+      title="${c.label}">
+      <div style="width:14px;height:14px;border-radius:50%;background:${c.stroke};opacity:0.7;"></div>
+    </div>`).join('');
+
+  container.querySelectorAll('.color-swatch').forEach(el => {
+    el.addEventListener('click', () => {
+      container.querySelectorAll('.color-swatch').forEach(s => {
+        const id = s.dataset.colorId;
+        const c  = COLOR_PALETTE.find(p => p.id === id);
+        s.style.border = '2px solid transparent';
+        s.classList.remove('selected');
+      });
+      const id = el.dataset.colorId;
+      const c  = COLOR_PALETTE.find(p => p.id === id);
+      el.style.border = `2px solid ${c.stroke}`;
+      el.classList.add('selected');
+      onChange(id);
+    });
+  });
+}
+
 function openEditModal(acct) {
+  const currentColor = acct.color || TYPE_DEFAULT_COLOR[acct.type] || 'stone';
+
   const html = `
     <div style="padding:0 16px 24px;">
       <div class="modal-handle" style="margin:0 auto 16px;"></div>
@@ -143,11 +213,20 @@ function openEditModal(acct) {
         </button>
       </div>
 
+      <!-- プレビュー -->
+      <div id="edit-preview" style="display:flex;align-items:center;gap:12px;padding:14px 16px;background:var(--warm);border-radius:12px;margin-bottom:16px;">
+        <div id="preview-icon"></div>
+        <div>
+          <div style="font-size:14px;font-weight:500;" id="preview-name">${acct.name}</div>
+          <div style="font-size:11px;color:var(--mid);">${typeLabel(acct.type)}</div>
+        </div>
+      </div>
+
       <div class="form-section" style="margin-bottom:12px;">
         <div class="form-row no-tap">
           <div class="row-body">
             <div class="row-label">口座名</div>
-            <input class="text-input" id="edit-acct-name" value="${acct.name}" placeholder="口座名">
+            <input class="text-input" id="edit-acct-name" value="${acct.name}">
           </div>
         </div>
         <div class="form-row no-tap">
@@ -166,13 +245,18 @@ function openEditModal(acct) {
             <input class="text-input" id="edit-acct-balance" type="number" inputmode="numeric" value="${acct.balance}">
           </div>
         </div>
+        <div class="form-row no-tap" style="border-bottom:none;">
+          <div class="row-body">
+            <div class="row-label" style="margin-bottom:10px;">カラー</div>
+            <div id="edit-color-picker" class="color-picker"></div>
+          </div>
+        </div>
       </div>
 
       <button class="btn-primary" id="btn-update-acct" style="margin-bottom:8px;">
         <svg viewBox="0 0 24 24" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>
         変更を保存
       </button>
-
       <button id="btn-delete-acct"
         style="width:100%;padding:12px;border-radius:14px;border:1px solid var(--red-bg);background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:500;cursor:pointer;">
         この口座を削除
@@ -181,26 +265,52 @@ function openEditModal(acct) {
 
   openModal(html);
 
+  let editColor = currentColor;
+
+  // プレビュー更新関数
+  function updatePreview() {
+    const name = document.getElementById('edit-acct-name')?.value || acct.name;
+    const type = document.getElementById('edit-acct-type')?.value || acct.type;
+    const c    = COLOR_PALETTE.find(p => p.id === editColor) || COLOR_PALETTE[4];
+    const path = TYPE_ICON_PATH[type] || TYPE_ICON_PATH.other;
+    const iconEl = document.getElementById('preview-icon');
+    const nameEl = document.getElementById('preview-name');
+    if (iconEl) iconEl.innerHTML = `
+      <div style="width:40px;height:40px;border-radius:11px;background:${c.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="${c.stroke}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${path}</svg>
+      </div>`;
+    if (nameEl) nameEl.textContent = name;
+  }
+
+  updatePreview();
+
+  // カラーピッカー
+  renderColorPicker('edit-color-picker', editColor, id => {
+    editColor = id;
+    updatePreview();
+  });
+
+  // 名前・種別変更でプレビュー更新
+  document.getElementById('edit-acct-name')?.addEventListener('input', updatePreview);
+  document.getElementById('edit-acct-type')?.addEventListener('change', updatePreview);
+
   document.getElementById('btn-close-edit')?.addEventListener('click', closeModal);
 
-  // 保存
   document.getElementById('btn-update-acct')?.addEventListener('click', async () => {
     const name    = document.getElementById('edit-acct-name').value.trim();
     const type    = document.getElementById('edit-acct-type').value;
     const balance = parseInt(document.getElementById('edit-acct-balance').value || '0', 10);
     if (!name) { showToast('口座名を入力してください'); return; }
     try {
-      await DB.updateAccount(acct.id, { name, type, balance });
+      await DB.updateAccount(acct.id, { name, type, balance, color: editColor });
       closeModal();
       showToast('✓ 変更を保存しました');
       renderAccounts();
     } catch (e) { showToast('エラー: ' + e.message); }
   });
 
-  // 削除
   document.getElementById('btn-delete-acct')?.addEventListener('click', async () => {
-    const confirmed = confirm(`「${acct.name}」を削除しますか？\n※ この口座の記録は残ります`);
-    if (!confirmed) return;
+    if (!confirm(`「${acct.name}」を削除しますか？\n※ この口座の記録は残ります`)) return;
     try {
       await DB.updateAccount(acct.id, { is_archived: true });
       closeModal();
