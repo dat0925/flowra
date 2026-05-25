@@ -772,7 +772,7 @@ svg {
 .tx-tag-gold   { background: var(--gold-bg); color: var(--gold); }
 .unsettled-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--gold); flex-shrink: 0; }
 .tx-right { text-align: right; flex-shrink: 0; }
-.tx-amount { font-family: 'Noto Serif JP', serif; font-size: 15px; font-weight: 600; line-height: 1; white-space: nowrap; }
+.tx-amount { font-family: 'Noto Sans JP', sans-serif; font-size: 14px; font-weight: 600; line-height: 1; white-space: nowrap; }
 .tx-currency { font-size: 11px; font-weight: 300; margin-right: 1px; }
 .tx-amount.income   { color: var(--sage); }
 .tx-amount.expense  { color: var(--red); }
@@ -880,7 +880,7 @@ svg {
 }
 .rsb-item { flex: 1; text-align: center; }
 .rsb-label { font-size: 11px; color: var(--mid); margin-bottom: 4px; }
-.rsb-amount { font-size: 16px; font-weight: 600; color: var(--ink); }
+.rsb-amount { font-family: 'Noto Serif JP', serif; font-size: 16px; font-weight: 600; color: var(--ink); }
 .rsb-amount.income { color: var(--sage); }
 .rsb-amount.expense { color: var(--red); }
 .rsb-divider { width: 1px; height: 32px; background: var(--line); }
