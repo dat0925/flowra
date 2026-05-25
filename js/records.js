@@ -1,5 +1,6 @@
 // ─────────────────────────────────────
 //  records.js  記録一覧画面
+//  フィルター切替は DOM差分更新のみ（再描画なし）
 // ─────────────────────────────────────
 import { DB }         from './db.js';
 import { MonthState } from './router.js';
@@ -20,8 +21,8 @@ function txIconSVG(type) {
 
 function formatDate(dateStr) {
   const d = new Date(dateStr + 'T00:00:00');
-  const weekdays = ['日','月','火','水','木','金','土'];
-  return `${d.getMonth()+1}月${d.getDate()}日（${weekdays[d.getDay()]}）`;
+  const w = ['日','月','火','水','木','金','土'];
+  return `${d.getMonth()+1}月${d.getDate()}日（${w[d.getDay()]}）`;
 }
 
 function tagsHTML(tags) {
@@ -29,34 +30,29 @@ function tagsHTML(tags) {
   return tags.map(t => `<span class="tx-tag tx-tag-muted">${t.name}</span>`).join('');
 }
 
+// ── 状態（画面遷移後もリセット）──
 let currentFilter = 'all';
-let searchQuery = '';
+let searchQuery   = '';
+let _allTx        = [];  // 全件キャッシュ（フィルター用）
 
 export async function renderRecords() {
   const content = document.getElementById('page-content');
   const { year, month } = MonthState;
 
+  // 状態リセット
+  currentFilter = 'all';
+  searchQuery   = '';
+
   try {
     const [summary, result] = await Promise.all([
       DB.getMonthlySummary(year, month),
-      DB.getTransactions({ year, month, pageSize: 500 }), // 記録一覧は多め取得
+      DB.getTransactions({ year, month, pageSize: 500 }),
     ]);
-    const transactions = result.data;
+    _allTx = result.data;
 
-    // フィルター適用
-    let filtered = transactions.filter(tx => {
-      if (currentFilter !== 'all' && tx.type !== currentFilter) return false;
-      if (searchQuery) {
-        const q = searchQuery.toLowerCase();
-        if (!(tx.memo || '').toLowerCase().includes(q) &&
-            !(tx.account?.name || '').toLowerCase().includes(q)) return false;
-      }
-      return true;
-    });
-
-    // サマリーバー
     const balance = summary.income - summary.expense;
-    const summaryBar = `
+
+    content.innerHTML = `
       <div class="records-summary-bar">
         <div class="rsb-item">
           <div class="rsb-label">収入</div>
@@ -70,98 +66,47 @@ export async function renderRecords() {
         <div class="rsb-divider"></div>
         <div class="rsb-item">
           <div class="rsb-label">収支</div>
-          <div class="rsb-amount ${balance >= 0 ? 'income' : 'expense'}">${balance >= 0 ? '+' : '−'}¥${fmt(Math.abs(balance))}</div>
+          <div class="rsb-amount ${balance>=0?'income':'expense'}">${balance>=0?'+':'−'}¥${fmt(Math.abs(balance))}</div>
         </div>
-      </div>`;
+      </div>
 
-    // フィルターバー
-    const filters = [
-      { key: 'all', label: 'すべて' },
-      { key: 'expense', label: '支出' },
-      { key: 'income', label: '収入' },
-      { key: 'transfer', label: '振替' },
-    ];
-    const filterBar = `
       <div class="records-filter-bar">
-        <div class="filter-tabs">
-          ${filters.map(f => `
-            <button class="filter-tab ${currentFilter === f.key ? 'active' : ''}" data-filter="${f.key}">${f.label}</button>
-          `).join('')}
+        <div class="filter-tabs" id="filter-tabs">
+          <button class="filter-tab active" data-filter="all">すべて</button>
+          <button class="filter-tab" data-filter="expense">支出</button>
+          <button class="filter-tab" data-filter="income">収入</button>
+          <button class="filter-tab" data-filter="transfer">振替</button>
         </div>
         <div class="search-wrap">
           <svg viewBox="0 0 24 24" class="search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" class="search-input" placeholder="メモ・口座で検索" value="${searchQuery}" id="records-search">
+          <input type="text" class="search-input" placeholder="メモ・口座で検索" id="records-search">
         </div>
-      </div>`;
+      </div>
 
-    // 記録リスト
-    let listHTML = '';
-    if (filtered.length === 0) {
-      listHTML = `<div class="empty-state">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <div class="empty-state-title">記録がありません</div>
-        <div class="empty-state-sub">＋ボタンから記録を追加してください</div>
-      </div>`;
-    } else {
-      const grouped = {};
-      filtered.forEach(tx => {
-        if (!grouped[tx.date]) grouped[tx.date] = [];
-        grouped[tx.date].push(tx);
-      });
+      <div id="records-list"></div>`;
 
-      listHTML = Object.entries(grouped).map(([date, txs]) => `
-        <div class="tx-date-label">${formatDate(date)}</div>
-        ${txs.map(tx => {
-          const sign = tx.type === 'income' ? '+¥' : tx.type === 'expense' ? '−¥' : '¥';
-          const acctName = tx.type === 'transfer'
-            ? `${tx.account?.name || ''} → ${tx.to_account?.name || ''}`
-            : tx.account?.name || '';
-          return `
-          <div class="tx-item">
-            ${txIconSVG(tx.type)}
-            <div class="tx-body">
-              <div class="tx-name">${tx.memo || '（メモなし）'}</div>
-              <div class="tx-meta">
-                <span class="tx-acct">${acctName}</span>
-                ${tagsHTML(tx.tags)}
-                ${tx.is_unsettled ? '<span class="unsettled-dot"></span><span style="font-size:11px;color:var(--gold);font-weight:500;">未精算</span>' : ''}
-              </div>
-            </div>
-            <div class="tx-right">
-              <div class="tx-amount ${tx.type}">
-                <span class="tx-currency">${sign}</span>${fmt(tx.amount)}
-              </div>
-            </div>
-          </div>`;
-        }).join('')}
-      `).join('');
-    }
+    // 初期描画
+    renderList();
 
-    content.innerHTML = `
-      ${summaryBar}
-      <div class="records-wrap">
-        ${filterBar}
-        <div class="panel records-list">
-          ${listHTML}
-        </div>
-      </div>`;
+    // ── フィルタータブ：ボタンのスタイルだけ即時切替、リストはsetTimeout(0)で非同期 ──
+    document.getElementById('filter-tabs')?.addEventListener('click', e => {
+      const btn = e.target.closest('.filter-tab');
+      if (!btn) return;
 
-    // フィルタータブのイベント
-    content.querySelectorAll('.filter-tab').forEach(btn => {
-      btn.addEventListener('click', () => {
-        currentFilter = btn.dataset.filter;
-        renderRecords();
-      });
+      // ① ボタンのアクティブ状態を即座に切替（ちらつきなし）
+      document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+
+      // ② リスト更新は次のフレームで（タップのアニメーションを邪魔しない）
+      requestAnimationFrame(() => renderList());
     });
 
-    // 検索のイベント
-    const searchInput = content.querySelector('#records-search');
-    if (searchInput) {
-      searchInput.addEventListener('input', e => {
-        searchQuery = e.target.value;
-        renderRecords();
-      });
-    }
+    // 検索：入力のたびにリスト更新
+    document.getElementById('records-search')?.addEventListener('input', e => {
+      searchQuery = e.target.value;
+      requestAnimationFrame(() => renderList());
+    });
 
   } catch (err) {
     console.error(err);
@@ -170,4 +115,67 @@ export async function renderRecords() {
       <div class="empty-state-sub">${err.message}</div>
     </div>`;
   }
+}
+
+// リスト部分だけ更新（フィルター・検索変更時）
+function renderList() {
+  const listEl = document.getElementById('records-list');
+  if (!listEl) return;
+
+  const q = searchQuery.toLowerCase();
+  const filtered = _allTx.filter(tx => {
+    if (currentFilter !== 'all' && tx.type !== currentFilter) return false;
+    if (q) {
+      if (!(tx.memo || '').toLowerCase().includes(q) &&
+          !(tx.account?.name || '').toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    listEl.innerHTML = `<div class="empty-state">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <div class="empty-state-title">記録がありません</div>
+      <div class="empty-state-sub">＋ボタンから記録を追加してください</div>
+    </div>`;
+    return;
+  }
+
+  // 日付グループ化
+  const grouped = {};
+  filtered.forEach(tx => {
+    if (!grouped[tx.date]) grouped[tx.date] = [];
+    grouped[tx.date].push(tx);
+  });
+
+  listEl.innerHTML = `
+    <div class="panel">
+      ${Object.entries(grouped).map(([date, txs]) => `
+        <div class="tx-date-label">${formatDate(date)}</div>
+        ${txs.map(tx => {
+          const sign = tx.type==='income' ? '+¥' : tx.type==='expense' ? '−¥' : '¥';
+          const acctName = tx.type==='transfer'
+            ? `${tx.account?.name||''} → ${tx.to_account?.name||''}`
+            : tx.account?.name || '';
+          return `
+            <div class="tx-item">
+              ${txIconSVG(tx.type)}
+              <div class="tx-body">
+                <div class="tx-name">${tx.memo || '（メモなし）'}</div>
+                <div class="tx-meta">
+                  <span class="tx-acct">${acctName}</span>
+                  ${tagsHTML(tx.tags)}
+                  ${tx.is_unsettled ? '<span class="unsettled-dot"></span><span style="font-size:11px;color:var(--gold);font-weight:500;">未精算</span>' : ''}
+                </div>
+              </div>
+              <div class="tx-right">
+                <div class="tx-amount ${tx.type}">
+                  <span class="tx-currency">${sign}</span>${fmt(tx.amount)}
+                </div>
+                <div class="tx-account-name">${tx.account?.name || ''}</div>
+              </div>
+            </div>`;
+        }).join('')}
+      `).join('')}
+    </div>`;
 }

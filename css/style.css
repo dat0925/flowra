@@ -42,6 +42,17 @@ body {
   overflow-x: hidden;
 }
 
+/* iOSタップハイライト全消し */
+* { -webkit-tap-highlight-color: transparent; }
+
+/* ボタン・タップ可能要素のアクティブ状態を自前で制御 */
+button:active, .nav-item:active, .b-tab:active,
+.filter-tab:active, .tx-item:active, .acct-item:active,
+.form-row:active, .tag-chip:active {
+  opacity: 0.7;
+  transition: opacity 0.05s;
+}
+
 /* hidden属性を確実に適用（display:flexより優先） */
 [hidden] { display: none !important; }
 
