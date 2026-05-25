@@ -328,6 +328,7 @@ svg {
   display: none;
   background: var(--ink);
   padding: 14px 18px 12px;
+  padding-top: max(14px, env(safe-area-inset-top));
   flex-shrink: 0;
 }
 .mh-row {
@@ -358,11 +359,12 @@ svg {
 #bottom-nav {
   display: none;
   background: var(--ink);
-  height: var(--nav-h);
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom));
   border-top: 1px solid rgba(255,255,255,0.06);
   align-items: center;
   justify-content: space-around;
   padding: 0 4px;
+  padding-bottom: env(safe-area-inset-bottom);
   flex-shrink: 0;
 }
 .b-tab {
@@ -845,7 +847,7 @@ svg {
   #bottom-nav    { display: flex; }
   #app           { flex-direction: column; }
   #main          { height: 100dvh; }
-  #page-content  { padding: 14px 14px 20px; }
+  #page-content  { padding: 14px 14px calc(20px + env(safe-area-inset-bottom)); }
 
   .summary-row { grid-template-columns: 1fr; gap: 10px; }
   .s-number { font-size: 26px; }
