@@ -17,13 +17,13 @@ export const Auth = {
     return user;
   },
 
-  // Google ログイン
+  // Google ログイン（コールバックページへリダイレクト）
   async signInWithGoogle() {
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         queryParams: { prompt: 'select_account' },
-        redirectTo: window.location.origin,
+        redirectTo: `${window.location.origin}/auth/callback.html`,
       }
     });
     if (error) console.error('Login error:', error);
@@ -33,7 +33,7 @@ export const Auth = {
   async signOut() {
     const { error } = await supabase.auth.signOut();
     if (error) console.error('Logout error:', error);
-    window.location.reload();
+    window.location.replace('/');
   },
 
   // 認証状態変化のリスナー

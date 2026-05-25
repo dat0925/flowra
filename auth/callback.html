@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flowra - ログイン中...</title>
+  <meta name="theme-color" content="#1C2B22">
+  <style>
+    body {
+      margin: 0;
+      background: #1C2B22;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      font-family: -apple-system, sans-serif;
+      color: rgba(255,255,255,0.6);
+      font-size: 14px;
+    }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 2px solid rgba(255,255,255,0.15);
+      border-top-color: #C5A84F;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .wrap { text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="spinner"></div>
+    <div>ログイン処理中...</div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL      = 'https://copyzpsyagscqrvkrwjo.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcHl6cHN5YWdzY3Fydmtyd2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MTI4NTEsImV4cCI6MjA5NTE4ODg1MX0.4g0Rzo4TyM0NPWF53swUWhLD4nDYMSOD7KB9ZBW80Kc';
+
+    const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+        storageKey: 'flowra-auth',
+      }
+    });
+
+    async function handleCallback() {
+      try {
+        // URLの ?code= をSupabaseに処理させてセッション確立
+        const { data, error } = await client.auth.exchangeCodeForSession(
+          window.location.search
+        );
+        if (error) throw error;
+        // セッション確立成功 → トップへ
+        window.location.replace('/');
+      } catch (err) {
+        console.error('Auth callback error:', err);
+        // 失敗してもトップへ（ログイン画面が表示される）
+        window.location.replace('/');
+      }
+    }
+
+    handleCallback();
+  </script>
+</body>
+</html>
