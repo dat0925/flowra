@@ -14,10 +14,9 @@
       justify-content: center;
       height: 100vh;
       font-family: -apple-system, sans-serif;
-      color: rgba(255,255,255,0.8);
-      font-size: 13px;
+      color: rgba(255,255,255,0.6);
+      font-size: 14px;
     }
-    .wrap { text-align: center; max-width: 320px; padding: 20px; }
     .spinner {
       width: 32px; height: 32px;
       border: 2px solid rgba(255,255,255,0.15);
@@ -27,16 +26,13 @@
       margin: 0 auto 16px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-    #log { margin-top: 20px; text-align: left; font-size: 11px; color: rgba(255,255,255,0.4); word-break: break-all; }
-    #log div { margin: 2px 0; }
-    .err { color: #ff6b6b !important; }
+    .wrap { text-align: center; }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="spinner"></div>
-    <div id="status">ログイン処理中...</div>
-    <div id="log"></div>
+    <div>ログイン処理中...</div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -44,81 +40,34 @@
     const SUPABASE_URL      = 'https://copyzpsyagscqrvkrwjo.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcHl6cHN5YWdzY3Fydmtyd2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MTI4NTEsImV4cCI6MjA5NTE4ODg1MX0.4g0Rzo4TyM0NPWF53swUWhLD4nDYMSOD7KB9ZBW80Kc';
 
-    function log(msg, isErr) {
-      const d = document.getElementById('log');
-      const el = document.createElement('div');
-      el.textContent = msg;
-      if (isErr) el.className = 'err';
-      d.appendChild(el);
-      console.log(msg);
-    }
-
-    log('URL: ' + window.location.href);
-    log('search: ' + window.location.search);
-    log('hash: ' + window.location.hash);
-
     const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        flowType: 'pkce',
+        flowType: 'implicit',
         storageKey: 'flowra-auth',
       }
     });
 
     async function handleCallback() {
       try {
-        const params = new URLSearchParams(window.location.search);
-        const code = params.get('code');
-        const error = params.get('error');
-        const errorDesc = params.get('error_description');
-
-        log('code: ' + (code ? code.substring(0,20)+'...' : 'なし'));
-
-        if (error) {
-          log('OAuthエラー: ' + error + ' / ' + errorDesc, true);
-          document.getElementById('status').textContent = 'エラー: ' + errorDesc;
-          setTimeout(() => window.location.replace('/'), 3000);
-          return;
-        }
-
-        if (!code) {
-          log('codeパラメータなし。hashを確認: ' + window.location.hash);
-          // implicitフロー（hashにaccess_token）の場合
-          if (window.location.hash.includes('access_token')) {
-            log('implicitフロー検出、セッション確認中...');
-            const { data, error: se } = await client.auth.getSession();
-            log('getSession結果: ' + (data?.session ? 'セッションあり' : 'なし') + (se ? ' err:'+se.message : ''));
-            if (data?.session) {
-              log('セッション確立済み → / へ');
-              window.location.replace('/');
-              return;
-            }
-          }
-          log('codeもaccess_tokenもない → ログイン画面へ', true);
+        // implicitフロー: hashにaccess_tokenが含まれる
+        // detectSessionInUrl:true により supabase が自動でセッションを確立する
+        const { data, error } = await client.auth.getSession();
+        if (error) throw error;
+        if (data?.session) {
           window.location.replace('/');
-          return;
+        } else {
+          // セッションがまだ確立されていない場合、少し待って再試行
+          setTimeout(async () => {
+            const { data: d2 } = await client.auth.getSession();
+            window.location.replace('/');
+          }, 1000);
         }
-
-        log('exchangeCodeForSession 実行中...');
-        const { data, error: exchErr } = await client.auth.exchangeCodeForSession(window.location.search);
-
-        if (exchErr) {
-          log('exchange失敗: ' + exchErr.message, true);
-          document.getElementById('status').textContent = '認証エラー: ' + exchErr.message;
-          setTimeout(() => window.location.replace('/'), 3000);
-          return;
-        }
-
-        log('セッション確立成功: ' + data?.session?.user?.email);
-        document.getElementById('status').textContent = 'ログイン成功！';
-        setTimeout(() => window.location.replace('/'), 500);
-
       } catch (err) {
-        log('例外: ' + err.message, true);
-        document.getElementById('status').textContent = '予期しないエラー';
-        setTimeout(() => window.location.replace('/'), 3000);
+        console.error('callback error:', err);
+        window.location.replace('/');
       }
     }
 
