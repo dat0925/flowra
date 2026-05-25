@@ -343,23 +343,33 @@ export async function renderAddRecord(onSave) {
     const btn = document.getElementById('btn-save');
     if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
 
+    const payload = {
+      type:          state.type,
+      amount,
+      date:          state.date,
+      account_id:    state.accountId,
+      to_account_id: state.type === 'transfer' ? state.toAccountId : null,
+      memo:          state.memo || null,
+      url:           state.url || null,
+      is_unsettled:  state.isUnsettled,
+    };
+
+    // ── 楽観的UI更新 ──
+    // モーダルを即閉じてonSaveを先に呼ぶ（体感速度UP）
+    Sound.playSave();
+    closeModal();
+    if (onSave) onSave();
+
+    // バックグラウンドで実際に保存
     try {
-      const payload = {
-        type:          state.type,
-        amount,
-        date:          state.date,
-        account_id:    state.accountId,
-        to_account_id: state.type === 'transfer' ? state.toAccountId : null,
-        memo:          state.memo || null,
-        url:           state.url || null,
-        is_unsettled:  state.isUnsettled,
-      };
-      await DB.createTransaction(payload, [...state.selectedTags]);
-      Sound.playSave();
-      if (onSave) onSave();
+      const { upsertTransactions } = await import('./cache.js');
+      const tx = await DB.createTransaction(payload, [...state.selectedTags]);
+      // キャッシュにも追記
+      await upsertTransactions([{ ...tx, tags: [] }]);
     } catch (err) {
-      showToast('エラー: ' + err.message);
-      if (btn) { btn.disabled = false; btn.textContent = '保存する'; }
+      // 保存失敗時はトーストで通知（次回同期で整合）
+      showToast('⚠️ 保存に失敗しました。再度お試しください。');
+      console.error('Save error:', err);
     }
   }
 

@@ -1,10 +1,15 @@
 // ─────────────────────────────────────
 //  dashboard.js  ホーム画面
-//  無限スクロール対応（50件ずつ追加ロード）
+//  キャッシュ優先 + 差分同期（Stale-While-Revalidate）
 // ─────────────────────────────────────
 import { DB }         from './db.js';
 import { MonthState } from './router.js';
 import { fmt }        from './app.js';
+import {
+  getCachedAccounts, putAccounts,
+  getCachedTransactions, upsertTransactions,
+  getLastSync, setLastSync
+} from './cache.js';
 
 const PAGE_SIZE = 50;
 
@@ -102,39 +107,55 @@ export async function renderDashboard() {
   const { year, month } = MonthState;
   resetPaging();
 
-  try {
-    const [accounts, summary, result] = await Promise.all([
-      DB.getAccounts(),
-      DB.getMonthlySummary(year, month),
-      DB.getTransactions({ year, month, page: 0 }),
-    ]);
+  // ── STEP 1: キャッシュから即表示 ──────────────────
+  const [cachedAccounts, cachedTxs] = await Promise.all([
+    getCachedAccounts(),
+    getCachedTransactions({ year, month }),
+  ]);
 
-    _page    = 1;
-    _hasMore = result.hasMore;
+  const hasCached = cachedAccounts.length > 0;
+  if (hasCached) {
+    renderContent(content, cachedAccounts, cachedTxs, year, month, true);
+  } else {
+    content.innerHTML = '<div class="spinner"></div>';
+  }
 
-    const total = accounts.reduce((s,a) => s + a.balance, 0);
+  // ── STEP 2: バックグラウンドで差分同期 ────────────
+  syncInBackground(year, month, hasCached);
+}
 
-    // サマリーカード
-    const summaryHTML = `
-      <div class="summary-row">
-        <div class="s-card total">
-          <div class="s-card-label">総残高</div>
-          <div class="s-amount"><span class="s-currency">¥</span><span class="s-number">${fmt(total)}</span></div>
-          <div class="s-sub">全口座合計</div>
-        </div>
-        <div class="s-card income-card">
-          <div class="s-card-label">今月の収入</div>
-          <div class="s-amount"><span class="s-currency">¥</span><span class="s-number">${fmt(summary.income)}</span></div>
-          <div class="s-sub">&nbsp;</div>
-          <div class="s-accent-line"></div>
-        </div>
-        <div class="s-card expense-card">
-          <div class="s-card-label">今月の支出</div>
-          <div class="s-amount"><span class="s-currency">¥</span><span class="s-number">${fmt(summary.expense)}</span></div>
-          <div class="s-sub">&nbsp;</div>
-          <div class="s-accent-line"></div>
-        </div>
-      </div>`;
+// キャッシュ or 最新データで画面を描画
+function renderContent(content, accounts, transactions, year, month, fromCache = false) {
+  resetPaging();
+  _page    = 1;
+  _hasMore = transactions.length >= PAGE_SIZE;
+
+  const total = accounts.reduce((s,a) => s + a.balance, 0);
+
+  // 月サマリーをローカル計算（キャッシュ時はネットワーク不要）
+  const income  = transactions.filter(t=>t.type==='income' ).reduce((s,t)=>s+t.amount, 0);
+  const expense = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount, 0);
+
+  const summaryHTML = `
+    <div class="summary-row">
+      <div class="s-card total">
+        <div class="s-card-label">総残高</div>
+        <div class="s-amount"><span class="s-currency">¥</span><span class="s-number">${fmt(total)}</span></div>
+        <div class="s-sub">全口座合計${fromCache ? ' <span style="font-size:10px;opacity:0.4;">●</span>' : ''}</div>
+      </div>
+      <div class="s-card income-card">
+        <div class="s-card-label">今月の収入</div>
+        <div class="s-amount"><span class="s-currency">¥</span><span class="s-number">${fmt(income)}</span></div>
+        <div class="s-sub">&nbsp;</div>
+        <div class="s-accent-line"></div>
+      </div>
+      <div class="s-card expense-card">
+        <div class="s-card-label">今月の支出</div>
+        <div class="s-amount"><span class="s-currency">¥</span><span class="s-number">${fmt(expense)}</span></div>
+        <div class="s-sub">&nbsp;</div>
+        <div class="s-accent-line"></div>
+      </div>
+    </div>`;
 
     // 口座一覧
     const acctHTML = accounts.map((a,i) => `
@@ -152,8 +173,9 @@ export async function renderDashboard() {
         </div>
       </div>`).join('');
 
-    // 記録一覧（初期50件）
-    const grouped = groupByDate(result.data);
+    // 記録一覧
+    const firstPage = transactions.slice(0, PAGE_SIZE);
+    const grouped = groupByDate(firstPage);
     let txRows = Object.entries(grouped).map(([date, txs]) =>
       `<div class="tx-date-label">${formatDate(date)}</div>${txs.map(txItemHTML).join('')}`
     ).join('');
@@ -165,11 +187,6 @@ export async function renderDashboard() {
         <div class="empty-state-sub">＋ボタンから記録を追加してください</div>
       </div>`;
     }
-
-    // 件数表示
-    const countBadge = `<div id="tx-count" style="font-size:11px;color:var(--mid);padding:6px 18px 2px;">
-      ${result.count.toLocaleString('ja-JP')} 件中 ${Math.min(PAGE_SIZE, result.count).toLocaleString('ja-JP')} 件表示
-    </div>`;
 
     content.innerHTML = `
       ${summaryHTML}
@@ -188,30 +205,61 @@ export async function renderDashboard() {
           </div>
         </div>
         <div class="panel" id="tx-panel">
-          <div class="panel-head">
-            <div class="panel-title">記録一覧</div>
-          </div>
-          ${countBadge}
+          <div class="panel-head"><div class="panel-title">記録一覧</div></div>
           <div id="tx-list">${txRows}</div>
           <div id="tx-sentinel" style="height:1px;"></div>
           ${_hasMore ? '<div id="tx-loading" style="padding:16px;text-align:center;font-size:12px;color:var(--mid);">読み込み中…</div>' : ''}
         </div>
       </div>`;
 
-    // 口座管理リンク
-    document.getElementById('link-acct-manage')?.addEventListener('click', () => {
-      import('./router.js').then(({ Router }) => Router.navigate('accounts'));
-    });
+  document.getElementById('link-acct-manage')?.addEventListener('click', () => {
+    import('./router.js').then(({ Router }) => Router.navigate('accounts'));
+  });
 
-    // 無限スクロール（IntersectionObserver）
-    if (_hasMore) setupInfiniteScroll(year, month);
+  if (_hasMore) setupInfiniteScroll(year, month);
+}
 
-  } catch (err) {
-    console.error(err);
-    content.innerHTML = `<div class="empty-state">
-      <div class="empty-state-title">読み込みエラー</div>
-      <div class="empty-state-sub">${err.message}</div>
-    </div>`;
+// バックグラウンド差分同期
+async function syncInBackground(year, month, hadCache) {
+  try {
+    const lastSync = await getLastSync();
+    const now = new Date().toISOString();
+
+    // 口座は毎回取得（件数が少ないので軽い）
+    const [accounts, result] = await Promise.all([
+      DB.getAccounts(),
+      DB.getTransactions({ year, month, pageSize: 500 }),
+    ]);
+
+    // IndexedDB に保存
+    await putAccounts(accounts);
+    await upsertTransactions(result.data);
+    await setLastSync(now);
+
+    // キャッシュなしで初回ロードしていた場合は画面を更新
+    if (!hadCache) {
+      const content = document.getElementById('page-content');
+      if (content) renderContent(content, accounts, result.data, year, month, false);
+    } else {
+      // キャッシュありの場合：差分があれば静かに更新
+      if (lastSync) {
+        const delta = await DB.getDelta(lastSync);
+        if (delta && delta.length > 0) {
+          await upsertTransactions(delta);
+          // サマリー数字だけ静かに更新（スクロール位置を維持）
+          const fresh = await getCachedTransactions({ year, month });
+          const income  = fresh.filter(t=>t.type==='income' ).reduce((s,t)=>s+t.amount,0);
+          const expense = fresh.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+          const incomeEl  = document.querySelector('.income-card .s-number');
+          const expenseEl = document.querySelector('.expense-card .s-number');
+          if (incomeEl)  incomeEl.textContent  = fmt(income);
+          if (expenseEl) expenseEl.textContent = fmt(expense);
+        }
+      }
+    }
+  } catch (e) {
+    // バックグラウンド同期失敗は無視（次回に持ち越し）
+    console.warn('Background sync failed:', e.message);
   }
 }
 
