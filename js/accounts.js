@@ -1,9 +1,10 @@
 // ─────────────────────────────────────
 //  accounts.js  口座管理画面
-//  カラーカスタマイズ対応（8色パレット）
+//  キャッシュ優先 + バックグラウンド同期
 // ─────────────────────────────────────
 import { DB }        from './db.js';
 import { fmt, showToast, openModal, closeModal } from './app.js';
+import { getCachedAccounts, putAccounts } from './cache.js';
 
 const ACCT_TYPES = [
   { value: 'cash',   label: '現金' },
@@ -65,11 +66,30 @@ function acctIconHTML(acct, size = 36) {
 
 export async function renderAccounts() {
   const content = document.getElementById('page-content');
+
+  // ── STEP 1: キャッシュから即表示 ──
+  const cachedAccounts = await getCachedAccounts();
+  if (cachedAccounts.length > 0) {
+    renderAccountsContent(content, cachedAccounts);
+  } else {
+    content.innerHTML = '<div class="spinner"></div>';
+  }
+
+  // ── STEP 2: バックグラウンドで最新取得 ──
   try {
     const accounts = await DB.getAccounts();
-    const total = accounts.reduce((s, a) => s + a.balance, 0);
+    await putAccounts(accounts);
+    renderAccountsContent(content, accounts);
+  } catch (e) {
+    if (cachedAccounts.length === 0) {
+      content.innerHTML = `<div class="empty-state"><div class="empty-state-title">エラー: ${e.message}</div></div>`;
+    }
+    // キャッシュがあればそのまま表示継続
+  }
+}
 
-    const itemsHTML = accounts.map((a, i) => `
+async function renderAccountsContent(content, accounts) {
+    const total = accounts.reduce((s, a) => s + a.balance, 0);
       ${i > 0 ? '<div class="acct-divider"></div>' : ''}
       <div class="acct-item">
         <div class="acct-left">

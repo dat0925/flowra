@@ -1,10 +1,11 @@
 // ─────────────────────────────────────
 //  records.js  記録一覧画面
-//  フィルター切替は DOM差分更新のみ（再描画なし）
+//  キャッシュ優先 + バックグラウンド同期
 // ─────────────────────────────────────
 import { DB }         from './db.js';
 import { MonthState } from './router.js';
 import { fmt }        from './utils.js';
+import { getCachedTransactions, upsertTransactions, putAccounts } from './cache.js';
 
 const TX_ICON = {
   income:   { bg: '#EEF5F1', stroke: '#4A7C59', path: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>' },
@@ -39,82 +40,113 @@ export async function renderRecords() {
   const content = document.getElementById('page-content');
   const { year, month } = MonthState;
 
-  // 状態リセット
   currentFilter = 'all';
   searchQuery   = '';
 
+  // ── STEP 1: キャッシュから即表示 ──
+  const cachedTxs = await getCachedTransactions({ year, month });
+  if (cachedTxs.length > 0) {
+    _allTx = cachedTxs;
+    renderShell(cachedTxs, year, month);
+  } else {
+    content.innerHTML = '<div class="spinner"></div>';
+  }
+
+  // ── STEP 2: バックグラウンドで最新取得 ──
   try {
-    const [summary, result] = await Promise.all([
+    const [summary, result, accounts] = await Promise.all([
       DB.getMonthlySummary(year, month),
       DB.getTransactions({ year, month, pageSize: 500 }),
+      DB.getAccounts(),
     ]);
+
+    // キャッシュ更新
+    await upsertTransactions(result.data);
+    await putAccounts(accounts);
+
     _allTx = result.data;
 
-    const balance = summary.income - summary.expense;
+    // キャッシュなしで初回の場合 or データ更新があった場合に再描画
+    const needsUpdate = cachedTxs.length === 0 || result.data.length !== cachedTxs.length;
+    if (needsUpdate) {
+      renderShell(result.data, year, month);
+    } else {
+      // サマリーバーだけ静かに更新
+      updateSummaryBar(summary);
+    }
 
-    content.innerHTML = `
-      <div class="records-summary-bar">
-        <div class="rsb-item">
-          <div class="rsb-label">収入</div>
-          <div class="rsb-amount income">¥${fmt(summary.income)}</div>
-        </div>
-        <div class="rsb-divider"></div>
-        <div class="rsb-item">
-          <div class="rsb-label">支出</div>
-          <div class="rsb-amount expense">¥${fmt(summary.expense)}</div>
-        </div>
-        <div class="rsb-divider"></div>
-        <div class="rsb-item">
-          <div class="rsb-label">収支</div>
-          <div class="rsb-amount ${balance>=0?'income':'expense'}">${balance>=0?'+':'−'}¥${fmt(Math.abs(balance))}</div>
-        </div>
-      </div>
-
-      <div class="records-filter-bar">
-        <div class="filter-tabs" id="filter-tabs">
-          <button class="filter-tab active" data-filter="all">すべて</button>
-          <button class="filter-tab" data-filter="expense">支出</button>
-          <button class="filter-tab" data-filter="income">収入</button>
-          <button class="filter-tab" data-filter="transfer">振替</button>
-        </div>
-        <div class="search-wrap">
-          <svg viewBox="0 0 24 24" class="search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" class="search-input" placeholder="メモ・口座で検索" id="records-search">
-        </div>
-      </div>
-
-      <div id="records-list"></div>`;
-
-    // 初期描画
-    renderList();
-
-    // ── フィルタータブ：ボタンのスタイルだけ即時切替、リストはsetTimeout(0)で非同期 ──
-    document.getElementById('filter-tabs')?.addEventListener('click', e => {
-      const btn = e.target.closest('.filter-tab');
-      if (!btn) return;
-
-      // ① ボタンのアクティブ状態を即座に切替（ちらつきなし）
-      document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentFilter = btn.dataset.filter;
-
-      // ② リスト更新は次のフレームで（タップのアニメーションを邪魔しない）
-      requestAnimationFrame(() => renderList());
-    });
-
-    // 検索：入力のたびにリスト更新
-    document.getElementById('records-search')?.addEventListener('input', e => {
-      searchQuery = e.target.value;
-      requestAnimationFrame(() => renderList());
-    });
-
-  } catch (err) {
-    console.error(err);
-    content.innerHTML = `<div class="empty-state">
-      <div class="empty-state-title">読み込みエラー</div>
-      <div class="empty-state-sub">${err.message}</div>
-    </div>`;
+  } catch (e) {
+    if (cachedTxs.length === 0) {
+      content.innerHTML = `<div class="empty-state">
+        <div class="empty-state-title">読み込みエラー</div>
+        <div class="empty-state-sub">${e.message}</div>
+      </div>`;
+    }
+    // キャッシュがあれば古いデータのまま表示継続（エラー無視）
   }
+}
+
+function renderShell(transactions, year, month) {
+  const content = document.getElementById('page-content');
+  const income  = transactions.filter(t=>t.type==='income' ).reduce((s,t)=>s+t.amount,0);
+  const expense = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const balance = income - expense;
+
+  content.innerHTML = `
+    <div class="records-summary-bar" id="records-summary">
+      <div class="rsb-item">
+        <div class="rsb-label">収入</div>
+        <div class="rsb-amount income">¥${fmt(income)}</div>
+      </div>
+      <div class="rsb-divider"></div>
+      <div class="rsb-item">
+        <div class="rsb-label">支出</div>
+        <div class="rsb-amount expense">¥${fmt(expense)}</div>
+      </div>
+      <div class="rsb-divider"></div>
+      <div class="rsb-item">
+        <div class="rsb-label">収支</div>
+        <div class="rsb-amount ${balance>=0?'income':'expense'}">${balance>=0?'+':'−'}¥${fmt(Math.abs(balance))}</div>
+      </div>
+    </div>
+
+    <div class="records-filter-bar">
+      <div class="filter-tabs" id="filter-tabs">
+        <button class="filter-tab active" data-filter="all">すべて</button>
+        <button class="filter-tab" data-filter="expense">支出</button>
+        <button class="filter-tab" data-filter="income">収入</button>
+        <button class="filter-tab" data-filter="transfer">振替</button>
+      </div>
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" class="search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" class="search-input" placeholder="メモ・口座で検索" id="records-search">
+      </div>
+    </div>
+
+    <div id="records-list"></div>`;
+
+  renderList();
+
+  document.getElementById('filter-tabs')?.addEventListener('click', e => {
+    const btn = e.target.closest('.filter-tab');
+    if (!btn) return;
+    document.querySelectorAll('.filter-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentFilter = btn.dataset.filter;
+    requestAnimationFrame(() => renderList());
+  });
+
+  document.getElementById('records-search')?.addEventListener('input', e => {
+    searchQuery = e.target.value;
+    requestAnimationFrame(() => renderList());
+  });
+}
+
+function updateSummaryBar(summary) {
+  const income  = document.querySelector('#records-summary .rsb-amount.income');
+  const expense = document.querySelector('#records-summary .rsb-amount.expense');
+  if (income)  income.textContent  = `¥${fmt(summary.income)}`;
+  if (expense) expense.textContent = `¥${fmt(summary.expense)}`;
 }
 
 // リスト部分だけ更新（フィルター・検索変更時）

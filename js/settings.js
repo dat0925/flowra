@@ -5,15 +5,39 @@ import { Auth }  from './auth.js';
 import { Sound } from './sound.js';
 import { DB }   from './db.js';
 import { showToast } from './utils.js';
+import { getCachedTags, putTags, getCachedAccounts } from './cache.js';
 
 export async function renderSettings() {
   const content = document.getElementById('page-content');
+
+  // ── STEP 1: キャッシュから即表示（タグ・口座）──
+  const [cachedTags, user] = await Promise.all([
+    getCachedTags(),
+    Auth.getUser(),
+  ]);
+
+  if (cachedTags.length > 0) {
+    renderSettingsContent(content, user, null, cachedTags);
+  } else {
+    content.innerHTML = '<div class="spinner"></div>';
+  }
+
+  // ── STEP 2: バックグラウンドで最新取得 ──
   try {
-    const [user, team, tags] = await Promise.all([
-      Auth.getUser(),
+    const [team, tags] = await Promise.all([
       DB.getTeam(),
       DB.getTags(),
     ]);
+    await putTags(tags);
+    renderSettingsContent(content, user, team, tags);
+  } catch (e) {
+    if (cachedTags.length === 0) {
+      content.innerHTML = `<div class="empty-state"><div class="empty-state-title">エラー: ${e.message}</div></div>`;
+    }
+  }
+}
+
+async function renderSettingsContent(content, user, team, tags) {
 
     const tagsHTML = tags.map((t, i) => `
       <div class="form-row no-tap" style="justify-content:space-between;">
@@ -196,8 +220,4 @@ export async function renderSettings() {
     tagInput?.addEventListener('keydown', e => {
       if (e.key === 'Enter') document.getElementById('btn-add-tag')?.click();
     });
-
-  } catch (err) {
-    content.innerHTML = `<div class="empty-state"><div class="empty-state-title">エラー: ${err.message}</div></div>`;
-  }
 }
