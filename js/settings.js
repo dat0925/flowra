@@ -62,11 +62,18 @@ export async function renderSettings() {
         <div class="panel-head">
           <div class="panel-title">タグ管理</div>
         </div>
-        ${tags.length > 0 ? tagsHTML : '<div class="empty-state" style="padding:24px;"><div class="empty-state-sub">タグがありません</div></div>'}
-        <div style="padding:12px 18px;border-top:1px solid var(--border);display:flex;gap:10px;">
-          <input class="text-input" id="new-tag-name" placeholder="タグ名を入力"
-            style="flex:1;background:var(--warm);border:1px solid var(--border);border-radius:8px;padding:8px 12px;">
-          <button class="btn-primary" id="btn-add-tag" style="width:auto;padding:8px 16px;flex-shrink:0;">追加</button>
+        <div id="tag-list-wrap">
+          ${tags.length > 0 ? tagsHTML : '<div class="empty-state" style="padding:24px;"><div class="empty-state-sub">タグがありません</div></div>'}
+        </div>
+        <div style="padding:12px 18px;border-top:1px solid var(--border);">
+          <div style="display:flex;gap:10px;">
+            <div style="flex:1;position:relative;">
+              <input class="text-input" id="new-tag-name" placeholder="タグ名を入力"
+                style="width:100%;background:var(--warm);border:1px solid var(--border);border-radius:8px;padding:8px 12px;transition:border-color 0.15s;">
+              <div id="tag-input-error" style="display:none;font-size:11.5px;color:var(--red);margin-top:5px;padding-left:2px;"></div>
+            </div>
+            <button class="btn-primary" id="btn-add-tag" style="width:auto;padding:8px 16px;flex-shrink:0;">追加</button>
+          </div>
         </div>
       </div>
 
@@ -117,15 +124,77 @@ export async function renderSettings() {
       if (newVal) Sound.playTap(); // ONにした瞬間に音を鳴らす
     });
 
-    // タグ追加
+    // タグ追加（インラインバリデーション付き）
+    const tagInput  = document.getElementById('new-tag-name');
+    const tagError  = document.getElementById('tag-input-error');
+
+    function clearTagError() {
+      tagError.style.display = 'none';
+      tagError.textContent = '';
+      tagInput.style.borderColor = 'var(--border)';
+      // ハイライト解除
+      document.querySelectorAll('.tag-chip.highlight').forEach(el => {
+        el.classList.remove('highlight');
+        el.style.outline = '';
+      });
+    }
+
+    function showTagError(msg, duplicateTagName = null) {
+      tagError.textContent = msg;
+      tagError.style.display = 'block';
+      tagInput.style.borderColor = 'var(--red)';
+      tagInput.focus();
+
+      // 重複タグをハイライト
+      if (duplicateTagName) {
+        document.querySelectorAll('.tag-chip').forEach(el => {
+          if (el.textContent.trim() === duplicateTagName) {
+            el.style.outline = '2px solid var(--red)';
+            el.style.outlineOffset = '2px';
+            el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        });
+      }
+
+      Sound.playError();
+    }
+
+    tagInput?.addEventListener('input', clearTagError);
+
     document.getElementById('btn-add-tag')?.addEventListener('click', async () => {
-      const name = document.getElementById('new-tag-name').value.trim();
-      if (!name) return;
+      const name = tagInput.value.trim();
+
+      // ① 空欄チェック（クライアント）
+      if (!name) {
+        showTagError('タグ名を入力してください');
+        return;
+      }
+
+      // ② 重複チェック（クライアント・即時）
+      const duplicate = tags.find(t => t.name === name);
+      if (duplicate) {
+        showTagError(`「${name}」は既に登録されています`, name);
+        return;
+      }
+
       try {
         await DB.createTag(name);
-        showToast('タグを追加しました');
+        Sound.playTap();
+        showToast('✓ タグを追加しました');
         renderSettings();
-      } catch (e) { showToast('エラー: ' + e.message); }
+      } catch (e) {
+        // サーバー側エラー（念のため）
+        if (e.message?.includes('unique') || e.code === '23505') {
+          showTagError(`「${name}」は既に登録されています`, name);
+        } else {
+          showTagError('追加に失敗しました。もう一度お試しください。');
+        }
+      }
+    });
+
+    // Enterキーでも追加
+    tagInput?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('btn-add-tag')?.click();
     });
 
   } catch (err) {
