@@ -922,3 +922,13 @@ svg {
 }
 .records-wrap { display: flex; flex-direction: column; }
 .records-list { padding: 0; }
+
+/* ══════════════════════════════
+   iOS AUTO ZOOM 防止
+   input focus時の自動ズームを防ぐ（16px未満で発生するiOS仕様）
+══════════════════════════════ */
+@media (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important;
+  }
+}
