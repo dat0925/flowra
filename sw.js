@@ -3,7 +3,7 @@
 //  JS/CSS/フォントをキャッシュ → 2回目以降の起動を高速化
 // ─────────────────────────────────────
 
-const CACHE_NAME = 'flowra-v1';
+const CACHE_NAME = 'flowra-v2';
 
 // キャッシュするアセット（アプリシェル）
 const SHELL_ASSETS = [
