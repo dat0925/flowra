@@ -4,7 +4,7 @@
 import { Auth }       from './auth.js';
 import { Router, MonthState } from './router.js';
 import { renderDashboard }    from './dashboard.js';
-import { renderAddRecord }    from './add-record.js';
+import { renderAddRecord, warmupAddRecord } from './add-record.js';
 import { renderAccounts }     from './accounts.js';
 import { renderSettings }     from './settings.js';
 import { fmt, showToast, openModal, closeModal } from './utils.js';
@@ -80,7 +80,10 @@ function showApp(user) {
 
   Router.init();
 
-  // ボタンのクリックハンドラ内でfocusを呼ぶ（iOSはユーザー操作の流れでないとキーボードが開かない）
+  // データを事前ウォームアップ（次回のaddが同期的に開けるようにする）
+  warmupAddRecord();
+
+  // ボタンのクリックハンドラ
   const openAdd = () => {
     // iOSのキーボード表示トリック：awaitの前に同期的にfocusしておく
     const dummy = document.getElementById('ios-focus-trick');
@@ -90,6 +93,7 @@ function showApp(user) {
       (savedTx) => {
         closeModal();
         showToast('✓ 記録を保存しました');
+        warmupAddRecord(); // 保存後にキャッシュ更新
         if (savedTx) {
           patchAfterSave(savedTx);
         } else {

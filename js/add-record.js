@@ -7,14 +7,37 @@ import { openModal, closeModal, showToast } from './utils.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export async function renderAddRecord(onSave, onReady) {
-  // タグ・口座を先に取得
-  let accounts = [], tags = [];
+// メモリキャッシュ（同期的にモーダルを開くため）
+let _accounts = null;
+let _tags = null;
+
+// アプリ起動時・保存後に呼ぶ（事前ウォームアップ）
+export async function warmupAddRecord() {
   try {
-    [accounts, tags] = await Promise.all([DB.getAccounts(), DB.getTags()]);
-  } catch (e) {
-    showToast('データ取得エラー: ' + e.message);
-    return;
+    [_accounts, _tags] = await Promise.all([DB.getAccounts(), DB.getTags()]);
+  } catch (e) { /* silent */ }
+}
+
+export async function renderAddRecord(onSave, onReady) {
+  // キャッシュがあれば同期的に開始、なければ取得
+  let accounts = _accounts ?? [];
+  let tags     = _tags     ?? [];
+
+  if (_accounts === null) {
+    // 初回のみ非同期取得（以降はウォームアップ済み）
+    try {
+      [accounts, tags] = await Promise.all([DB.getAccounts(), DB.getTags()]);
+      _accounts = accounts;
+      _tags = tags;
+    } catch (e) {
+      showToast('データ取得エラー: ' + e.message);
+      return;
+    }
+  } else {
+    // バックグラウンドで最新データに更新
+    Promise.all([DB.getAccounts(), DB.getTags()])
+      .then(([a, t]) => { _accounts = a; _tags = t; })
+      .catch(() => {});
   }
 
   // 状態
