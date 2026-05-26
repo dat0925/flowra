@@ -614,18 +614,19 @@ export async function renderAddRecord(onSave, onReady) {
 
   openModal('');
   render();
-  // モーダルのCSSアニメーション完了後にフォーカス
+  // モーダルのCSSアニメーション(280ms)完了後、さらに200ms待ってフォーカス
+  // animationend単体だとiOSのレンダリング負荷でバラツキが出るため二重保証
   const sheet = document.getElementById('modal-add-record');
-  if (sheet) {
-    sheet.addEventListener('animationend', () => {
-      document.getElementById('amount-input')?.focus();
-      if (onReady) onReady();
-    }, { once: true });
-  } else {
+  const doFocus = () => {
     setTimeout(() => {
       document.getElementById('amount-input')?.focus();
       if (onReady) onReady();
-    }, 300);
+    }, 200);
+  };
+  if (sheet) {
+    sheet.addEventListener('animationend', doFocus, { once: true });
+  } else {
+    setTimeout(doFocus, 300);
   }
 }
 
