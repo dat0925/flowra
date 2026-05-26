@@ -136,35 +136,40 @@ export async function renderAddRecord(onSave, onReady) {
         </div>
 
         <div class="amount-card ${state.type}">
-          <div class="amount-label">金額</div>
-          <div class="amount-row">
-            <span class="amount-currency">¥</span>
-            <input class="amount-input" id="amount-input" type="text" inputmode="numeric"
-              placeholder="0" value="${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}"
-              autocomplete="off" style="font-size:84px;">
-          </div>
-          <!-- 計算式表示 -->
-          <div id="calc-expr" style="display:none;font-size:12px;color:rgba(255,255,255,0.4);
-            margin-top:4px;letter-spacing:0.05em;min-height:16px;"></div>
-          <!-- インライン電卓ボタン -->
-          <div style="display:flex;gap:8px;margin-top:14px;">
-            ${['+','−','×','÷'].map(op => `
-              <button class="calc-op-btn" data-op="${op}"
-                style="flex:1;padding:3px 0;border-radius:8px;border:none;
-                background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
-                font-size:16px;font-weight:500;cursor:pointer;
+          <div style="display:flex;gap:10px;align-items:stretch;">
+            <!-- 左7割：金額＋式表示 -->
+            <div style="flex:7;min-width:0;display:flex;flex-direction:column;justify-content:center;">
+              <div class="amount-label">金額</div>
+              <div class="amount-row">
+                <span class="amount-currency">¥</span>
+                <input class="amount-input" id="amount-input" type="text" inputmode="numeric"
+                  placeholder="0" value="${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}"
+                  autocomplete="off" style="font-size:84px;">
+              </div>
+              <!-- 式表示：高さ固定でレイアウトシフトなし -->
+              <div id="calc-expr" style="font-size:12px;color:rgba(255,255,255,0.35);
+                margin-top:6px;letter-spacing:0.05em;height:16px;overflow:hidden;"></div>
+            </div>
+            <!-- 右3割：電卓ボタン縦並び -->
+            <div style="flex:3;display:flex;flex-direction:column;gap:5px;justify-content:stretch;">
+              ${['+','−','×','÷'].map(op => `
+                <button class="calc-op-btn" data-op="${op}"
+                  style="flex:1;padding:0;border-radius:8px;border:none;
+                  background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
+                  font-size:16px;font-weight:500;cursor:pointer;
+                  font-family:'Noto Sans JP',sans-serif;
+                  transition:background 0.12s;">
+                  ${op}
+                </button>`).join('')}
+              <button id="calc-eq-btn"
+                style="flex:1;padding:0;border-radius:8px;border:none;
+                background:var(--sage-lt);color:#fff;
+                font-size:16px;font-weight:600;cursor:pointer;
                 font-family:'Noto Sans JP',sans-serif;
                 transition:background 0.12s;">
-                ${op}
-              </button>`).join('')}
-            <button id="calc-eq-btn"
-              style="flex:1;padding:3px 0;border-radius:8px;border:none;
-              background:var(--sage-lt);color:#fff;
-              font-size:16px;font-weight:600;cursor:pointer;
-              font-family:'Noto Sans JP',sans-serif;
-              transition:background 0.12s;">
-              ＝
-            </button>
+                ＝
+              </button>
+            </div>
           </div>
         </div>
 
@@ -321,13 +326,12 @@ export async function renderAddRecord(onSave, onReady) {
       }
     }
 
-    // 計算式表示を更新
+    // 計算式表示を更新（高さ固定のため表示/非表示ではなくテキストのみ切替）
     function updateExpr() {
       if (calcLeft && calcOp) {
         exprEl.textContent = `¥${Number(calcLeft).toLocaleString('ja-JP')} ${calcOp}`;
-        exprEl.style.display = 'block';
       } else {
-        exprEl.style.display = 'none';
+        exprEl.textContent = '';
       }
     }
 
