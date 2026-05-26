@@ -970,3 +970,12 @@ svg {
 }
 .color-swatch:hover { transform: scale(1.08); }
 .color-swatch.selected { transform: scale(1.08); }
+
+/* モーダル閉じるアニメーション */
+#modal-add-record.closing {
+  animation: sheet-slide-down 0.25s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+@keyframes sheet-slide-down {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
+}
