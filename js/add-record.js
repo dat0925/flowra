@@ -7,7 +7,7 @@ import { openModal, closeModal, showToast } from './utils.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
-export async function renderAddRecord(onSave) {
+export async function renderAddRecord(onSave, onReady) {
   // タグ・口座を先に取得
   let accounts = [], tags = [];
   try {
@@ -552,10 +552,8 @@ export async function renderAddRecord(onSave) {
 
   openModal('');
   render();
-  // モーダルが開いたら即フォーカス → キーボードが自動で開く
-  setTimeout(() => {
-    document.getElementById('amount-input')?.focus();
-  }, 80);
+  // DOMが描画されたらonReadyを呼ぶ（呼び出し元でfocusする）
+  requestAnimationFrame(() => { if (onReady) onReady(); });
 }
 
 // ── 計算ヘルパー ──

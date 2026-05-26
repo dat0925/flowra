@@ -80,21 +80,26 @@ function showApp(user) {
 
   Router.init();
 
+  // ボタンのクリックハンドラ内でfocusを呼ぶ（iOSはユーザー操作の流れでないとキーボードが開かない）
   const openAdd = () => {
-    renderAddRecord((savedTx) => {
-      closeModal();
-      showToast('✓ 記録を保存しました');
-      // 軽量更新: 保存したデータをDOMに差し込むだけ
-      if (savedTx) {
-        patchAfterSave(savedTx);
-      } else {
-        // データがない場合のみ再描画
-        const page = Router.currentPage;
-        if (page === 'records')  renderRecords();
-        else if (page === 'accounts') renderAccounts();
-        else renderDashboard();
+    renderAddRecord(
+      (savedTx) => {
+        closeModal();
+        showToast('✓ 記録を保存しました');
+        if (savedTx) {
+          patchAfterSave(savedTx);
+        } else {
+          const page = Router.currentPage;
+          if (page === 'records')       renderRecords();
+          else if (page === 'accounts') renderAccounts();
+          else                          renderDashboard();
+        }
+      },
+      () => {
+        // DOMが描画された直後にフォーカス
+        document.getElementById('amount-input')?.focus();
       }
-    });
+    );
   };
   document.getElementById('btn-add-desktop')?.addEventListener('click', openAdd);
   document.getElementById('btn-add-mobile')?.addEventListener('click', openAdd);
