@@ -94,6 +94,13 @@ export async function putAccounts(accounts) {
   await Promise.all(accounts.map(a => promisify(store.put(a))));
 }
 
+// 削除済み口座をキャッシュから除去
+export async function removeAccount(id) {
+  await openDB();
+  const store = _db.transaction(STORES.accounts, 'readwrite').objectStore(STORES.accounts);
+  await promisify(store.delete(id));
+}
+
 // ── tags ────────────────────────────
 
 export async function getCachedTags() {

@@ -4,7 +4,7 @@
 // ─────────────────────────────────────
 import { DB }        from './db.js';
 import { fmt, showToast, openModal, closeModal } from './app.js';
-import { getCachedAccounts, putAccounts } from './cache.js';
+import { getCachedAccounts, putAccounts, removeAccount } from './cache.js';
 
 const ACCT_TYPES = [
   { value: 'cash',   label: '現金' },
@@ -371,6 +371,7 @@ function openEditModal(acct) {
       btn.disabled = true;
       try {
         await DB.updateAccount(acct.id, { is_archived: true });
+        await removeAccount(acct.id); // キャッシュからも即削除
         closeModal();
         showToast('口座を削除しました');
         renderAccounts();
