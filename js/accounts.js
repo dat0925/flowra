@@ -90,6 +90,8 @@ export async function renderAccounts() {
 
 async function renderAccountsContent(content, accounts) {
     const total = accounts.reduce((s, a) => s + a.balance, 0);
+
+    const itemsHTML = accounts.map((a, i) => `
       ${i > 0 ? '<div class="acct-divider"></div>' : ''}
       <div class="acct-item">
         <div class="acct-left">
