@@ -457,4 +457,8 @@ export async function renderAddRecord(onSave) {
 
   openModal('');
   render();
+  // モーダルが開いたら即フォーカス → キーボードが自動で開く
+  setTimeout(() => {
+    document.getElementById('amount-input')?.focus();
+  }, 80);
 }
