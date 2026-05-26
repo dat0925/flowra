@@ -135,8 +135,9 @@ export async function openEditRecord(tx, onSave) {
           <div class="amount-label">金額</div>
           <div class="amount-row">
             <span class="amount-currency">¥</span>
-            <input class="amount-input" id="amount-input" type="number"
-              inputmode="numeric" placeholder="0" value="${state.amount}"
+            <input class="amount-input" id="amount-input" type="text"
+              inputmode="numeric" placeholder="0"
+              value="${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}"
               style="font-size:40px;">
           </div>
         </div>
@@ -247,8 +248,18 @@ export async function openEditRecord(tx, onSave) {
       });
     });
 
-    // 金額・日付・メモ・URL
-    document.getElementById('amount-input')?.addEventListener('input', e => state.amount = e.target.value);
+    // 金額（入力中にコンマ表示）
+    document.getElementById('amount-input')?.addEventListener('input', e => {
+      const raw = e.target.value.replace(/,/g, '');
+      state.amount = raw;
+      if (raw && !isNaN(raw)) {
+        const pos = e.target.selectionStart;
+        const formatted = Number(raw).toLocaleString('ja-JP');
+        e.target.value = formatted;
+        // カーソル位置を末尾に
+        e.target.setSelectionRange(formatted.length, formatted.length);
+      }
+    });
     document.getElementById('date-input')?.addEventListener('change',  e => state.date   = e.target.value);
     document.getElementById('memo-input')?.addEventListener('input',   e => state.memo   = e.target.value);
     document.getElementById('url-input')?.addEventListener('input',    e => state.url    = e.target.value);
