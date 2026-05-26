@@ -135,66 +135,63 @@ export async function renderAddRecord(onSave, onReady) {
           </button>
         </div>
 
-        <div class="amount-card ${state.type}">
-          <div style="display:flex;gap:10px;align-items:stretch;">
-            <!-- 左7割：金額＋式表示 -->
-            <div style="flex:7;min-width:0;display:flex;flex-direction:column;justify-content:center;">
-              <div class="amount-label">金額</div>
-              <div class="amount-row">
-                <span class="amount-currency" style="font-size:24px;">¥</span>
-                <input class="amount-input" id="amount-input" type="text" inputmode="numeric"
-                  placeholder="0" value="${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}"
-                  autocomplete="off" style="font-size:110px;">
-              </div>
-              <!-- 式表示：高さ固定でレイアウトシフトなし -->
-              <div id="calc-expr" style="font-size:12px;color:rgba(255,255,255,0.35);
-                margin-top:6px;letter-spacing:0.05em;height:16px;overflow:hidden;"></div>
+        <div class="amount-card ${state.type}" style="position:relative;">
+          <!-- 金額：全幅表示 -->
+          <div class="amount-label">金額</div>
+          <div class="amount-row" style="padding-right:90px;">
+            <span class="amount-currency" style="font-size:24px;">¥</span>
+            <input class="amount-input" id="amount-input" type="text" inputmode="numeric"
+              placeholder="0" value="${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}"
+              autocomplete="off" style="font-size:110px;">
+          </div>
+          <!-- 式表示：高さ固定でレイアウトシフトなし -->
+          <div id="calc-expr" style="font-size:12px;color:rgba(255,255,255,0.35);
+            margin-top:6px;letter-spacing:0.05em;height:16px;overflow:hidden;padding-right:90px;"></div>
+          <!-- 電卓ボタン：右端にフロート -->
+          <div style="position:absolute;top:12px;right:12px;bottom:12px;width:76px;
+            display:flex;flex-direction:column;gap:5px;">
+            <!-- 1段目：＋ − -->
+            <div style="display:flex;gap:5px;flex:1;">
+              ${['+','−'].map(op => `
+                <button class="calc-op-btn" data-op="${op}"
+                  style="flex:1;padding:0;border-radius:8px;border:none;
+                  background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
+                  font-size:16px;font-weight:500;cursor:pointer;
+                  font-family:'Noto Sans JP',sans-serif;
+                  transition:background 0.12s;">
+                  ${op}
+                </button>`).join('')}
             </div>
-            <!-- 右3割：電卓ボタン3段（2列×2行＋＝1行） -->
-            <div style="flex:3;display:flex;flex-direction:column;gap:5px;">
-              <!-- 1段目：＋ − -->
-              <div style="display:flex;gap:5px;flex:1;">
-                ${['+','−'].map(op => `
-                  <button class="calc-op-btn" data-op="${op}"
-                    style="flex:1;padding:0;border-radius:8px;border:none;
-                    background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
-                    font-size:16px;font-weight:500;cursor:pointer;
-                    font-family:'Noto Sans JP',sans-serif;
-                    transition:background 0.12s;">
-                    ${op}
-                  </button>`).join('')}
-              </div>
-              <!-- 2段目：× ÷ -->
-              <div style="display:flex;gap:5px;flex:1;">
-                ${['×','÷'].map(op => `
-                  <button class="calc-op-btn" data-op="${op}"
-                    style="flex:1;padding:0;border-radius:8px;border:none;
-                    background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
-                    font-size:16px;font-weight:500;cursor:pointer;
-                    font-family:'Noto Sans JP',sans-serif;
-                    transition:background 0.12s;">
-                    ${op}
-                  </button>`).join('')}
-              </div>
-              <!-- 3段目：AC ＝ -->
-              <div style="display:flex;gap:5px;flex:1;">
-                <button id="calc-ac-btn"
+            <!-- 2段目：× ÷ -->
+            <div style="display:flex;gap:5px;flex:1;">
+              ${['×','÷'].map(op => `
+                <button class="calc-op-btn" data-op="${op}"
                   style="flex:1;padding:0;border-radius:8px;border:none;
-                  background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.4);
-                  font-size:13px;font-weight:600;cursor:pointer;
+                  background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
+                  font-size:16px;font-weight:500;cursor:pointer;
                   font-family:'Noto Sans JP',sans-serif;
                   transition:background 0.12s;">
-                  AC
-                </button>
-                <button id="calc-eq-btn"
-                  style="flex:1;padding:0;border-radius:8px;border:none;
-                  background:var(--sage-lt);color:#fff;
-                  font-size:16px;font-weight:600;cursor:pointer;
-                  font-family:'Noto Sans JP',sans-serif;
-                  transition:background 0.12s;">
-                  ＝
-                </button>
-              </div>
+                  ${op}
+                </button>`).join('')}
+            </div>
+            <!-- 3段目：AC ＝ -->
+            <div style="display:flex;gap:5px;flex:1;">
+              <button id="calc-ac-btn"
+                style="flex:1;padding:0;border-radius:8px;border:none;
+                background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.4);
+                font-size:13px;font-weight:600;cursor:pointer;
+                font-family:'Noto Sans JP',sans-serif;
+                transition:background 0.12s;">
+                AC
+              </button>
+              <button id="calc-eq-btn"
+                style="flex:1;padding:0;border-radius:8px;border:none;
+                background:var(--sage-lt);color:#fff;
+                font-size:16px;font-weight:600;cursor:pointer;
+                font-family:'Noto Sans JP',sans-serif;
+                transition:background 0.12s;">
+                ＝
+              </button>
             </div>
           </div>
         </div>
