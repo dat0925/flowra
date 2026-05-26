@@ -578,7 +578,7 @@ export async function renderAddRecord(onSave, onReady) {
   setTimeout(() => {
     document.getElementById('amount-input')?.focus();
     if (onReady) onReady();
-  }, 500);
+  }, 700);
 }
 
 // ── 計算ヘルパー ──
