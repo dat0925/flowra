@@ -611,14 +611,14 @@ svg {
 .amount-currency { font-size: 18px; font-weight: 300; color: rgba(255,255,255,0.4); }
 .amount-input {
   font-family: 'Noto Serif JP', serif;
-  font-size: 68px;
+  font-size: 84px;
   font-weight: 600;
   color: #fff;
   background: none;
   border: none;
   outline: none;
   width: 100%;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   caret-color: var(--sage-lt);
 }
 .amount-input::placeholder { color: rgba(255,255,255,0.12); }

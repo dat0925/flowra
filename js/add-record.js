@@ -141,7 +141,7 @@ export async function renderAddRecord(onSave, onReady) {
             <span class="amount-currency">¥</span>
             <input class="amount-input" id="amount-input" type="text" inputmode="numeric"
               placeholder="0" value="${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}"
-              autocomplete="off" style="font-size:68px;">
+              autocomplete="off" style="font-size:84px;">
           </div>
           <!-- 計算式表示 -->
           <div id="calc-expr" style="display:none;font-size:12px;color:rgba(255,255,255,0.4);
@@ -150,17 +150,17 @@ export async function renderAddRecord(onSave, onReady) {
           <div style="display:flex;gap:8px;margin-top:14px;">
             ${['+','−','×','÷'].map(op => `
               <button class="calc-op-btn" data-op="${op}"
-                style="flex:1;padding:5px 0;border-radius:9px;border:none;
-                background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);
-                font-size:18px;font-weight:500;cursor:pointer;
+                style="flex:1;padding:3px 0;border-radius:8px;border:none;
+                background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
+                font-size:16px;font-weight:500;cursor:pointer;
                 font-family:'Noto Sans JP',sans-serif;
                 transition:background 0.12s;">
                 ${op}
               </button>`).join('')}
             <button id="calc-eq-btn"
-              style="flex:1;padding:5px 0;border-radius:9px;border:none;
+              style="flex:1;padding:3px 0;border-radius:8px;border:none;
               background:var(--sage-lt);color:#fff;
-              font-size:18px;font-weight:600;cursor:pointer;
+              font-size:16px;font-weight:600;cursor:pointer;
               font-family:'Noto Sans JP',sans-serif;
               transition:background 0.12s;">
               ＝
