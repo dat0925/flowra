@@ -141,10 +141,10 @@ export async function renderAddRecord(onSave, onReady) {
             <div style="flex:7;min-width:0;display:flex;flex-direction:column;justify-content:center;">
               <div class="amount-label">金額</div>
               <div class="amount-row">
-                <span class="amount-currency">¥</span>
+                <span class="amount-currency" style="font-size:24px;">¥</span>
                 <input class="amount-input" id="amount-input" type="text" inputmode="numeric"
                   placeholder="0" value="${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}"
-                  autocomplete="off" style="font-size:84px;">
+                  autocomplete="off" style="font-size:110px;">
               </div>
               <!-- 式表示：高さ固定でレイアウトシフトなし -->
               <div id="calc-expr" style="font-size:12px;color:rgba(255,255,255,0.35);
