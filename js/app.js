@@ -85,10 +85,6 @@ function showApp(user) {
 
   // ボタンのクリックハンドラ
   const openAdd = () => {
-    // iOSのキーボード表示トリック：awaitの前に同期的にfocusしておく
-    const dummy = document.getElementById('ios-focus-trick');
-    dummy?.focus();
-
     renderAddRecord(
       (savedTx) => {
         closeModal();
@@ -107,7 +103,7 @@ function showApp(user) {
         // モーダルのスライドアニメーション(280ms)の後にキーボードを表示
         setTimeout(() => {
           document.getElementById('amount-input')?.focus();
-        }, 800);
+        }, 500);
       }
     );
   };
