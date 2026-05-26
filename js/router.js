@@ -92,6 +92,32 @@ export const Router = {
       MonthState.next();
       this._updateMonthLabels();
     });
+
+    // スワイプで月移動（モバイルヘッダー全体）
+    const mobileHeader = document.getElementById('mobile-header');
+    if (mobileHeader) {
+      let _touchStartX = 0;
+      let _touchStartY = 0;
+      mobileHeader.addEventListener('touchstart', (e) => {
+        _touchStartX = e.touches[0].clientX;
+        _touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+      mobileHeader.addEventListener('touchend', (e) => {
+        const dx = e.changedTouches[0].clientX - _touchStartX;
+        const dy = e.changedTouches[0].clientY - _touchStartY;
+        // 横方向が主体（縦ズレが横移動より小さい）かつ40px以上スワイプ
+        if (Math.abs(dx) > 40 && Math.abs(dy) < Math.abs(dx) * 0.6) {
+          if (dx < 0) {
+            // 左スワイプ → 次の月
+            MonthState.next();
+          } else {
+            // 右スワイプ → 前の月
+            MonthState.prev();
+          }
+          this._updateMonthLabels();
+        }
+      }, { passive: true });
+    }
     // 月ナビ（デスクトップ）
     document.getElementById('btn-month-prev-d')?.addEventListener('click', () => {
       MonthState.prev();
@@ -109,7 +135,11 @@ export const Router = {
     const label = MonthState.label();
     const m = document.getElementById('mobile-month-label');
     const d = document.getElementById('desktop-month-label');
-    if (m) m.textContent = label;
+    if (m) {
+      m.style.transition = 'opacity 0.15s';
+      m.style.opacity = '0';
+      setTimeout(() => { m.textContent = label; m.style.opacity = '1'; }, 150);
+    }
     if (d) d.textContent = label;
   }
 };
