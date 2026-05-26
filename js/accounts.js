@@ -277,14 +277,23 @@ function openEditModal(acct) {
         </div>
       </div>
 
-      <button class="btn-primary" id="btn-update-acct" style="margin-bottom:8px;">
+      <button class="btn-primary" id="btn-update-acct">
         <svg viewBox="0 0 24 24" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>
         変更を保存
       </button>
-      <button id="btn-delete-acct"
-        style="width:100%;padding:12px;border-radius:14px;border:1px solid var(--red-bg);background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;font-size:14px;font-weight:500;cursor:pointer;">
-        この口座を削除
-      </button>
+
+      <!-- 削除は十分な余白と視覚的分離を取る -->
+      <div style="margin-top:48px;padding-top:20px;border-top:1px solid var(--border);">
+        <div style="font-size:11px;color:var(--mid-lt);text-align:center;margin-bottom:12px;">危険な操作</div>
+        <button id="btn-delete-acct"
+          style="width:100%;padding:12px;border-radius:14px;
+          border:1.5px solid var(--border);background:none;
+          color:var(--mid);font-family:'Noto Sans JP',sans-serif;
+          font-size:13.5px;font-weight:500;cursor:pointer;
+          transition:all 0.15s;">
+          この口座を削除する
+        </button>
+      </div>
     </div>`;
 
   openModal(html);
@@ -333,13 +342,46 @@ function openEditModal(acct) {
     } catch (e) { showToast('エラー: ' + e.message); }
   });
 
-  document.getElementById('btn-delete-acct')?.addEventListener('click', async () => {
-    if (!confirm(`「${acct.name}」を削除しますか？\n※ この口座の記録は残ります`)) return;
-    try {
-      await DB.updateAccount(acct.id, { is_archived: true });
-      closeModal();
-      showToast('口座を削除しました');
-      renderAccounts();
-    } catch (e) { showToast('エラー: ' + e.message); }
+  // 削除：2段階確認（ボタンが変化する）
+  document.getElementById('btn-delete-acct')?.addEventListener('click', function() {
+    const btn = this;
+
+    if (btn.dataset.confirmed === 'true') return; // 多重クリック防止
+
+    // ── 第1タップ：ボタンを赤く変えて確認を求める ──
+    btn.textContent = '本当に削除しますか？もう一度タップで削除';
+    btn.style.borderColor = 'var(--red)';
+    btn.style.color = 'var(--red)';
+    btn.style.background = 'var(--red-bg)';
+    btn.dataset.confirmed = 'pending';
+
+    // 3秒後に元に戻る
+    const timer = setTimeout(() => {
+      btn.textContent = 'この口座を削除する';
+      btn.style.borderColor = 'var(--border)';
+      btn.style.color = 'var(--mid)';
+      btn.style.background = 'none';
+      btn.dataset.confirmed = '';
+    }, 3000);
+
+    // ── 第2タップ：実際に削除 ──
+    btn.addEventListener('click', async function handler() {
+      if (btn.dataset.confirmed !== 'pending') return;
+      btn.removeEventListener('click', handler);
+      clearTimeout(timer);
+      btn.dataset.confirmed = 'true';
+      btn.textContent = '削除中…';
+      btn.disabled = true;
+      try {
+        await DB.updateAccount(acct.id, { is_archived: true });
+        closeModal();
+        showToast('口座を削除しました');
+        renderAccounts();
+      } catch (e) {
+        showToast('エラー: ' + e.message);
+        btn.disabled = false;
+        btn.dataset.confirmed = '';
+      }
+    }, { once: true });
   });
 }
