@@ -85,6 +85,12 @@ function showApp(user) {
 
   // ボタンのクリックハンドラ
   const openAdd = () => {
+    // iOSキーボード権限をユーザー操作タイミングで取得
+    const dummy = document.getElementById('ios-focus-trick');
+    dummy?.focus();
+    // すぐblurしてキーボードを一旦引っ込める
+    dummy?.blur();
+
     renderAddRecord(
       (savedTx) => {
         closeModal();
