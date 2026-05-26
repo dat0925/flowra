@@ -574,8 +574,11 @@ export async function renderAddRecord(onSave, onReady) {
 
   openModal('');
   render();
-  // DOMが描画されたらonReadyを呼ぶ（呼び出し元でfocusする）
-  requestAnimationFrame(() => { if (onReady) onReady(); });
+  // モーダルアニメーション(280ms)より少し後にフォーカス
+  setTimeout(() => {
+    document.getElementById('amount-input')?.focus();
+    if (onReady) onReady();
+  }, 500);
 }
 
 // ── 計算ヘルパー ──

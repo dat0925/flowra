@@ -104,11 +104,7 @@ function showApp(user) {
         }
       },
       () => {
-        // モーダルのスライドアニメーション後にamount-inputへ切り替え
-        // dummyにfocusが当たったままなのでiOSキーボードは維持される
-        setTimeout(() => {
-          document.getElementById('amount-input')?.focus();
-        }, 500);
+        // add-record.js内でfocus済み
       }
     );
   };
