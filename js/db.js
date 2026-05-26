@@ -97,6 +97,26 @@ export const DB = {
     return data;
   },
 
+  async updateTag(id, payload) {
+    const { data, error } = await supabase
+      .from('tags')
+      .update(payload)
+      .eq('id', id)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deleteTag(id) {
+    // transaction_tags は ON DELETE CASCADE で自動削除される
+    const { error } = await supabase
+      .from('tags')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+  },
+
   // ── 記録（ページネーション対応）─────────────────
   //
   // ポイント：
