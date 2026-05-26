@@ -393,15 +393,18 @@ export async function renderAddRecord(onSave, onReady) {
       });
     });
 
-    // ＝ボタン
+    // ＝ボタン：計算結果を表示、式はそのまま残す
     document.getElementById('calc-eq-btn')?.addEventListener('click', () => {
       if (!calcLeft || !calcOp) return;
       const right = Number(state.amount || '0');
       const result = calculate(Number(calcLeft), right, calcOp);
+      // 式を残すため exprEl のテキストを計算式として固定表示
+      const exprText = `¥${Number(calcLeft).toLocaleString('ja-JP')} ${calcOp} ¥${Number(right).toLocaleString('ja-JP')} ＝`;
       displayAmount(result);
       calcLeft = '';
       calcOp   = '';
-      updateExpr();
+      // updateExprは呼ばない（式を残す）
+      exprEl.textContent = exprText;
       Sound.playTap();
     });
 
