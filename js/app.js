@@ -103,9 +103,24 @@ function showApp(user) {
 }
 
 // ── 保存後の軽量DOM更新 ──────────────────
-// 全再描画せず、変更のあった部分だけ更新する
 function patchAfterSave(tx) {
-  // ① 記録リストの先頭に新しい行を追加
+  const page = Router.currentPage;
+
+  // 記録画面・口座画面は構造が異なるので再描画が確実
+  if (page === 'records') {
+    // records.js の _allTx に追加してrenderListを呼ぶ
+    import('./records.js').then(({ patchAddRecord }) => {
+      if (patchAddRecord) patchAddRecord(tx);
+      else renderRecords();
+    }).catch(() => renderRecords());
+    return;
+  }
+  if (page === 'accounts') {
+    renderAccounts();
+    return;
+  }
+
+  // ── ホーム画面のDOMパッチ ──
   const txList = document.getElementById('tx-list');
   if (txList) {
     const today = new Date(tx.date + 'T00:00:00');
@@ -141,28 +156,19 @@ function patchAfterSave(tx) {
     txList.prepend(newRow);
   }
 
-  // ② サマリー数字を差分更新
+  // サマリー数字を差分更新
   if (tx.type === 'income') {
-    const el = document.querySelector('.income-card .s-number, .rsb-amount.income');
-    if (el) {
-      const cur = parseInt(el.textContent.replace(/,/g,''), 10) || 0;
-      el.textContent = (cur + tx.amount).toLocaleString('ja-JP');
-    }
+    const el = document.querySelector('.income-card .s-number');
+    if (el) el.textContent = (parseInt(el.textContent.replace(/,/g,''),10)||0 + tx.amount).toLocaleString('ja-JP');
   }
   if (tx.type === 'expense') {
-    const el = document.querySelector('.expense-card .s-number, .rsb-amount.expense');
-    if (el) {
-      const cur = parseInt(el.textContent.replace(/,/g,''), 10) || 0;
-      el.textContent = (cur + tx.amount).toLocaleString('ja-JP');
-    }
+    const el = document.querySelector('.expense-card .s-number');
+    if (el) el.textContent = (parseInt(el.textContent.replace(/,/g,''),10)||0 + tx.amount).toLocaleString('ja-JP');
   }
-
-  // ③ 総残高を更新
   const totalEl = document.querySelector('.s-card.total .s-number');
   if (totalEl) {
-    const cur = parseInt(totalEl.textContent.replace(/,/g,''), 10) || 0;
     const delta = tx.type==='income' ? tx.amount : tx.type==='expense' ? -tx.amount : 0;
-    if (delta !== 0) totalEl.textContent = (cur + delta).toLocaleString('ja-JP');
+    if (delta !== 0) totalEl.textContent = (parseInt(totalEl.textContent.replace(/,/g,''),10)||0 + delta).toLocaleString('ja-JP');
   }
 }
 
