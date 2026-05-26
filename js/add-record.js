@@ -320,6 +320,7 @@ export async function renderAddRecord(onSave) {
       ic:     '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 6h6M9 10h6"/>',
       qr:     '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h4"/>',
       credit: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
+      savings: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
       point:  '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
       other:  '<rect x="2" y="5" width="20" height="14" rx="2"/>',
     };
