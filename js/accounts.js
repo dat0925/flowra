@@ -185,10 +185,6 @@ async function renderAccountsContent(content, accounts) {
         if (acct) openEditModal(acct);
       });
     });
-
-  } catch (err) {
-    content.innerHTML = `<div class="empty-state"><div class="empty-state-title">エラー: ${err.message}</div></div>`;
-  }
 }
 
 // カラーピッカーを描画
