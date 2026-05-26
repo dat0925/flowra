@@ -136,8 +136,7 @@ export async function renderAddRecord(onSave, onReady) {
         </div>
 
         <div class="amount-card ${state.type}" style="position:relative;">
-          <!-- 金額：全幅表示 -->
-          <div class="amount-label">金額</div>
+          <!-- 金額：全幅表示（ラベルなし） -->
           <div class="amount-row" style="padding-right:90px;">
             <span class="amount-currency" style="font-size:24px;">¥</span>
             <input class="amount-input" id="amount-input" type="text" inputmode="numeric"
