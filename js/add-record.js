@@ -427,10 +427,17 @@ export async function renderAddRecord(onSave) {
     };
 
     // ── 楽観的UI更新 ──
-    // モーダルを即閉じてonSaveを先に呼ぶ（体感速度UP）
+    // onSave にペイロードを渡してDOM差し込みだけ行う（再描画なし）
+    const acctName = accounts.find(a => a.id === state.accountId)?.name || '';
+    const optimisticTx = {
+      ...payload,
+      id:       'optimistic-' + Date.now(),
+      _acctName: acctName,
+    };
+
     Sound.playSave();
     closeModal();
-    if (onSave) onSave();
+    if (onSave) onSave(optimisticTx);
 
     // バックグラウンドで実際に保存
     try {
@@ -438,8 +445,11 @@ export async function renderAddRecord(onSave) {
       const tx = await DB.createTransaction(payload, [...state.selectedTags]);
       // キャッシュにも追記
       await upsertTransactions([{ ...tx, tags: [] }]);
+
+      // 仮IDの行を正式IDに差し替え
+      const tmpEl = document.querySelector('[data-tx-id="' + optimisticTx.id + '"]');
+      if (tmpEl) tmpEl.dataset.txId = tx.id;
     } catch (err) {
-      // 保存失敗時はトーストで通知（次回同期で整合）
       showToast('⚠️ 保存に失敗しました。再度お試しください。');
       console.error('Save error:', err);
     }

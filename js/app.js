@@ -81,21 +81,89 @@ function showApp(user) {
   Router.init();
 
   const openAdd = () => {
-    renderAddRecord(() => {
+    renderAddRecord((savedTx) => {
       closeModal();
       showToast('✓ 記録を保存しました');
-      // 現在の画面を更新（どの画面にいても反映）
-      const page = Router.currentPage;
-      if (page === 'dashboard') renderDashboard();
-      else if (page === 'records')  renderRecords();
-      else if (page === 'accounts') renderAccounts();
-      else renderDashboard();
+      // 軽量更新: 保存したデータをDOMに差し込むだけ
+      if (savedTx) {
+        patchAfterSave(savedTx);
+      } else {
+        // データがない場合のみ再描画
+        const page = Router.currentPage;
+        if (page === 'records')  renderRecords();
+        else if (page === 'accounts') renderAccounts();
+        else renderDashboard();
+      }
     });
   };
   document.getElementById('btn-add-desktop')?.addEventListener('click', openAdd);
   document.getElementById('btn-add-mobile')?.addEventListener('click', openAdd);
 
   Router.navigate('dashboard');
+}
+
+// ── 保存後の軽量DOM更新 ──────────────────
+// 全再描画せず、変更のあった部分だけ更新する
+function patchAfterSave(tx) {
+  // ① 記録リストの先頭に新しい行を追加
+  const txList = document.getElementById('tx-list');
+  if (txList) {
+    const today = new Date(tx.date + 'T00:00:00');
+    const w = ['日','月','火','水','木','金','土'];
+    const dateLabel = `${today.getMonth()+1}月${today.getDate()}日（${w[today.getDay()]}）`;
+    const sign = tx.type==='income' ? '+¥' : tx.type==='expense' ? '−¥' : '¥';
+    const TX_ICON = {
+      income:   { bg:'#EEF5F1', stroke:'#4A7C59', path:'<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>' },
+      expense:  { bg:'#F0EDE8', stroke:'#7A9485', path:'<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>' },
+      transfer: { bg:'#FBF5E6', stroke:'#B8973E', path:'<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>' },
+    };
+    const ic = TX_ICON[tx.type] || TX_ICON.expense;
+
+    const newRow = document.createElement('div');
+    newRow.innerHTML = `
+      <div class="tx-date-label">${dateLabel}</div>
+      <div class="tx-item" data-tx-id="${tx.id}" style="cursor:pointer;">
+        <div class="tx-icon" style="background:${ic.bg};">
+          <svg viewBox="0 0 24 24" style="stroke:${ic.stroke}">${ic.path}</svg>
+        </div>
+        <div class="tx-body">
+          <div class="tx-name">${tx.memo || '（メモなし）'}</div>
+          <div class="tx-meta">
+            <span class="tx-acct">${tx._acctName || ''}</span>
+          </div>
+        </div>
+        <div class="tx-right">
+          <div class="tx-amount ${tx.type}">
+            <span class="tx-currency">${sign}</span>${Number(tx.amount).toLocaleString('ja-JP')}
+          </div>
+        </div>
+      </div>`;
+    txList.prepend(newRow);
+  }
+
+  // ② サマリー数字を差分更新
+  if (tx.type === 'income') {
+    const el = document.querySelector('.income-card .s-number, .rsb-amount.income');
+    if (el) {
+      const cur = parseInt(el.textContent.replace(/,/g,''), 10) || 0;
+      el.textContent = (cur + tx.amount).toLocaleString('ja-JP');
+    }
+  }
+  if (tx.type === 'expense') {
+    const el = document.querySelector('.expense-card .s-number, .rsb-amount.expense');
+    if (el) {
+      const cur = parseInt(el.textContent.replace(/,/g,''), 10) || 0;
+      el.textContent = (cur + tx.amount).toLocaleString('ja-JP');
+    }
+  }
+
+  // ③ 総残高を更新
+  const totalEl = document.querySelector('.s-card.total .s-number');
+  if (totalEl) {
+    const cur = parseInt(totalEl.textContent.replace(/,/g,''), 10) || 0;
+    const delta = tx.type==='income' ? tx.amount : tx.type==='expense' ? -tx.amount : 0;
+    if (delta !== 0) totalEl.textContent = (cur + delta).toLocaleString('ja-JP');
+  }
 }
 
 // モーダル外クリックで閉じる
