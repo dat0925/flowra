@@ -150,25 +150,51 @@ export async function renderAddRecord(onSave, onReady) {
               <div id="calc-expr" style="font-size:12px;color:rgba(255,255,255,0.35);
                 margin-top:6px;letter-spacing:0.05em;height:16px;overflow:hidden;"></div>
             </div>
-            <!-- 右3割：電卓ボタン縦並び -->
-            <div style="flex:3;display:flex;flex-direction:column;gap:5px;justify-content:stretch;">
-              ${['+','−','×','÷'].map(op => `
-                <button class="calc-op-btn" data-op="${op}"
+            <!-- 右3割：電卓ボタン3段（2列×2行＋＝1行） -->
+            <div style="flex:3;display:flex;flex-direction:column;gap:5px;">
+              <!-- 1段目：＋ − -->
+              <div style="display:flex;gap:5px;flex:1;">
+                ${['+','−'].map(op => `
+                  <button class="calc-op-btn" data-op="${op}"
+                    style="flex:1;padding:0;border-radius:8px;border:none;
+                    background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
+                    font-size:16px;font-weight:500;cursor:pointer;
+                    font-family:'Noto Sans JP',sans-serif;
+                    transition:background 0.12s;">
+                    ${op}
+                  </button>`).join('')}
+              </div>
+              <!-- 2段目：× ÷ -->
+              <div style="display:flex;gap:5px;flex:1;">
+                ${['×','÷'].map(op => `
+                  <button class="calc-op-btn" data-op="${op}"
+                    style="flex:1;padding:0;border-radius:8px;border:none;
+                    background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
+                    font-size:16px;font-weight:500;cursor:pointer;
+                    font-family:'Noto Sans JP',sans-serif;
+                    transition:background 0.12s;">
+                    ${op}
+                  </button>`).join('')}
+              </div>
+              <!-- 3段目：AC ＝ -->
+              <div style="display:flex;gap:5px;flex:1;">
+                <button id="calc-ac-btn"
                   style="flex:1;padding:0;border-radius:8px;border:none;
-                  background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
-                  font-size:16px;font-weight:500;cursor:pointer;
+                  background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.4);
+                  font-size:13px;font-weight:600;cursor:pointer;
                   font-family:'Noto Sans JP',sans-serif;
                   transition:background 0.12s;">
-                  ${op}
-                </button>`).join('')}
-              <button id="calc-eq-btn"
-                style="flex:1;padding:0;border-radius:8px;border:none;
-                background:var(--sage-lt);color:#fff;
-                font-size:16px;font-weight:600;cursor:pointer;
-                font-family:'Noto Sans JP',sans-serif;
-                transition:background 0.12s;">
-                ＝
-              </button>
+                  AC
+                </button>
+                <button id="calc-eq-btn"
+                  style="flex:1;padding:0;border-radius:8px;border:none;
+                  background:var(--sage-lt);color:#fff;
+                  font-size:16px;font-weight:600;cursor:pointer;
+                  font-family:'Noto Sans JP',sans-serif;
+                  transition:background 0.12s;">
+                  ＝
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -379,6 +405,16 @@ export async function renderAddRecord(onSave, onReady) {
       calcLeft = '';
       calcOp   = '';
       updateExpr();
+      Sound.playTap();
+    });
+
+    // ACボタン（全クリア）
+    document.getElementById('calc-ac-btn')?.addEventListener('click', () => {
+      calcLeft = '';
+      calcOp   = '';
+      displayAmount('');
+      updateExpr();
+      amountInput.focus();
       Sound.playTap();
     });
 
