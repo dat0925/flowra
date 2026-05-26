@@ -10,6 +10,7 @@ import {
   getCachedTransactions, upsertTransactions,
   getLastSync, setLastSync
 } from './cache.js';
+import { openEditRecord } from './edit-record.js';
 
 const PAGE_SIZE = 50;
 
@@ -63,7 +64,7 @@ function txItemHTML(tx) {
     ? `${tx.account?.name||''} → ${tx.to_account?.name||''}`
     : tx.account?.name||'';
   return `
-  <div class="tx-item">
+  <div class="tx-item" data-tx-id="${tx.id}" style="cursor:pointer;">
     ${txIconSVG(tx.type)}
     <div class="tx-body">
       <div class="tx-name">${tx.memo||'（メモなし）'}</div>
@@ -216,6 +217,14 @@ function renderContent(content, accounts, transactions, year, month, fromCache =
 
   document.getElementById('link-acct-manage')?.addEventListener('click', () => {
     import('./router.js').then(({ Router }) => Router.navigate('accounts'));
+  });
+
+  // 記録行タップ → 編集シート
+  document.querySelectorAll('.tx-item[data-tx-id]').forEach(el => {
+    el.addEventListener('click', () => {
+      const tx = transactions.find(t => t.id === el.dataset.txId);
+      if (tx) openEditRecord(tx, () => renderDashboard());
+    });
   });
 
   if (_hasMore) setupInfiniteScroll(year, month);

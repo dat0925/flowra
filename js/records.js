@@ -6,6 +6,7 @@ import { DB }         from './db.js';
 import { MonthState } from './router.js';
 import { fmt }        from './utils.js';
 import { getCachedTransactions, upsertTransactions, putAccounts } from './cache.js';
+import { openEditRecord } from './edit-record.js';
 
 const TX_ICON = {
   income:   { bg: '#EEF5F1', stroke: '#4A7C59', path: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>' },
@@ -190,7 +191,7 @@ function renderList() {
             ? `${tx.account?.name||''} → ${tx.to_account?.name||''}`
             : tx.account?.name || '';
           return `
-            <div class="tx-item">
+            <div class="tx-item" data-tx-id="${tx.id}" style="cursor:pointer;">
               ${txIconSVG(tx.type)}
               <div class="tx-body">
                 <div class="tx-name">${tx.memo || '（メモなし）'}</div>
@@ -210,4 +211,19 @@ function renderList() {
         }).join('')}
       `).join('')}
     </div>`;
+
+  // 記録行タップ → 編集シート
+  listEl.querySelectorAll('.tx-item[data-tx-id]').forEach(el => {
+    el.addEventListener('click', () => {
+      const tx = filtered.find(t => t.id === el.dataset.txId);
+      if (tx) openEditRecord(tx, () => {
+        // 保存・削除後にリストを更新
+        import('./router.js').then(({ MonthState: ms }) => {
+          DB.getTransactions({ year: ms.year, month: ms.month, pageSize: 500 })
+            .then(r => { _allTx = r.data; renderList(); })
+            .catch(() => {});
+        });
+      });
+    });
+  });
 }

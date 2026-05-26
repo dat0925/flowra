@@ -1,0 +1,411 @@
+// ─────────────────────────────────────
+//  edit-record.js  記録詳細・編集シート
+//  タップ → ボトムシートで編集・削除
+// ─────────────────────────────────────
+import { DB }    from './db.js';
+import { Sound } from './sound.js';
+import { showToast } from './utils.js';
+import { upsertTransactions, markDeletedTransaction } from './cache.js';
+
+const TYPE_PATH = {
+  cash:    '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/>',
+  bank:    '<path d="M3 22V8l9-6 9 6v14H3z"/><path d="M9 22V12h6v10"/>',
+  ic:      '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 6h6M9 10h6"/>',
+  qr:      '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h4"/>',
+  credit:  '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
+  savings: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
+  point:   '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+  other:   '<rect x="2" y="5" width="20" height="14" rx="2"/>',
+};
+const TYPE_COLOR = {
+  cash:'#7A9485', bank:'#3B6FBF', ic:'#4A7C59', qr:'#C4602A',
+  credit:'#7B5EA7', savings:'#2F5239', point:'#B8973E', other:'#7A9485',
+};
+const TYPE_BG = {
+  cash:'#F0EDE8', bank:'#EEF3FF', ic:'#EEF5F1', qr:'#FFF2EB',
+  credit:'#F5F0FF', savings:'#EEF5F1', point:'#FBF5E6', other:'#F0EDE8',
+};
+
+function fmt(n) { return Number(n).toLocaleString('ja-JP'); }
+
+export async function openEditRecord(tx, onSave) {
+  // 最新の口座・タグを取得
+  let accounts = [], tags = [];
+  try {
+    [accounts, tags] = await Promise.all([DB.getAccounts(), DB.getTags()]);
+  } catch (e) {
+    showToast('データ取得エラー: ' + e.message);
+    return;
+  }
+
+  const txTags = tx.tags || [];
+  let state = {
+    type:         tx.type,
+    amount:       String(tx.amount),
+    date:         tx.date,
+    accountId:    tx.account_id,
+    toAccountId:  tx.to_account_id || (accounts[1]?.id || ''),
+    memo:         tx.memo || '',
+    url:          tx.url  || '',
+    isUnsettled:  tx.is_unsettled || false,
+    selectedTags: new Set(txTags.map(t => t.id)),
+  };
+
+  Sound.playOpen();
+
+  const sheetId = 'edit-record-sheet';
+  document.getElementById(sheetId)?.remove();
+
+  const sheet = document.createElement('div');
+  sheet.id = sheetId;
+  sheet.style.cssText = `
+    position:fixed;inset:0;z-index:600;
+    background:rgba(28,43,34,0.5);
+    display:flex;align-items:flex-end;justify-content:center;
+  `;
+  document.body.appendChild(sheet);
+
+  function acctName(id) {
+    return accounts.find(a => a.id === id)?.name || '選択してください';
+  }
+
+  function render() {
+    const isTransfer = state.type === 'transfer';
+
+    const accountSection = isTransfer ? `
+      <div class="form-section">
+        <div class="transfer-row">
+          <div class="transfer-acct" id="btn-from-acct">
+            <div class="transfer-acct-label">出元</div>
+            <div class="transfer-acct-name">${acctName(state.accountId)}</div>
+          </div>
+          <div class="transfer-arrow">
+            <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+          <div class="transfer-acct" id="btn-to-acct">
+            <div class="transfer-acct-label">移動先</div>
+            <div class="transfer-acct-name">${acctName(state.toAccountId)}</div>
+          </div>
+        </div>
+      </div>` : `
+      <div class="form-section">
+        <div class="form-row" id="btn-acct">
+          <div class="row-icon" style="background:var(--sage-bg);">
+            <svg viewBox="0 0 24 24" style="stroke:var(--sage)"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          </div>
+          <div class="row-body">
+            <div class="row-label">口座</div>
+            <div class="row-value">${acctName(state.accountId)}</div>
+          </div>
+          <div class="row-chevron"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+      </div>`;
+
+    sheet.innerHTML = `
+      <div style="background:var(--stone);width:100%;max-width:480px;
+        border-radius:20px 20px 0 0;max-height:92vh;overflow-y:auto;
+        padding:0 14px 40px;">
+
+        <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 0;"></div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px 12px;">
+          <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">記録を編集</div>
+          <button id="btn-close-edit-record"
+            style="width:30px;height:30px;border-radius:50%;background:var(--mist);border:none;
+            display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">
+            <svg viewBox="0 0 24 24" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+
+        <!-- 種別 -->
+        <div class="type-selector" style="margin-bottom:14px;">
+          <button class="type-btn ${state.type==='income'?'active-income':''}" id="btn-income">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>収入
+          </button>
+          <button class="type-btn ${state.type==='expense'?'active-expense':''}" id="btn-expense">
+            <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>支出
+          </button>
+          <button class="type-btn ${state.type==='transfer'?'active-transfer':''}" id="btn-transfer">
+            <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>移動
+          </button>
+        </div>
+
+        <!-- 金額 -->
+        <div class="amount-card ${state.type}" style="margin-bottom:14px;">
+          <div class="amount-label">金額</div>
+          <div class="amount-row">
+            <span class="amount-currency">¥</span>
+            <input class="amount-input" id="amount-input" type="number"
+              inputmode="numeric" placeholder="0" value="${state.amount}"
+              style="font-size:40px;">
+          </div>
+        </div>
+
+        <!-- 口座 -->
+        ${accountSection}
+
+        <!-- 日付・メモ・URL -->
+        <div class="form-section" style="margin-bottom:12px;">
+          <div class="form-row no-tap">
+            <div class="row-icon" style="background:#F0EDE8;">
+              <svg viewBox="0 0 24 24" style="stroke:var(--mid)"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+            </div>
+            <div class="row-body">
+              <div class="row-label">日付</div>
+              <input class="date-input" id="date-input" type="date" value="${state.date}">
+            </div>
+          </div>
+          <div class="form-row no-tap">
+            <div class="row-icon" style="background:#F0EDE8;">
+              <svg viewBox="0 0 24 24" style="stroke:var(--mid)"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div class="row-body">
+              <div class="row-label">メモ</div>
+              <input class="text-input" id="memo-input" type="text"
+                placeholder="メモを入力（任意）" value="${state.memo}">
+            </div>
+          </div>
+          <div class="form-row no-tap">
+            <div class="row-icon" style="background:#F0EDE8;">
+              <svg viewBox="0 0 24 24" style="stroke:var(--mid)"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </div>
+            <div class="row-body">
+              <div class="row-label">URL</div>
+              <input class="text-input" id="url-input" type="url"
+                placeholder="https://... （任意）" value="${state.url}">
+            </div>
+          </div>
+        </div>
+
+        <!-- タグ -->
+        <div class="form-section" style="margin-bottom:12px;">
+          <div style="padding:10px 18px 4px;display:flex;align-items:center;gap:6px;">
+            <span style="font-size:12px;color:var(--mid);font-weight:500;">タグ</span>
+          </div>
+          <div class="tags-wrap" style="padding-top:6px;">
+            ${tags.length === 0
+              ? `<div style="font-size:12.5px;color:var(--mid-lt);padding:4px 0 8px;">タグがありません</div>`
+              : tags.map(t => `
+                  <div class="tag-chip ${state.selectedTags.has(t.id)?'on':'off'}"
+                    data-tag-id="${t.id}">${t.name}</div>
+                `).join('')
+            }
+          </div>
+        </div>
+
+        <!-- 未精算 -->
+        <div class="form-section" style="margin-bottom:20px;">
+          <div class="toggle-wrap">
+            <div class="toggle-left">
+              <div class="row-icon" style="background:var(--gold-bg);">
+                <svg viewBox="0 0 24 24" style="stroke:var(--gold)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <div>
+                <div class="toggle-title">未精算</div>
+                <div class="toggle-sub">立替など後で精算が必要</div>
+              </div>
+            </div>
+            <div class="toggle ${state.isUnsettled?'on':''}" id="toggle-unsettled">
+              <div class="toggle-knob"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 保存 -->
+        <button class="btn-primary" id="btn-save-edit" style="margin-bottom:0;">
+          <svg viewBox="0 0 24 24" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>
+          変更を保存
+        </button>
+
+        <!-- 削除（十分な余白と分離） -->
+        <div style="margin-top:48px;padding-top:20px;border-top:1px solid var(--border);">
+          <div style="font-size:11px;color:var(--mid-lt);text-align:center;margin-bottom:12px;">危険な操作</div>
+          <button id="btn-delete-record"
+            style="width:100%;padding:12px;border-radius:14px;
+            border:1.5px solid var(--border);background:none;
+            color:var(--mid);font-family:'Noto Sans JP',sans-serif;
+            font-size:13.5px;font-weight:500;cursor:pointer;
+            transition:all 0.15s;">
+            この記録を削除する
+          </button>
+        </div>
+      </div>`;
+
+    bindEvents();
+  }
+
+  function bindEvents() {
+    const closeSheet = () => { Sound.playClose(); sheet.remove(); };
+    sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
+    document.getElementById('btn-close-edit-record')?.addEventListener('click', closeSheet);
+
+    // 種別
+    ['income','expense','transfer'].forEach(t => {
+      document.getElementById('btn-' + t)?.addEventListener('click', () => {
+        state.type = t;
+        render();
+      });
+    });
+
+    // 金額・日付・メモ・URL
+    document.getElementById('amount-input')?.addEventListener('input', e => state.amount = e.target.value);
+    document.getElementById('date-input')?.addEventListener('change',  e => state.date   = e.target.value);
+    document.getElementById('memo-input')?.addEventListener('input',   e => state.memo   = e.target.value);
+    document.getElementById('url-input')?.addEventListener('input',    e => state.url    = e.target.value);
+
+    // 口座選択
+    document.getElementById('btn-acct')?.addEventListener('click', () => {
+      showAccountPicker(accounts, state.accountId, id => { state.accountId = id; render(); });
+    });
+    document.getElementById('btn-from-acct')?.addEventListener('click', () => {
+      showAccountPicker(accounts, state.accountId, id => { state.accountId = id; render(); });
+    });
+    document.getElementById('btn-to-acct')?.addEventListener('click', () => {
+      showAccountPicker(accounts, state.toAccountId, id => { state.toAccountId = id; render(); });
+    });
+
+    // タグ
+    document.querySelectorAll('.tag-chip[data-tag-id]').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const id = chip.dataset.tagId;
+        if (state.selectedTags.has(id)) {
+          state.selectedTags.delete(id);
+          chip.className = 'tag-chip off';
+        } else {
+          state.selectedTags.add(id);
+          chip.className = 'tag-chip on';
+        }
+        Sound.playTap();
+      });
+    });
+
+    // 未精算トグル
+    document.getElementById('toggle-unsettled')?.addEventListener('click', function() {
+      state.isUnsettled = !state.isUnsettled;
+      this.classList.toggle('on', state.isUnsettled);
+      Sound.playTap();
+    });
+
+    // 保存
+    document.getElementById('btn-save-edit')?.addEventListener('click', async () => {
+      const amount = parseInt(state.amount, 10);
+      if (!amount || amount <= 0) { showToast('金額を入力してください'); return; }
+      if (!state.date)             { showToast('日付を入力してください'); return; }
+      if (!state.accountId)        { showToast('口座を選択してください'); return; }
+      if (state.type === 'transfer' && state.accountId === state.toAccountId) {
+        showToast('移動元と移動先が同じです'); return;
+      }
+
+      const payload = {
+        type:          state.type,
+        amount,
+        date:          state.date,
+        account_id:    state.accountId,
+        to_account_id: state.type === 'transfer' ? state.toAccountId : null,
+        memo:          state.memo  || null,
+        url:           state.url   || null,
+        is_unsettled:  state.isUnsettled,
+      };
+
+      // 楽観的UI: 即閉じる
+      Sound.playSave();
+      sheet.remove();
+      if (onSave) onSave();
+
+      try {
+        const updated = await DB.updateTransaction(tx.id, payload, [...state.selectedTags]);
+        await upsertTransactions([{ ...updated, tags: [] }]);
+      } catch (e) {
+        showToast('⚠️ 保存に失敗しました: ' + e.message);
+      }
+    });
+
+    // 削除（2段階確認）
+    document.getElementById('btn-delete-record')?.addEventListener('click', function() {
+      const btn = this;
+      if (btn.dataset.confirmed === 'true') return;
+
+      btn.textContent = '本当に削除しますか？もう一度タップで削除';
+      btn.style.borderColor = 'var(--red)';
+      btn.style.color = 'var(--red)';
+      btn.style.background = 'var(--red-bg)';
+      btn.dataset.confirmed = 'pending';
+
+      const timer = setTimeout(() => {
+        btn.textContent = 'この記録を削除する';
+        btn.style.borderColor = 'var(--border)';
+        btn.style.color = 'var(--mid)';
+        btn.style.background = 'none';
+        btn.dataset.confirmed = '';
+      }, 3000);
+
+      btn.addEventListener('click', async function handler() {
+        if (btn.dataset.confirmed !== 'pending') return;
+        btn.removeEventListener('click', handler);
+        clearTimeout(timer);
+        btn.dataset.confirmed = 'true';
+        btn.textContent = '削除中…';
+        btn.disabled = true;
+        try {
+          await DB.deleteTransaction(tx.id);
+          await markDeletedTransaction(tx.id);
+          Sound.playClose();
+          sheet.remove();
+          showToast('記録を削除しました');
+          if (onSave) onSave();
+        } catch (e) {
+          showToast('削除エラー: ' + e.message);
+          btn.disabled = false;
+          btn.dataset.confirmed = '';
+        }
+      }, { once: true });
+    });
+  }
+
+  render();
+}
+
+// 口座選択ピッカー（ボトムシート）
+function showAccountPicker(accounts, currentId, callback) {
+  const existing = document.getElementById('acct-picker-for-edit');
+  existing?.remove();
+
+  const s = document.createElement('div');
+  s.id = 'acct-picker-for-edit';
+  s.style.cssText = 'position:fixed;inset:0;z-index:700;background:rgba(28,43,34,0.45);display:flex;align-items:flex-end;justify-content:center;';
+
+  const itemsHTML = accounts.map(a => {
+    const bg     = TYPE_BG[a.type]    || '#F0EDE8';
+    const stroke = TYPE_COLOR[a.type] || '#7A9485';
+    const path   = TYPE_PATH[a.type]  || TYPE_PATH.other;
+    const sel    = a.id === currentId;
+    return `
+      <div class="acct-picker-item" data-id="${a.id}"
+        style="display:flex;align-items:center;gap:13px;padding:13px 18px;cursor:pointer;
+        border-bottom:1px solid var(--border);background:${sel?'var(--sage-bg)':'#fff'};">
+        <div style="width:38px;height:38px;border-radius:11px;background:${bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="${stroke}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${path}</svg>
+        </div>
+        <div style="flex:1;">
+          <div style="font-size:14px;font-weight:500;">${a.name}</div>
+          <div style="font-size:11px;color:var(--mid);">残高 ¥${fmt(a.balance)}</div>
+        </div>
+        ${sel ? '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--sage)" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+      </div>`;
+  }).join('');
+
+  s.innerHTML = `
+    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;max-height:70vh;overflow-y:auto;padding-bottom:32px;">
+      <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 0;"></div>
+      <div style="padding:14px 18px 10px;font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">口座を選択</div>
+      <div style="background:#fff;border-radius:14px;margin:0 14px;overflow:hidden;border:1px solid var(--border);">
+        ${itemsHTML}
+      </div>
+    </div>`;
+
+  document.body.appendChild(s);
+  s.addEventListener('click', e => { if (e.target === s) s.remove(); });
+  s.querySelectorAll('.acct-picker-item').forEach(el => {
+    el.addEventListener('click', () => { s.remove(); callback(el.dataset.id); });
+  });
+}
