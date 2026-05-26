@@ -107,7 +107,7 @@ function showApp(user) {
         // モーダルのスライドアニメーション(280ms)の後にキーボードを表示
         setTimeout(() => {
           document.getElementById('amount-input')?.focus();
-        }, 500);
+        }, 800);
       }
     );
   };
