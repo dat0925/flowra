@@ -42,8 +42,8 @@ body {
   overflow-x: hidden;
 }
 
-/* iOSタップハイライト全消し */
-* { -webkit-tap-highlight-color: transparent; }
+/* iOSタップハイライト全消し・テキスト選択禁止（PWA用） */
+* { -webkit-tap-highlight-color: transparent; -webkit-user-select: none; user-select: none; }
 
 /* ボタン・タップ可能要素のアクティブ状態を自前で制御 */
 button:active, .nav-item:active, .b-tab:active,
