@@ -100,8 +100,10 @@ function showApp(user) {
         }
       },
       () => {
-        // DOMが描画された直後にフォーカスを本来のinputへ移す
-        document.getElementById('amount-input')?.focus();
+        // モーダルのスライドアニメーション(280ms)の後にキーボードを表示
+        setTimeout(() => {
+          document.getElementById('amount-input')?.focus();
+        }, 300);
       }
     );
   };

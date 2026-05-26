@@ -437,6 +437,11 @@ svg {
   overflow-y: auto;
   padding-bottom: 32px;
   -webkit-overflow-scrolling: touch;
+  animation: sheet-slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+@keyframes sheet-slide-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
 }
 .modal-handle {
   width: 36px; height: 4px;
