@@ -138,7 +138,19 @@ export async function openEditRecord(tx, onSave) {
             <input class="amount-input" id="amount-input" type="text"
               inputmode="numeric" placeholder="0"
               value="${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}"
-              style="font-size:40px;">
+              style="font-size:52px;">
+          </div>
+          <div id="calc-expr" style="display:none;font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px;"></div>
+          <div style="display:flex;gap:8px;margin-top:14px;">
+            ${['+','−','×','÷'].map(op => `
+              <button class="calc-op-btn" data-op="${op}"
+                style="flex:1;padding:8px 0;border-radius:9px;border:none;
+                background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);
+                font-size:18px;font-weight:500;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">${op}</button>`).join('')}
+            <button id="calc-eq-btn"
+              style="flex:1;padding:8px 0;border-radius:9px;border:none;
+              background:var(--sage-lt);color:#fff;font-size:18px;font-weight:600;cursor:pointer;
+              font-family:'Noto Sans JP',sans-serif;">＝</button>
           </div>
         </div>
 
@@ -248,18 +260,70 @@ export async function openEditRecord(tx, onSave) {
       });
     });
 
-    // 金額（入力中にコンマ表示）
-    document.getElementById('amount-input')?.addEventListener('input', e => {
-      const raw = e.target.value.replace(/,/g, '');
+    // ── 金額 + インライン電卓 ──
+    let calcLeft = '';
+    let calcOp   = '';
+
+    const amountInput = document.getElementById('amount-input');
+    const exprEl      = document.getElementById('calc-expr');
+
+    function displayAmount(raw) {
+      const n = parseInt(String(raw).replace(/,/g,''), 10);
+      if (!isNaN(n) && n > 0) {
+        amountInput.value = n.toLocaleString('ja-JP');
+        state.amount = String(n);
+      } else {
+        amountInput.value = '';
+        state.amount = '';
+      }
+    }
+
+    function updateExpr() {
+      if (calcLeft && calcOp && exprEl) {
+        exprEl.textContent = `¥${Number(calcLeft).toLocaleString('ja-JP')} ${calcOp}`;
+        exprEl.style.display = 'block';
+      } else if (exprEl) {
+        exprEl.style.display = 'none';
+      }
+    }
+
+    amountInput?.addEventListener('input', e => {
+      const raw = e.target.value.replace(/,/g,'');
       state.amount = raw;
       if (raw && !isNaN(raw)) {
-        const pos = e.target.selectionStart;
-        const formatted = Number(raw).toLocaleString('ja-JP');
-        e.target.value = formatted;
-        // カーソル位置を末尾に
-        e.target.setSelectionRange(formatted.length, formatted.length);
+        e.target.value = Number(raw).toLocaleString('ja-JP');
       }
     });
+
+    document.querySelectorAll('.calc-op-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cur = state.amount || '0';
+        if (!cur || cur === '0') return;
+        if (calcLeft && calcOp) {
+          const result = calcFn(Number(calcLeft), Number(cur), calcOp);
+          displayAmount(result);
+          calcLeft = String(result);
+        } else {
+          calcLeft = cur;
+        }
+        calcOp = btn.dataset.op;
+        updateExpr();
+        amountInput.value = '';
+        state.amount = '';
+        amountInput.focus();
+        Sound.playTap();
+      });
+    });
+
+    document.getElementById('calc-eq-btn')?.addEventListener('click', () => {
+      if (!calcLeft || !calcOp) return;
+      const result = calcFn(Number(calcLeft), Number(state.amount || '0'), calcOp);
+      displayAmount(result);
+      calcLeft = ''; calcOp = '';
+      updateExpr();
+      Sound.playTap();
+    });
+
     document.getElementById('date-input')?.addEventListener('change',  e => state.date   = e.target.value);
     document.getElementById('memo-input')?.addEventListener('input',   e => state.memo   = e.target.value);
     document.getElementById('url-input')?.addEventListener('input',    e => state.url    = e.target.value);
@@ -419,4 +483,16 @@ function showAccountPicker(accounts, currentId, callback) {
   s.querySelectorAll('.acct-picker-item').forEach(el => {
     el.addEventListener('click', () => { s.remove(); callback(el.dataset.id); });
   });
+}
+
+function calcFn(left, right, op) {
+  let r;
+  switch (op) {
+    case '+': r = left + right; break;
+    case '−': r = left - right; break;
+    case '×': r = Math.round(left * right); break;
+    case '÷': r = right !== 0 ? Math.round(left / right) : left; break;
+    default:  r = right;
+  }
+  return Math.max(0, r);
 }

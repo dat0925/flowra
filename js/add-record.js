@@ -116,10 +116,33 @@ export async function renderAddRecord(onSave) {
           <div class="amount-label">金額</div>
           <div class="amount-row">
             <span class="amount-currency">¥</span>
-            <input class="amount-input" id="amount-input" type="number" inputmode="numeric"
-              placeholder="0" value="${state.amount}" autocomplete="off">
+            <input class="amount-input" id="amount-input" type="text" inputmode="numeric"
+              placeholder="0" value="${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}"
+              autocomplete="off" style="font-size:52px;">
           </div>
-          <div class="amount-hint">デバイスのキーボードで入力</div>
+          <!-- 計算式表示 -->
+          <div id="calc-expr" style="display:none;font-size:12px;color:rgba(255,255,255,0.4);
+            margin-top:4px;letter-spacing:0.05em;min-height:16px;"></div>
+          <!-- インライン電卓ボタン -->
+          <div style="display:flex;gap:8px;margin-top:14px;">
+            ${['+','−','×','÷'].map(op => `
+              <button class="calc-op-btn" data-op="${op}"
+                style="flex:1;padding:8px 0;border-radius:9px;border:none;
+                background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);
+                font-size:18px;font-weight:500;cursor:pointer;
+                font-family:'Noto Sans JP',sans-serif;
+                transition:background 0.12s;">
+                ${op}
+              </button>`).join('')}
+            <button id="calc-eq-btn"
+              style="flex:1;padding:8px 0;border-radius:9px;border:none;
+              background:var(--sage-lt);color:#fff;
+              font-size:18px;font-weight:600;cursor:pointer;
+              font-family:'Noto Sans JP',sans-serif;
+              transition:background 0.12s;">
+              ＝
+            </button>
+          </div>
         </div>
 
         ${accountSection}
@@ -255,9 +278,81 @@ export async function renderAddRecord(onSave) {
       });
     });
 
-    // 金額
-    document.getElementById('amount-input')?.addEventListener('input', e => {
-      state.amount = e.target.value;
+    // ── 金額 + インライン電卓 ──────────────────
+    // 計算状態
+    let calcLeft = '';   // 左辺の値
+    let calcOp   = '';   // 演算子
+
+    const amountInput = document.getElementById('amount-input');
+    const exprEl      = document.getElementById('calc-expr');
+
+    // 数値をコンマ付きで表示
+    function displayAmount(raw) {
+      const n = parseInt(String(raw).replace(/,/g,''), 10);
+      if (!isNaN(n) && n > 0) {
+        amountInput.value = n.toLocaleString('ja-JP');
+        state.amount = String(n);
+      } else {
+        amountInput.value = '';
+        state.amount = '';
+      }
+    }
+
+    // 計算式表示を更新
+    function updateExpr() {
+      if (calcLeft && calcOp) {
+        exprEl.textContent = `¥${Number(calcLeft).toLocaleString('ja-JP')} ${calcOp}`;
+        exprEl.style.display = 'block';
+      } else {
+        exprEl.style.display = 'none';
+      }
+    }
+
+    amountInput?.addEventListener('input', e => {
+      const raw = e.target.value.replace(/,/g,'');
+      state.amount = raw;
+      if (raw && !isNaN(raw) && raw !== '') {
+        const formatted = Number(raw).toLocaleString('ja-JP');
+        const pos = e.target.selectionStart;
+        e.target.value = formatted;
+      }
+    });
+
+    // 演算子ボタン
+    document.querySelectorAll('.calc-op-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const currentVal = state.amount || '0';
+        if (!currentVal || currentVal === '0') return;
+
+        // 前の計算が未完なら先に計算する
+        if (calcLeft && calcOp) {
+          const result = calculate(Number(calcLeft), Number(currentVal), calcOp);
+          displayAmount(result);
+          calcLeft = String(result);
+        } else {
+          calcLeft = currentVal;
+        }
+        calcOp = btn.dataset.op;
+        updateExpr();
+
+        // 入力欄をクリアして次の数字を待つ
+        amountInput.value = '';
+        state.amount = '';
+        amountInput.focus();
+        Sound.playTap();
+      });
+    });
+
+    // ＝ボタン
+    document.getElementById('calc-eq-btn')?.addEventListener('click', () => {
+      if (!calcLeft || !calcOp) return;
+      const right = Number(state.amount || '0');
+      const result = calculate(Number(calcLeft), right, calcOp);
+      displayAmount(result);
+      calcLeft = '';
+      calcOp   = '';
+      updateExpr();
+      Sound.playTap();
     });
 
     // 日付
@@ -461,4 +556,18 @@ export async function renderAddRecord(onSave) {
   setTimeout(() => {
     document.getElementById('amount-input')?.focus();
   }, 80);
+}
+
+// ── 計算ヘルパー ──
+function calculate(left, right, op) {
+  let result;
+  switch (op) {
+    case '+': result = left + right; break;
+    case '−': result = left - right; break;
+    case '×': result = Math.round(left * right); break;
+    case '÷': result = right !== 0 ? Math.round(left / right) : left; break;
+    default:  result = right;
+  }
+  // 負の値は0に（家計アプリなので）
+  return Math.max(0, result);
 }
