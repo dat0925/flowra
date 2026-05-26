@@ -574,11 +574,19 @@ export async function renderAddRecord(onSave, onReady) {
 
   openModal('');
   render();
-  // モーダルアニメーション(280ms)より少し後にフォーカス
-  setTimeout(() => {
-    document.getElementById('amount-input')?.focus();
-    if (onReady) onReady();
-  }, 1000);
+  // モーダルのCSSアニメーション完了後にフォーカス
+  const sheet = document.getElementById('modal-add-record');
+  if (sheet) {
+    sheet.addEventListener('animationend', () => {
+      document.getElementById('amount-input')?.focus();
+      if (onReady) onReady();
+    }, { once: true });
+  } else {
+    setTimeout(() => {
+      document.getElementById('amount-input')?.focus();
+      if (onReady) onReady();
+    }, 300);
+  }
 }
 
 // ── 計算ヘルパー ──
