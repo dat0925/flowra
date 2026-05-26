@@ -135,64 +135,41 @@ export async function renderAddRecord(onSave, onReady) {
           </button>
         </div>
 
-        <div class="amount-card ${state.type}" style="position:relative;">
-          <!-- 金額：全幅表示 -->
-          <div class="amount-label">金額</div>
-          <div class="amount-row" style="padding-right:90px;">
-            <span class="amount-currency" style="font-size:24px;">¥</span>
+        <div class="amount-card ${state.type}">
+          <!-- 金額：全幅、フォント大きく -->
+          <div class="amount-row">
+            <span class="amount-currency" style="font-size:28px;">¥</span>
             <input class="amount-input" id="amount-input" type="text" inputmode="numeric"
               placeholder="0" value="${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}"
-              autocomplete="off" style="font-size:110px;">
+              autocomplete="off" style="font-size:130px;">
           </div>
           <!-- 式表示：高さ固定でレイアウトシフトなし -->
           <div id="calc-expr" style="font-size:12px;color:rgba(255,255,255,0.35);
-            margin-top:6px;letter-spacing:0.05em;height:16px;overflow:hidden;padding-right:90px;"></div>
-          <!-- 電卓ボタン：右端にフロート -->
-          <div style="position:absolute;top:14px;right:14px;bottom:14px;width:76px;
-            display:flex;flex-direction:column;gap:5px;">
-            <!-- 1段目：＋ − -->
-            <div style="display:flex;gap:5px;flex:1;">
-              ${['+','−'].map(op => `
-                <button class="calc-op-btn" data-op="${op}"
-                  style="flex:1;padding:0;border-radius:8px;border:none;
-                  background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
-                  font-size:16px;font-weight:500;cursor:pointer;
-                  font-family:'Noto Sans JP',sans-serif;
-                  transition:background 0.12s;">
-                  ${op}
-                </button>`).join('')}
-            </div>
-            <!-- 2段目：× ÷ -->
-            <div style="display:flex;gap:5px;flex:1;">
-              ${['×','÷'].map(op => `
-                <button class="calc-op-btn" data-op="${op}"
-                  style="flex:1;padding:0;border-radius:8px;border:none;
-                  background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
-                  font-size:16px;font-weight:500;cursor:pointer;
-                  font-family:'Noto Sans JP',sans-serif;
-                  transition:background 0.12s;">
-                  ${op}
-                </button>`).join('')}
-            </div>
-            <!-- 3段目：AC ＝ -->
-            <div style="display:flex;gap:5px;flex:1;">
-              <button id="calc-ac-btn"
-                style="flex:1;padding:0;border-radius:8px;border:none;
-                background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.4);
-                font-size:13px;font-weight:600;cursor:pointer;
-                font-family:'Noto Sans JP',sans-serif;
-                transition:background 0.12s;">
-                AC
-              </button>
-              <button id="calc-eq-btn"
-                style="flex:1;padding:0;border-radius:8px;border:none;
-                background:var(--sage-lt);color:#fff;
-                font-size:16px;font-weight:600;cursor:pointer;
-                font-family:'Noto Sans JP',sans-serif;
-                transition:background 0.12s;">
-                ＝
-              </button>
-            </div>
+            margin-top:4px;letter-spacing:0.05em;height:16px;overflow:hidden;"></div>
+          <!-- 電卓ボタン：横1列、ACと四則＋＝ -->
+          <div style="display:flex;gap:6px;margin-top:12px;">
+            <button id="calc-ac-btn"
+              style="flex:1;padding:7px 0;border-radius:8px;border:none;
+              background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);
+              font-size:13px;font-weight:600;cursor:pointer;
+              font-family:'Noto Sans JP',sans-serif;transition:background 0.12s;">
+              AC
+            </button>
+            ${['+','−','×','÷'].map(op => `
+              <button class="calc-op-btn" data-op="${op}"
+                style="flex:1;padding:7px 0;border-radius:8px;border:none;
+                background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
+                font-size:18px;font-weight:500;cursor:pointer;
+                font-family:'Noto Sans JP',sans-serif;transition:background 0.12s;">
+                ${op}
+              </button>`).join('')}
+            <button id="calc-eq-btn"
+              style="flex:1;padding:7px 0;border-radius:8px;border:none;
+              background:var(--sage-lt);color:#fff;
+              font-size:18px;font-weight:600;cursor:pointer;
+              font-family:'Noto Sans JP',sans-serif;transition:background 0.12s;">
+              ＝
+            </button>
           </div>
         </div>
 
