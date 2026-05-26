@@ -19,13 +19,12 @@ const ACCT_ICON = {
   cash:   { bg: '#F0EDE8', stroke: '#7A9485', path: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/>' },
   bank:   { bg: '#EEF3FF', stroke: '#3B6FBF', path: '<path d="M3 22V8l9-6 9 6v14H3z"/><path d="M9 22V12h6v10"/>' },
   ic:     { bg: '#EEF5F1', stroke: '#4A7C59', path: '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 6h6M9 10h6"/><circle cx="12" cy="16" r="1"/>' },
-  qr:     { bg: '#FFF2EB', stroke: '#C4602A', path: '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h4"/><circle cx="12" cy="16" r="1"/>' },
   credit: { bg: '#F5F0FF', stroke: '#7B5EA7', path: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>' },
   savings: { bg: '#EEF5F1', stroke: '#2F5239', path: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>' },
   point:  { bg: '#FBF5E6', stroke: '#B8973E', path: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>' },
   other:  { bg: '#F0EDE8', stroke: '#7A9485', path: '<rect x="2" y="5" width="20" height="14" rx="2"/>' },
 };
-const ACCT_TYPE_LABEL = { cash:'現金', bank:'銀行', ic:'電子マネー', qr:'QRコード', credit:'クレカ', savings:'積立・資産', point:'ポイント', other:'その他' };
+const ACCT_TYPE_LABEL = { cash:'現金', bank:'銀行', ic:'電子マネー', credit:'クレカ', savings:'積立・資産', point:'ポイント', other:'その他' };
 
 const TX_ICON = {
   income:   { bg: '#EEF5F1', stroke: '#4A7C59', path: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>' },
