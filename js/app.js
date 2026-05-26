@@ -85,11 +85,9 @@ function showApp(user) {
 
   // ボタンのクリックハンドラ
   const openAdd = () => {
-    // iOSキーボード権限をユーザー操作タイミングで取得
+    // iOSキーボード権限をユーザー操作タイミングで取得（blurしない）
     const dummy = document.getElementById('ios-focus-trick');
     dummy?.focus();
-    // すぐblurしてキーボードを一旦引っ込める
-    dummy?.blur();
 
     renderAddRecord(
       (savedTx) => {
@@ -106,7 +104,8 @@ function showApp(user) {
         }
       },
       () => {
-        // モーダルのスライドアニメーション(280ms)の後にキーボードを表示
+        // モーダルのスライドアニメーション後にamount-inputへ切り替え
+        // dummyにfocusが当たったままなのでiOSキーボードは維持される
         setTimeout(() => {
           document.getElementById('amount-input')?.focus();
         }, 500);
