@@ -84,7 +84,12 @@ function showApp(user) {
     renderAddRecord(() => {
       closeModal();
       showToast('✓ 記録を保存しました');
-      renderDashboard();
+      // 現在の画面を更新（どの画面にいても反映）
+      const page = Router.currentPage;
+      if (page === 'dashboard') renderDashboard();
+      else if (page === 'records')  renderRecords();
+      else if (page === 'accounts') renderAccounts();
+      else renderDashboard();
     });
   };
   document.getElementById('btn-add-desktop')?.addEventListener('click', openAdd);
