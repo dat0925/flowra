@@ -82,6 +82,10 @@ function showApp(user) {
 
   // ボタンのクリックハンドラ内でfocusを呼ぶ（iOSはユーザー操作の流れでないとキーボードが開かない）
   const openAdd = () => {
+    // iOSのキーボード表示トリック：awaitの前に同期的にfocusしておく
+    const dummy = document.getElementById('ios-focus-trick');
+    dummy?.focus();
+
     renderAddRecord(
       (savedTx) => {
         closeModal();
@@ -96,7 +100,7 @@ function showApp(user) {
         }
       },
       () => {
-        // DOMが描画された直後にフォーカス
+        // DOMが描画された直後にフォーカスを本来のinputへ移す
         document.getElementById('amount-input')?.focus();
       }
     );
