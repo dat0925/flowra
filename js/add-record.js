@@ -406,6 +406,9 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     // 演算子ボタン
     let waitingForNextInput = false; // 次の入力でクリアするフラグ
     document.querySelectorAll('.calc-op-btn').forEach(btn => {
+      // mousedown/touchstartでフォーカスを奪わない（キーボードを閉じない）
+      btn.addEventListener('mousedown', e => e.preventDefault());
+      btn.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
       btn.addEventListener('click', () => {
         const currentVal = state.amount || '0';
         if (!currentVal || currentVal === '0') return;
@@ -428,6 +431,8 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     });
 
     // ＝ボタン：計算結果を表示、式はそのまま残す
+    document.getElementById('calc-eq-btn')?.addEventListener('mousedown', e => e.preventDefault());
+    document.getElementById('calc-eq-btn')?.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
     document.getElementById('calc-eq-btn')?.addEventListener('click', () => {
       if (!calcLeft || !calcOp) return;
       const right = Number(state.amount || '0');
@@ -443,6 +448,8 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     });
 
     // ACボタン（全クリア）
+    document.getElementById('calc-ac-btn')?.addEventListener('mousedown', e => e.preventDefault());
+    document.getElementById('calc-ac-btn')?.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
     document.getElementById('calc-ac-btn')?.addEventListener('click', () => {
       calcLeft = '';
       calcOp   = '';
