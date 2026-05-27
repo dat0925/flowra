@@ -104,7 +104,7 @@ export async function openEditRecord(tx, onSave) {
     sheet.innerHTML = `
       <div style="background:var(--stone);width:100%;max-width:480px;
         border-radius:20px 20px 0 0;max-height:92vh;overflow-y:auto;
-        padding:0 14px 40px;">
+        padding:0 14px 120px;-webkit-overflow-scrolling:touch;">
 
         <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 0;"></div>
 
