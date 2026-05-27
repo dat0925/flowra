@@ -436,7 +436,7 @@ export async function openEditRecord(tx, onSave) {
         const newSaveBtn = saveBarBtn.cloneNode(true);
         saveBarBtn.parentNode.replaceChild(newSaveBtn, saveBarBtn);
         newSaveBtn.addEventListener('click', () => {
-          sheet.querySelector('#btn-save-edit')?.click();
+          doSave();
         });
       }
       // キャンセルボタン
@@ -487,7 +487,7 @@ export async function openEditRecord(tx, onSave) {
       );
     });
 
-    sheet.querySelector('#btn-save-edit')?.addEventListener('click', async () => {
+    async function doSave() {
       const amount = parseInt(state.amount, 10);
       if (!amount || amount <= 0) { showToast('金額を入力してください'); return; }
       if (!state.date)             { showToast('日付を入力してください'); return; }
@@ -516,7 +516,7 @@ export async function openEditRecord(tx, onSave) {
       } catch (e) {
         showToast('⚠️ 保存に失敗しました: ' + e.message);
       }
-    });
+    }
 
     // 削除（2段階確認）
     sheet.querySelector('#btn-delete-record')?.addEventListener('click', function() {
