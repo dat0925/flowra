@@ -4,6 +4,7 @@
 import { DB }        from './db.js';
 import { Sound }     from './sound.js';
 import { openModal, closeModal, showToast } from './utils.js';
+import { getCachedTransactions } from './cache.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -612,6 +613,16 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     }
   }
 
+  // initialStateが空（新規入力）の時はサジェストを表示
+  const isNew = Object.keys(initialState).length === 0;
+  const skipSuggest = initialState._skipSuggest;
+  if (isNew || skipSuggest) {
+    if (!skipSuggest) {
+      await showSuggest(onSave, onReady, accounts, tags);
+      return;
+    }
+  }
+
   openModal('');
   render();
   // モーダルのCSSアニメーション(280ms)完了後、さらに200ms待ってフォーカス
@@ -628,6 +639,108 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
   } else {
     setTimeout(doFocus, 300);
   }
+}
+
+// ── サジェスト画面 ──
+async function showSuggest(onSave, onReady, accounts, tags) {
+  // 直近トランザクションから重複排除して5件取得
+  const all = await getCachedTransactions();
+  // メモ+金額+typeで重複排除（同じ内容の直近1件だけ残す）
+  const seen = new Set();
+  const recent = [];
+  for (const tx of all) {
+    if (tx.type === 'transfer') continue; // 移動は除外
+    const key = `${tx.type}|${tx.amount}|${tx.memo || ''}|${tx.account_id}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      recent.push(tx);
+      if (recent.length >= 5) break;
+    }
+  }
+
+  const typeIcon = { income: '↑', expense: '↓' };
+  const typeColor = { income: 'var(--sage)', expense: 'var(--red)' };
+  const acctName = (id) => accounts.find(a => a.id === id)?.name || '';
+
+  const suggestHTML = recent.length === 0 ? '' : `
+    <div style="padding:0 20px 4px;">
+      <div style="font-size:11px;color:var(--mid-lt);margin-bottom:8px;letter-spacing:0.05em;">最近の記録から選ぶ</div>
+      ${recent.map(tx => `
+        <button class="suggest-item" data-id="${tx.id}"
+          style="width:100%;display:flex;align-items:center;gap:12px;
+          padding:10px 12px;border-radius:10px;border:none;background:var(--stone);
+          cursor:pointer;margin-bottom:6px;text-align:left;transition:background 0.12s;">
+          <span style="font-size:13px;color:${typeColor[tx.type]};font-weight:600;width:12px;">${typeIcon[tx.type]}</span>
+          <span style="flex:1;min-width:0;">
+            <span style="font-size:14px;font-weight:500;color:var(--ink);display:block;
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              ${tx.memo || '（メモなし）'}
+            </span>
+            <span style="font-size:11px;color:var(--mid-lt);">${acctName(tx.account_id)}</span>
+          </span>
+          <span style="font-size:15px;font-weight:600;color:${typeColor[tx.type]};white-space:nowrap;">
+            ¥${Number(tx.amount).toLocaleString('ja-JP')}
+          </span>
+        </button>
+      `).join('')}
+      <div style="display:flex;align-items:center;gap:8px;margin:12px 0 8px;">
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+        <span style="font-size:11px;color:var(--mid-lt);">または新規入力</span>
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+      </div>
+    </div>`;
+
+  // モーダルにサジェスト+新規入力ボタンを表示
+  const overlay = document.getElementById('modal-overlay');
+  const modalContent = document.getElementById('modal-content');
+  modalContent.innerHTML = `
+    <div style="padding:20px 0 8px;">
+      <div style="font-size:16px;font-weight:600;color:var(--ink);padding:0 20px 16px;">記録を追加</div>
+      ${suggestHTML}
+      <div style="padding:0 20px 8px;">
+        <button id="suggest-new-btn"
+          style="width:100%;padding:14px;border-radius:14px;border:1.5px solid var(--border);
+          background:none;color:var(--ink);font-family:'Noto Sans JP',sans-serif;
+          font-size:14px;font-weight:500;cursor:pointer;transition:background 0.12s;">
+          ＋ 新しく入力する
+        </button>
+      </div>
+    </div>`;
+  overlay.hidden = false;
+  document.body.style.overflow = 'hidden';
+  Sound.playOpen();
+
+  // サジェストアイテムをタップ
+  document.querySelectorAll('.suggest-item').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const txId = btn.dataset.id;
+      const tx = all.find(t => t.id === txId);
+      if (!tx) return;
+      const memo = tx.memo ? tx.memo + '（複製）' : '（複製）';
+      const state = {
+        type:        tx.type,
+        amount:      String(tx.amount),
+        date:        new Date().toISOString().slice(0, 10),
+        accountId:   tx.account_id,
+        toAccountId: tx.to_account_id || '',
+        memo,
+        url:         tx.url || '',
+        isUnsettled: false,
+        selectedTags: (tx.tags || []).map(t => t.id),
+      };
+      overlay.hidden = true;
+      document.body.style.overflow = '';
+      renderAddRecord(onSave, onReady, state);
+    });
+  });
+
+  // 新規入力ボタン
+  document.getElementById('suggest-new-btn')?.addEventListener('click', () => {
+    overlay.hidden = true;
+    document.body.style.overflow = '';
+    // _skipSuggestフラグで再度サジェストをスキップ
+    renderAddRecord(onSave, onReady, { _skipSuggest: true });
+  });
 }
 
 // ── 計算ヘルパー ──
