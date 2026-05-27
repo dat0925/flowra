@@ -142,12 +142,14 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
         </div>
 
         <div class="amount-card ${state.type}">
-          <!-- 金額：全幅、フォント大きく -->
+          <!-- 金額：全幅、scaleで拡大 -->
           <div class="amount-row">
-            <span class="amount-currency" style="font-size:28px;">¥</span>
-            <input class="amount-input" id="amount-input" type="text" inputmode="numeric"
-              placeholder="0" value="${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}"
-              autocomplete="off">
+            <div class="amount-row-inner" id="amount-row-inner">
+              <span class="amount-currency">¥</span>
+              <input class="amount-input" id="amount-input" type="text" inputmode="numeric"
+                placeholder="0" value="${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}"
+                autocomplete="off">
+            </div>
           </div>
           <!-- 式表示：高さ固定でレイアウトシフトなし -->
           <div id="calc-expr" style="font-size:12px;color:rgba(255,255,255,0.35);
@@ -320,18 +322,24 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     const amountInput = document.getElementById('amount-input');
     const exprEl      = document.getElementById('calc-expr');
 
-    // 初期表示時にフォントサイズを設定
+    // 初期表示時にscaleを設定
     const initDigits = (state.amount || '').replace(/,/g,'').length;
-    const initFs = initDigits <= 7 ? 64
-                 : initDigits <= 9 ? 52 : 40;
-    if (amountInput) amountInput.style.fontSize = initFs + 'px';
+    adjustFontSize(initDigits);
 
-    // 桁数に応じてフォントサイズを動的調整
+    // 桁数に応じてscaleとinput幅を調整
+    const rowInner = document.getElementById('amount-row-inner');
     function adjustFontSize(digits) {
-      const fs = digits <= 7 ? 64
-               : digits <= 9 ? 52
-               : 40;
-      amountInput.style.fontSize = fs + 'px';
+      // scale(2)基準(32px*2=64px)、桁数増でscaleを縮小
+      const scale = digits <= 7 ? 2.0
+                  : digits <= 9 ? 1.625  // 52px相当
+                  : 1.25;                // 40px相当
+      // input幅：桁数×文字幅(約20px)+余裕
+      const w = Math.max(40, digits * 20 + 20);
+      amountInput.style.width = w + 'px';
+      if (rowInner) {
+        rowInner.style.transform = `scale(${scale})`;
+        rowInner.style.marginBottom = `calc(32px * 1.1 * ${scale} - 32px * 1.1)`;
+      }
     }
 
     // 数値をコンマ付きで表示
