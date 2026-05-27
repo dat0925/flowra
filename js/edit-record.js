@@ -593,7 +593,7 @@ function showAccountPicker(accounts, currentId, callback) {
   }).join('');
 
   s.innerHTML = `
-    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;max-height:70vh;overflow-y:auto;padding-bottom:100px;">
+    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;max-height:92vh;overflow-y:auto;padding-bottom:120px;-webkit-overflow-scrolling:touch;">
       <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 0;"></div>
       <div style="padding:14px 18px 10px;font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">口座を選択</div>
       <div style="background:#fff;border-radius:14px;margin:0 14px;overflow:hidden;border:1px solid var(--border);">
