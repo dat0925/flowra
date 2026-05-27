@@ -142,13 +142,16 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
         </div>
 
         <div class="amount-card ${state.type}">
-          <!-- 金額：全幅、scaleで拡大 -->
+          <!-- 金額：全幅、contenteditable -->
           <div class="amount-row">
-            <div class="amount-row-inner" id="amount-row-inner">
+            <div class="amount-row-inner">
               <span class="amount-currency">¥</span>
-              <input class="amount-input" id="amount-input" type="text" inputmode="numeric"
-                placeholder="0" value="${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}"
-                autocomplete="off">
+              <div class="amount-input" id="amount-input"
+                contenteditable="true"
+                inputmode="numeric"
+                data-placeholder="0"
+                autocomplete="off"
+                spellcheck="false">${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}</div>
             </div>
           </div>
           <!-- 式表示：高さ固定でレイアウトシフトなし -->
@@ -322,9 +325,16 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     const amountInput = document.getElementById('amount-input');
     const exprEl      = document.getElementById('calc-expr');
 
-    // 初期表示時にフォントサイズを設定
-    const initDigits = (state.amount || '').replace(/,/g,'').length;
-    if (initDigits > 0) adjustFontSize(initDigits);
+    // キャレットを末尾に移動
+    function moveCursorToEnd(el) {
+      el.focus();
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
 
     // 桁数に応じてフォントサイズを調整
     function adjustFontSize(digits) {
@@ -337,17 +347,17 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     function displayAmount(raw) {
       const n = parseInt(String(raw).replace(/,/g,''), 10);
       if (!isNaN(n) && n > 0) {
-        amountInput.value = n.toLocaleString('ja-JP');
+        amountInput.textContent = n.toLocaleString('ja-JP');
         state.amount = String(n);
         adjustFontSize(String(n).length);
       } else {
-        amountInput.value = '';
+        amountInput.textContent = '';
         state.amount = '';
         adjustFontSize(0);
       }
     }
 
-    // 計算式表示を更新（高さ固定のため表示/非表示ではなくテキストのみ切替）
+    // 計算式表示を更新
     function updateExpr() {
       if (calcLeft && calcOp) {
         exprEl.textContent = `¥${Number(calcLeft).toLocaleString('ja-JP')} ${calcOp}`;
@@ -356,16 +366,28 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       }
     }
 
-    amountInput?.addEventListener('input', e => {
-      const raw = e.target.value.replace(/,/g,'');
+    // 初期表示時にフォントサイズを設定
+    const initDigits = (state.amount || '').length;
+    if (initDigits > 0) adjustFontSize(initDigits);
+
+    // contenteditable入力ハンドラ
+    amountInput?.addEventListener('input', () => {
+      const raw = amountInput.textContent.replace(/,/g,'').replace(/[^0-9]/g,'');
       state.amount = raw;
-      if (raw && !isNaN(raw) && raw !== '') {
+      if (raw) {
         const formatted = Number(raw).toLocaleString('ja-JP');
-        e.target.value = formatted;
+        amountInput.textContent = formatted;
         adjustFontSize(raw.length);
+        moveCursorToEnd(amountInput);
       } else {
+        amountInput.textContent = '';
         adjustFontSize(0);
       }
+    });
+
+    // Enterキーで改行させない
+    amountInput?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') e.preventDefault();
     });
 
     // 演算子ボタン
@@ -386,9 +408,9 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
         updateExpr();
 
         // 入力欄をクリアして次の数字を待つ
-        amountInput.value = '';
+        amountInput.textContent = '';
         state.amount = '';
-        amountInput.focus();
+        moveCursorToEnd(amountInput);
         Sound.playTap();
       });
     });
@@ -414,7 +436,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       calcOp   = '';
       displayAmount('');
       updateExpr();
-      amountInput.focus();
+      moveCursorToEnd(amountInput);
       Sound.playTap();
     });
 
@@ -636,7 +658,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
   // モーダルアニメーション完了後にカーソルを金額欄へ
   const doFocus = () => {
     setTimeout(() => {
-      document.getElementById('amount-input')?.focus();
+      (() => { const el = document.getElementById('amount-input'); if(el){ el.focus(); const r=document.createRange(),s=window.getSelection(); r.selectNodeContents(el); r.collapse(false); s.removeAllRanges(); s.addRange(r); } })();
       if (onReady) onReady();
     }, 200);
   };
@@ -751,7 +773,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
     document.body.style.overflow = '';
     renderAddRecord(onSave, () => {
       setTimeout(() => {
-        document.getElementById('amount-input')?.focus();
+        (() => { const el = document.getElementById('amount-input'); if(el){ el.focus(); const r=document.createRange(),s=window.getSelection(); r.selectNodeContents(el); r.collapse(false); s.removeAllRanges(); s.addRange(r); } })();
       }, 50);
     }, { _skipSuggest: true });
   });
