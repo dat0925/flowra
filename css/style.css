@@ -1053,3 +1053,40 @@ svg {
   justify-content: center;
   gap: 6px;
 }
+
+/* ── スプラッシュスクリーン ── */
+#splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  transition: opacity 0.4s ease;
+}
+#splash.fade-out {
+  opacity: 0;
+  pointer-events: none;
+}
+#splash.hidden { display: none; }
+.splash-logo-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.splash-logo-img {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  object-fit: cover;
+}
+.splash-logo-text {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 32px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+.splash-logo-text span { color: var(--sage-lt); }

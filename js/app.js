@@ -12,6 +12,14 @@ import { renderRecords }     from './records.js';
 
 export { fmt, showToast, openModal, closeModal };
 
+// ── スプラッシュ非表示 ──────────────
+function hideSplash() {
+  const splash = document.getElementById('splash');
+  if (!splash) return;
+  splash.classList.add('fade-out');
+  setTimeout(() => splash.classList.add('hidden'), 400);
+}
+
 // ── ローディング非表示 ──────────────
 function hideLoading() {
   const loading = document.getElementById('loading');
@@ -23,6 +31,7 @@ function hideLoading() {
 // ── ログイン画面表示 ──────────────
 function showLogin() {
   hideLoading();
+  hideSplash();
   document.getElementById('screen-login').hidden = false;
 }
 
@@ -44,7 +53,6 @@ async function init() {
     const session = await Auth.getSession();
     if (session) {
       showApp(session.user);
-      hideLoading();
     } else {
       showLogin();
     }
@@ -59,6 +67,7 @@ function showApp(user) {
   if (_appInitialized) return;
   _appInitialized = true;
 
+  hideSplash();
   document.getElementById('screen-login').hidden = true;
   document.getElementById('app').hidden = false;
 
