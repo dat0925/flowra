@@ -12,7 +12,7 @@ export const supabase = window.supabase.createClient(
       persistSession: true,
       autoRefreshToken: true,
       detectSessionInUrl: true,
-      flowType: 'implicit',   // iOSでPKCEのcode_verifierが消える問題を回避
+      flowType: 'pkce',
       storageKey: 'flowra-auth',
     }
   }

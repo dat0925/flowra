@@ -45,25 +45,26 @@
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: true,
-        flowType: 'implicit',
+        flowType: 'pkce',
         storageKey: 'flowra-auth',
       }
     });
 
     async function handleCallback() {
       try {
-        // implicitフロー: hashにaccess_tokenが含まれる
-        // detectSessionInUrl:true により supabase が自動でセッションを確立する
-        const { data, error } = await client.auth.getSession();
-        if (error) throw error;
+        // PKCEフロー: URLのcodeパラメータをセッションと交換
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        if (code) {
+          const { data, error } = await client.auth.exchangeCodeForSession(code);
+          if (error) throw error;
+        }
+        // セッション確立を待ってリダイレクト
+        const { data } = await client.auth.getSession();
         if (data?.session) {
           window.location.replace('/');
         } else {
-          // セッションがまだ確立されていない場合、少し待って再試行
-          setTimeout(async () => {
-            const { data: d2 } = await client.auth.getSession();
-            window.location.replace('/');
-          }, 1000);
+          setTimeout(() => window.location.replace('/'), 1000);
         }
       } catch (err) {
         console.error('callback error:', err);
