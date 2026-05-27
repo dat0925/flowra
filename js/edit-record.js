@@ -370,6 +370,8 @@ export async function openEditRecord(tx, onSave) {
         calcOp = btn.dataset.op;
         updateExpr();
         waitingForNextInput = true;
+        // キーボードが出ていない場合は自動で表示
+        moveCursorToEnd(amountInput);
         Sound.playTap();
       });
     });

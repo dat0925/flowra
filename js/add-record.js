@@ -425,6 +425,8 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
 
         // 即クリアせず「次の入力が来たらクリア」フラグを立てる
         waitingForNextInput = true;
+        // キーボードが出ていない場合は自動で表示
+        moveCursorToEnd(amountInput);
         Sound.playTap();
       });
     });
