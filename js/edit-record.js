@@ -439,14 +439,12 @@ export async function openEditRecord(tx, onSave) {
         is_unsettled:  state.isUnsettled,
       };
 
-      // 楽観的UI: 即閉じる
-      Sound.playSave();
-      sheet.remove();
-      if (onSave) onSave();
-
       try {
         const updated = await DB.updateTransaction(tx.id, payload, [...state.selectedTags]);
         await upsertTransactions([{ ...updated, tags: [] }]);
+        Sound.playSave();
+        sheet.remove();
+        if (onSave) onSave();
       } catch (e) {
         showToast('⚠️ 保存に失敗しました: ' + e.message);
       }
