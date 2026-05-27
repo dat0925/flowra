@@ -336,11 +336,10 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       sel.addRange(range);
     }
 
-    // 桁数に応じてフォントサイズを調整
+    // 桁数に応じてフォントサイズを調整（ホーム画面の金額表示34pxに合わせる）
     function adjustFontSize(digits) {
-      if (digits <= 7)      amountInput.style.fontSize = 'clamp(40px, 18vw, 72px)';
-      else if (digits <= 9) amountInput.style.fontSize = 'clamp(30px, 14vw, 56px)';
-      else                  amountInput.style.fontSize = 'clamp(24px, 11vw, 44px)';
+      if (digits <= 9) amountInput.style.fontSize = '34px';
+      else             amountInput.style.fontSize = '28px';
     }
 
     // 数値をコンマ付きで表示
