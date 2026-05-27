@@ -625,8 +625,9 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
 
   openModal('');
   render();
-  // モーダルのCSSアニメーション(280ms)完了後、さらに200ms待ってフォーカス
-  // animationend単体だとiOSのレンダリング負荷でバラツキが出るため二重保証
+
+  // キーボード表示：サジェスト画面経由の新規入力 or 複製からの直接呼び出し
+  // （サジェスト一覧表示中はキーボード不要）
   const sheet = document.getElementById('modal-add-record');
   const doFocus = () => {
     setTimeout(() => {
