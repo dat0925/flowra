@@ -326,12 +326,11 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     const initDigits = (state.amount || '').replace(/,/g,'').length;
     if (initDigits > 0) adjustFontSize(initDigits);
 
-    // 桁数に応じてフォントサイズを調整（vwベース）
+    // 桁数に応じてフォントサイズを調整
     function adjustFontSize(digits) {
-      const vw = digits <= 7 ? 17
-               : digits <= 9 ? 13
-               : 10;
-      amountInput.style.fontSize = vw + 'vw';
+      if (digits <= 7)      amountInput.style.fontSize = 'clamp(48px, 25vw, 96px)';
+      else if (digits <= 9) amountInput.style.fontSize = 'clamp(36px, 19vw, 72px)';
+      else                  amountInput.style.fontSize = 'clamp(28px, 14vw, 56px)';
     }
 
     // 数値をコンマ付きで表示
