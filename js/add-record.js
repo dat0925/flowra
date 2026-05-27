@@ -714,6 +714,9 @@ async function showSuggest(onSave, onReady, accounts, tags) {
   // サジェストアイテムをタップ
   document.querySelectorAll('.suggest-item').forEach(btn => {
     btn.addEventListener('click', () => {
+      // ユーザー操作タイミングでiOSキーボード権限を取得
+      const dummy = document.getElementById('ios-focus-trick');
+      dummy?.focus();
       const txId = btn.dataset.id;
       const tx = all.find(t => t.id === txId);
       if (!tx) return;
@@ -737,9 +740,11 @@ async function showSuggest(onSave, onReady, accounts, tags) {
 
   // 新規入力ボタン
   document.getElementById('suggest-new-btn')?.addEventListener('click', () => {
+    // ユーザー操作タイミングでiOSキーボード権限を取得
+    const dummy = document.getElementById('ios-focus-trick');
+    dummy?.focus();
     overlay.hidden = true;
     document.body.style.overflow = '';
-    // _skipSuggestフラグで再度サジェストをスキップ
     renderAddRecord(onSave, onReady, { _skipSuggest: true });
   });
 }

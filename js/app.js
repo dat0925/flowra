@@ -85,10 +85,8 @@ function showApp(user) {
 
   // ボタンのクリックハンドラ
   const openAdd = () => {
-    // iOSキーボード権限をユーザー操作タイミングで取得（blurしない）
-    const dummy = document.getElementById('ios-focus-trick');
-    dummy?.focus();
-
+    // dummy.focusはサジェスト画面をスキップして直接入力画面を開く時のみ行う
+    // （サジェスト画面ではキーボードを出さない）
     renderAddRecord(
       (savedTx) => {
         closeModal();
