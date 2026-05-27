@@ -229,6 +229,14 @@ export async function openEditRecord(tx, onSave) {
           変更を保存
         </button>
 
+        <!-- キャンセル -->
+        <button id="btn-cancel-edit"
+          style="width:100%;padding:12px;border:none;background:none;
+          color:var(--mid);font-family:'Noto Sans JP',sans-serif;
+          font-size:13.5px;cursor:pointer;margin-top:4px;">
+          キャンセル
+        </button>
+
         <!-- 削除（十分な余白と分離） -->
         <div style="margin-top:48px;padding-top:20px;border-top:1px solid var(--border);">
           <div style="font-size:11px;color:var(--mid-lt);text-align:center;margin-bottom:12px;">危険な操作</div>
@@ -361,6 +369,10 @@ export async function openEditRecord(tx, onSave) {
     });
 
     // 保存
+    document.getElementById('btn-cancel-edit')?.addEventListener('click', () => {
+      closeModal();
+    });
+
     document.getElementById('btn-save-edit')?.addEventListener('click', async () => {
       const amount = parseInt(state.amount, 10);
       if (!amount || amount <= 0) { showToast('金額を入力してください'); return; }
