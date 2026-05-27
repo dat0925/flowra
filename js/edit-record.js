@@ -132,6 +132,7 @@ export async function openEditRecord(tx, onSave) {
 
         <!-- 金額 -->
         <div class="amount-card ${state.type}">
+          <div class="amount-card-label">金額</div>
           <div class="amount-row">
             <div class="amount-row-inner">
               <span class="amount-currency">¥</span>
@@ -140,8 +141,7 @@ export async function openEditRecord(tx, onSave) {
                 data-placeholder="0" spellcheck="false">${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}</div>
             </div>
           </div>
-          <div id="calc-expr" style="font-size:12px;color:rgba(255,255,255,0.35);
-            margin-top:4px;height:16px;overflow:hidden;letter-spacing:0.05em;"></div>
+          <div id="calc-expr" class="amount-card-sub"></div>
           <div style="display:flex;gap:6px;margin-top:12px;">
             <button id="calc-ac-btn"
               style="flex:1;padding:7px 0;border-radius:8px;border:none;

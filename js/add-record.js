@@ -142,7 +142,8 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
         </div>
 
         <div class="amount-card ${state.type}">
-          <!-- 金額：全幅、contenteditable -->
+          <!-- ホームと同じ構造：ラベル→金額→式 -->
+          <div class="amount-card-label">金額</div>
           <div class="amount-row">
             <div class="amount-row-inner">
               <span class="amount-currency">¥</span>
@@ -154,10 +155,9 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
                 spellcheck="false">${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}</div>
             </div>
           </div>
-          <!-- 式表示：高さ固定でレイアウトシフトなし -->
-          <div id="calc-expr" style="font-size:12px;color:rgba(255,255,255,0.35);
-            margin-top:4px;letter-spacing:0.05em;height:16px;overflow:hidden;"></div>
-          <!-- 電卓ボタン：横1列、ACと四則＋＝ -->
+          <!-- 式表示：サブテキスト（ホームの「全口座合計」と同じ位置） -->
+          <div id="calc-expr" class="amount-card-sub"></div>
+          <!-- 電卓ボタン -->
           <div style="display:flex;gap:6px;margin-top:12px;">
             <button id="calc-ac-btn"
               style="flex:1;padding:7px 0;border-radius:8px;border:none;
