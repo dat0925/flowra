@@ -385,7 +385,7 @@ export async function openEditRecord(tx, onSave) {
 
     // 保存
     document.getElementById('btn-cancel-edit')?.addEventListener('click', () => {
-      closeModal();
+      closeSheet();
     });
 
     document.getElementById('btn-duplicate-record')?.addEventListener('click', () => {
@@ -406,7 +406,7 @@ export async function openEditRecord(tx, onSave) {
         isRecurring:  false,
         selectedTags: (tx.tags || []).map(t => t.id),
       };
-      closeModal();
+      closeSheet();
       // 複製内容で追加画面を開く
       renderAddRecord(
         (savedTx) => {
