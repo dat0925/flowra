@@ -338,9 +338,9 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
 
     // 桁数に応じてフォントサイズを調整
     function adjustFontSize(digits) {
-      if (digits <= 7)      amountInput.style.fontSize = 'clamp(48px, 25vw, 96px)';
-      else if (digits <= 9) amountInput.style.fontSize = 'clamp(36px, 19vw, 72px)';
-      else                  amountInput.style.fontSize = 'clamp(28px, 14vw, 56px)';
+      if (digits <= 7)      amountInput.style.fontSize = 'clamp(40px, 18vw, 72px)';
+      else if (digits <= 9) amountInput.style.fontSize = 'clamp(30px, 14vw, 56px)';
+      else                  amountInput.style.fontSize = 'clamp(24px, 11vw, 44px)';
     }
 
     // 数値をコンマ付きで表示

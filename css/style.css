@@ -612,7 +612,7 @@ svg {
 .amount-currency { font-size: clamp(14px, 4vw, 22px); font-weight: 300; color: rgba(255,255,255,0.4); }
 .amount-input {
   font-family: 'Noto Serif JP', serif;
-  font-size: clamp(48px, 25vw, 96px);
+  font-size: clamp(40px, 18vw, 72px);
   font-weight: 600;
   color: #fff;
   background: none;
