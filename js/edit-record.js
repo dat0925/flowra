@@ -4,8 +4,9 @@
 // ─────────────────────────────────────
 import { DB }    from './db.js';
 import { Sound } from './sound.js';
-import { showToast } from './utils.js';
+import { showToast, openModal, closeModal } from './utils.js';
 import { upsertTransactions, markDeletedTransaction } from './cache.js';
+import { renderAddRecord } from './add-record.js';
 
 const TYPE_PATH = {
   cash:    '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/>',
@@ -237,6 +238,20 @@ export async function openEditRecord(tx, onSave) {
           キャンセル
         </button>
 
+        <!-- 複製 -->
+        <button id="btn-duplicate-record"
+          style="width:100%;padding:12px;border-radius:14px;margin-top:8px;
+          border:1.5px solid var(--border);background:none;
+          color:var(--mid);font-family:'Noto Sans JP',sans-serif;
+          font-size:13.5px;font-weight:500;cursor:pointer;
+          display:flex;align-items:center;justify-content:center;gap:6px;
+          transition:all 0.15s;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>
+          </svg>
+          この記録を複製する
+        </button>
+
         <!-- 削除（十分な余白と分離） -->
         <div style="margin-top:48px;padding-top:20px;border-top:1px solid var(--border);">
           <div style="font-size:11px;color:var(--mid-lt);text-align:center;margin-bottom:12px;">危険な操作</div>
@@ -371,6 +386,37 @@ export async function openEditRecord(tx, onSave) {
     // 保存
     document.getElementById('btn-cancel-edit')?.addEventListener('click', () => {
       closeModal();
+    });
+
+    document.getElementById('btn-duplicate-record')?.addEventListener('click', () => {
+      // 今日の日付
+      const today = new Date().toISOString().split('T')[0];
+      // メモに（複製）を追加
+      const memo = tx.memo ? tx.memo + '（複製）' : '（複製）';
+      // 元の記録からstateを構築
+      const initialState = {
+        type:         tx.type,
+        amount:       String(tx.amount),
+        date:         today,
+        accountId:    tx.account_id,
+        toAccountId:  tx.to_account_id || '',
+        memo:         memo,
+        url:          tx.url || '',
+        isUnsettled:  false,
+        isRecurring:  false,
+        selectedTags: (tx.tags || []).map(t => t.id),
+      };
+      closeModal();
+      // 複製内容で追加画面を開く
+      renderAddRecord(
+        (savedTx) => {
+          closeModal();
+          showToast('✓ 複製して保存しました');
+          if (onSave) onSave(savedTx);
+        },
+        null,
+        initialState
+      );
     });
 
     document.getElementById('btn-save-edit')?.addEventListener('click', async () => {

@@ -18,7 +18,7 @@ export async function warmupAddRecord() {
   } catch (e) { /* silent */ }
 }
 
-export async function renderAddRecord(onSave, onReady) {
+export async function renderAddRecord(onSave, onReady, initialState = {}) {
   // キャッシュがあれば同期的に開始、なければ取得
   let accounts = _accounts ?? [];
   let tags     = _tags     ?? [];
@@ -52,6 +52,11 @@ export async function renderAddRecord(onSave, onReady) {
     isUnsettled:  false,
     isRecurring:  false,
     selectedTags: new Set(),
+    ...initialState,
+    // selectedTagsはSetで上書き
+    selectedTags: initialState.selectedTags
+      ? new Set(initialState.selectedTags)
+      : new Set(),
   };
 
   function acctName(id) {
