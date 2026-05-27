@@ -626,9 +626,15 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
   openModal('');
   render();
 
-  // キーボード表示：サジェスト画面経由の新規入力 or 複製からの直接呼び出し
-  // （サジェスト一覧表示中はキーボード不要）
+  // アニメーションをリセットして再トリガー（サジェストから遷移時にanimationendが発火しない問題対策）
   const sheet = document.getElementById('modal-add-record');
+  if (sheet) {
+    sheet.style.animation = 'none';
+    sheet.offsetHeight; // reflow
+    sheet.style.animation = '';
+  }
+
+  // モーダルアニメーション完了後にカーソルを金額欄へ
   const doFocus = () => {
     setTimeout(() => {
       document.getElementById('amount-input')?.focus();
@@ -734,7 +740,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
       };
       overlay.hidden = true;
       document.body.style.overflow = '';
-      renderAddRecord(onSave, onReady, state);
+      renderAddRecord(onSave, null, state);
     });
   });
 
@@ -745,7 +751,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
     dummy?.focus();
     overlay.hidden = true;
     document.body.style.overflow = '';
-    renderAddRecord(onSave, onReady, { _skipSuggest: true });
+    renderAddRecord(onSave, null, { _skipSuggest: true });
   });
 }
 
