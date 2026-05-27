@@ -349,7 +349,6 @@ export async function openEditRecord(tx, onSave) {
 
     // ACボタン
     document.getElementById('calc-ac-btn')?.addEventListener('mousedown', e => e.preventDefault());
-    document.getElementById('calc-ac-btn')?.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
     document.getElementById('calc-ac-btn')?.addEventListener('click', () => {
       calcLeft = ''; calcOp = ''; waitingForNextInput = false;
       displayAmount(''); updateExpr();
@@ -358,7 +357,6 @@ export async function openEditRecord(tx, onSave) {
 
     document.querySelectorAll('.calc-op-btn').forEach(btn => {
       btn.addEventListener('mousedown', e => e.preventDefault());
-      btn.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
       btn.addEventListener('click', () => {
         const cur = state.amount || '0';
         if (!cur || cur === '0') return;
@@ -377,7 +375,6 @@ export async function openEditRecord(tx, onSave) {
     });
 
     document.getElementById('calc-eq-btn')?.addEventListener('mousedown', e => e.preventDefault());
-    document.getElementById('calc-eq-btn')?.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
     document.getElementById('calc-eq-btn')?.addEventListener('click', () => {
       if (!calcLeft || !calcOp) return;
       const right = Number(state.amount || '0');
