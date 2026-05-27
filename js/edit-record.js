@@ -270,11 +270,11 @@ export async function openEditRecord(tx, onSave) {
       sheet.remove();
     };
     sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
-    document.getElementById('btn-close-edit-record')?.addEventListener('click', closeSheet);
+    sheet.querySelector('#btn-close-edit-record')?.addEventListener('click', closeSheet);
 
     // 種別
     ['income','expense','transfer'].forEach(t => {
-      document.getElementById('btn-' + t)?.addEventListener('click', () => {
+      sheet.querySelector('#btn-' + t)?.addEventListener('click', () => {
         state.type = t;
         render();
       });
@@ -285,8 +285,8 @@ export async function openEditRecord(tx, onSave) {
     let calcOp   = '';
     let waitingForNextInput = false;
 
-    const amountInput = document.getElementById('amount-input');
-    const exprEl      = document.getElementById('calc-expr');
+    const amountInput = sheet.querySelector('#amount-input');
+    const exprEl      = sheet.querySelector('#calc-expr');
 
     function moveCursorToEnd(el) {
       el.focus();
@@ -348,14 +348,14 @@ export async function openEditRecord(tx, onSave) {
     });
 
     // ACボタン
-    document.getElementById('calc-ac-btn')?.addEventListener('mousedown', e => e.preventDefault());
-    document.getElementById('calc-ac-btn')?.addEventListener('click', () => {
+    sheet.querySelector('#calc-ac-btn')?.addEventListener('mousedown', e => e.preventDefault());
+    sheet.querySelector('#calc-ac-btn')?.addEventListener('click', () => {
       calcLeft = ''; calcOp = ''; waitingForNextInput = false;
       displayAmount(''); updateExpr();
       moveCursorToEnd(amountInput);
     });
 
-    document.querySelectorAll('.calc-op-btn').forEach(btn => {
+    sheet.querySelectorAll('.calc-op-btn').forEach(btn => {
       btn.addEventListener('mousedown', e => e.preventDefault());
       btn.addEventListener('click', () => {
         const cur = state.amount || '0';
@@ -374,8 +374,8 @@ export async function openEditRecord(tx, onSave) {
       });
     });
 
-    document.getElementById('calc-eq-btn')?.addEventListener('mousedown', e => e.preventDefault());
-    document.getElementById('calc-eq-btn')?.addEventListener('click', () => {
+    sheet.querySelector('#calc-eq-btn')?.addEventListener('mousedown', e => e.preventDefault());
+    sheet.querySelector('#calc-eq-btn')?.addEventListener('click', () => {
       if (!calcLeft || !calcOp) return;
       const right = Number(state.amount || '0');
       const result = calcFn(Number(calcLeft), right, calcOp);
@@ -386,23 +386,23 @@ export async function openEditRecord(tx, onSave) {
       Sound.playTap();
     });
 
-    document.getElementById('date-input')?.addEventListener('change',  e => state.date   = e.target.value);
-    document.getElementById('memo-input')?.addEventListener('input',   e => state.memo   = e.target.value);
-    document.getElementById('url-input')?.addEventListener('input',    e => state.url    = e.target.value);
+    sheet.querySelector('#date-input')?.addEventListener('change',  e => state.date   = e.target.value);
+    sheet.querySelector('#memo-input')?.addEventListener('input',   e => state.memo   = e.target.value);
+    sheet.querySelector('#url-input')?.addEventListener('input',    e => state.url    = e.target.value);
 
     // 口座選択
-    document.getElementById('btn-acct')?.addEventListener('click', () => {
+    sheet.querySelector('#btn-acct')?.addEventListener('click', () => {
       showAccountPicker(accounts, state.accountId, id => { state.accountId = id; render(); });
     });
-    document.getElementById('btn-from-acct')?.addEventListener('click', () => {
+    sheet.querySelector('#btn-from-acct')?.addEventListener('click', () => {
       showAccountPicker(accounts, state.accountId, id => { state.accountId = id; render(); });
     });
-    document.getElementById('btn-to-acct')?.addEventListener('click', () => {
+    sheet.querySelector('#btn-to-acct')?.addEventListener('click', () => {
       showAccountPicker(accounts, state.toAccountId, id => { state.toAccountId = id; render(); });
     });
 
     // タグ
-    document.querySelectorAll('.tag-chip[data-tag-id]').forEach(chip => {
+    sheet.querySelectorAll('.tag-chip[data-tag-id]').forEach(chip => {
       chip.addEventListener('click', () => {
         const id = chip.dataset.tagId;
         if (state.selectedTags.has(id)) {
@@ -417,7 +417,7 @@ export async function openEditRecord(tx, onSave) {
     });
 
     // 未精算トグル
-    document.getElementById('toggle-unsettled')?.addEventListener('click', function() {
+    sheet.querySelector('#toggle-unsettled')?.addEventListener('click', function() {
       state.isUnsettled = !state.isUnsettled;
       this.classList.toggle('on', state.isUnsettled);
       Sound.playTap();
@@ -434,7 +434,7 @@ export async function openEditRecord(tx, onSave) {
         const newSaveBtn = saveBarBtn.cloneNode(true);
         saveBarBtn.parentNode.replaceChild(newSaveBtn, saveBarBtn);
         newSaveBtn.addEventListener('click', () => {
-          document.getElementById('btn-save-edit')?.click();
+          sheet.querySelector('#btn-save-edit')?.click();
         });
       }
       // キャンセルボタン
@@ -449,12 +449,12 @@ export async function openEditRecord(tx, onSave) {
       }
     }
 
-    document.getElementById('btn-cancel-edit')?.addEventListener('click', () => {
+    sheet.querySelector('#btn-cancel-edit')?.addEventListener('click', () => {
       if (saveBar) saveBar.hidden = true;
       closeSheet();
     });
 
-    document.getElementById('btn-duplicate-record')?.addEventListener('click', () => {
+    sheet.querySelector('#btn-duplicate-record')?.addEventListener('click', () => {
       // 今日の日付
       const today = new Date().toISOString().split('T')[0];
       // メモに（複製）を追加
@@ -485,7 +485,7 @@ export async function openEditRecord(tx, onSave) {
       );
     });
 
-    document.getElementById('btn-save-edit')?.addEventListener('click', async () => {
+    sheet.querySelector('#btn-save-edit')?.addEventListener('click', async () => {
       const amount = parseInt(state.amount, 10);
       if (!amount || amount <= 0) { showToast('金額を入力してください'); return; }
       if (!state.date)             { showToast('日付を入力してください'); return; }
@@ -517,7 +517,7 @@ export async function openEditRecord(tx, onSave) {
     });
 
     // 削除（2段階確認）
-    document.getElementById('btn-delete-record')?.addEventListener('click', function() {
+    sheet.querySelector('#btn-delete-record')?.addEventListener('click', function() {
       const btn = this;
       if (btn.dataset.confirmed === 'true') return;
 
