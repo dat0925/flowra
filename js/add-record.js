@@ -225,7 +225,13 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
                 <svg viewBox="0 0 24 24" style="stroke:var(--gold)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
               <div>
-                <div class="toggle-title">未精算</div>
+                <div class="toggle-title" style="display:flex;align-items:center;gap:5px;">
+                  未精算
+                  <span id="unsettled-help" style="width:15px;height:15px;border-radius:50%;
+                    background:var(--mist);color:var(--mid);font-size:10px;font-weight:600;
+                    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+                    flex-shrink:0;">?</span>
+                </div>
                 <div class="toggle-sub">立替など後で精算が必要</div>
               </div>
             </div>
@@ -233,6 +239,14 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
               <div class="toggle-knob"></div>
             </div>
           </div>
+          ${!localStorage.getItem('flowra-unsettled-seen') ? `
+          <div id="unsettled-onboarding" style="margin-top:8px;padding:10px 12px;
+            background:var(--gold-bg);border-radius:10px;border-left:3px solid var(--gold);">
+            <div style="font-size:12px;color:var(--ink);line-height:1.6;">
+              友人への立替や共有費用など、後で精算が必要な支出につけるフラグです。
+              記録一覧で未精算のものだけ絞り込めます。
+            </div>
+          </div>` : ''}
         </div>
 
         <!-- 保存・キャンセルはキーボード上部のsave-barに移動 -->
@@ -504,6 +518,20 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       state.isUnsettled = !state.isUnsettled;
       this.classList.toggle('on', state.isUnsettled);
       Sound.playTap();
+    });
+
+    // 未精算オンボーディング：3秒後に「見た」フラグを立てる
+    const onboarding = document.getElementById('unsettled-onboarding');
+    if (onboarding) {
+      setTimeout(() => {
+        localStorage.setItem('flowra-unsettled-seen', '1');
+      }, 3000);
+    }
+
+    // ？ツールチップ
+    document.getElementById('unsettled-help')?.addEventListener('click', e => {
+      e.stopPropagation();
+      showToast('友人への立替など後で精算が必要な支出につけるフラグです');
     });
 
     // 保存

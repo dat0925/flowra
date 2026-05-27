@@ -219,7 +219,13 @@ export async function openEditRecord(tx, onSave) {
                 <svg viewBox="0 0 24 24" style="stroke:var(--gold)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
               </div>
               <div>
-                <div class="toggle-title">未精算</div>
+                <div class="toggle-title" style="display:flex;align-items:center;gap:5px;">
+                  未精算
+                  <span id="unsettled-help" style="width:15px;height:15px;border-radius:50%;
+                    background:var(--mist);color:var(--mid);font-size:10px;font-weight:600;
+                    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+                    flex-shrink:0;">?</span>
+                </div>
                 <div class="toggle-sub">立替など後で精算が必要</div>
               </div>
             </div>
@@ -416,6 +422,12 @@ export async function openEditRecord(tx, onSave) {
         }
         Sound.playTap();
       });
+    });
+
+    // ？ツールチップ
+    sheet.querySelector('#unsettled-help')?.addEventListener('click', e => {
+      e.stopPropagation();
+      showToast('友人への立替など後で精算が必要な支出につけるフラグです');
     });
 
     // 未精算トグル
