@@ -314,6 +314,14 @@ export async function renderAddRecord(onSave, onReady) {
     const amountInput = document.getElementById('amount-input');
     const exprEl      = document.getElementById('calc-expr');
 
+    // 初期表示時にフォントサイズを設定
+    const initDigits = (state.amount || '').replace(/,/g,'').length;
+    const initFs = initDigits <= 3 ? 100
+                 : initDigits <= 5 ? 80
+                 : initDigits <= 7 ? 64
+                 : initDigits <= 9 ? 52 : 40;
+    if (amountInput) amountInput.style.fontSize = (initDigits === 0 ? 100 : initFs) + 'px';
+
     // 桁数に応じてフォントサイズを動的調整
     function adjustFontSize(digits) {
       const fs = digits <= 3 ? 100
@@ -322,6 +330,7 @@ export async function renderAddRecord(onSave, onReady) {
                : digits <= 9 ? 52
                : 40;
       amountInput.style.fontSize = fs + 'px';
+      console.log('adjustFontSize:', digits, '->', fs + 'px');
     }
 
     // 数値をコンマ付きで表示
