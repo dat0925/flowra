@@ -329,16 +329,15 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     // 桁数に応じてscaleとinput幅を調整
     const rowInner = document.getElementById('amount-row-inner');
     function adjustFontSize(digits) {
-      // scale(2)基準(32px*2=64px)、桁数増でscaleを縮小
       const scale = digits <= 7 ? 2.0
-                  : digits <= 9 ? 1.625  // 52px相当
-                  : 1.25;                // 40px相当
-      // input幅：桁数×文字幅(約20px)+余裕
-      const w = Math.max(40, digits * 20 + 20);
+                  : digits <= 9 ? 1.625
+                  : 1.25;
+      // input幅：表示桁数(コンマ含む)×1文字幅+余裕
+      const displayLen = digits + Math.floor((digits - 1) / 3); // コンマ分
+      const w = Math.max(40, displayLen * 19 + 16);
       amountInput.style.width = w + 'px';
       if (rowInner) {
         rowInner.style.transform = `scale(${scale})`;
-        rowInner.style.marginBottom = `calc(32px * 1.1 * ${scale} - 32px * 1.1)`;
       }
     }
 
@@ -754,12 +753,15 @@ async function showSuggest(onSave, onReady, accounts, tags) {
 
   // 新規入力ボタン
   document.getElementById('suggest-new-btn')?.addEventListener('click', () => {
-    // ユーザー操作タイミングでiOSキーボード権限を取得
     const dummy = document.getElementById('ios-focus-trick');
     dummy?.focus();
     overlay.hidden = true;
     document.body.style.overflow = '';
-    renderAddRecord(onSave, null, { _skipSuggest: true });
+    renderAddRecord(onSave, () => {
+      setTimeout(() => {
+        document.getElementById('amount-input')?.focus();
+      }, 50);
+    }, { _skipSuggest: true });
   });
 }
 
