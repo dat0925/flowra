@@ -607,35 +607,22 @@ svg {
 .amount-card.income   { background: var(--sage-dk); }
 .amount-card.transfer { background: #3a2e12; }
 .amount-label { font-size: 11px; font-weight: 500; letter-spacing: 0.08em; color: rgba(255,255,255,0.3); margin-bottom: 8px; }
-.amount-row {
-  overflow: hidden;
-  min-height: 80px;
-  display: flex;
-  align-items: flex-start;
-}
-.amount-row-inner {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  transform-origin: left top;
-  transform: scale(2);
-  line-height: 1.1;
-}
-.amount-currency { font-size: 10px; font-weight: 300; color: rgba(255,255,255,0.4); }
+.amount-row { display: flex; align-items: baseline; gap: 4px; }
+.amount-row-inner { display: flex; align-items: baseline; gap: 4px; width: 100%; }
+.amount-currency { font-size: 5vw; font-weight: 300; color: rgba(255,255,255,0.4); }
 .amount-input {
   font-family: 'Noto Serif JP', serif;
-  font-size: 32px;
+  font-size: 17vw;
   font-weight: 600;
   color: #fff;
   background: none;
   border: none;
   outline: none;
-  width: 140px;
+  width: 100%;
   min-width: 0;
   line-height: 1.1;
   letter-spacing: -0.04em;
   caret-color: var(--sage-lt);
-  transition: width 0.1s ease;
 }
 .amount-input::placeholder { color: rgba(255,255,255,0.12); }
 .amount-hint { font-size: 11px; color: rgba(255,255,255,0.2); margin-top: 6px; }

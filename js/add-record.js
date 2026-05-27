@@ -322,23 +322,16 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     const amountInput = document.getElementById('amount-input');
     const exprEl      = document.getElementById('calc-expr');
 
-    // 初期表示時にscaleを設定
+    // 初期表示時にフォントサイズを設定
     const initDigits = (state.amount || '').replace(/,/g,'').length;
-    adjustFontSize(initDigits);
+    if (initDigits > 0) adjustFontSize(initDigits);
 
-    // 桁数に応じてscaleとinput幅を調整
-    const rowInner = document.getElementById('amount-row-inner');
+    // 桁数に応じてフォントサイズを調整（vwベース）
     function adjustFontSize(digits) {
-      const scale = digits <= 7 ? 2.0
-                  : digits <= 9 ? 1.625
-                  : 1.25;
-      // input幅：表示桁数(コンマ含む)×1文字幅+余裕
-      const displayLen = digits + Math.floor((digits - 1) / 3); // コンマ分
-      const w = Math.max(40, displayLen * 19 + 16);
-      amountInput.style.width = w + 'px';
-      if (rowInner) {
-        rowInner.style.transform = `scale(${scale})`;
-      }
+      const vw = digits <= 7 ? 17
+               : digits <= 9 ? 13
+               : 10;
+      amountInput.style.fontSize = vw + 'vw';
     }
 
     // 数値をコンマ付きで表示
