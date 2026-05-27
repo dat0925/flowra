@@ -131,24 +131,29 @@ export async function openEditRecord(tx, onSave) {
         </div>
 
         <!-- 金額 -->
-        <div class="amount-card ${state.type}" style="margin-bottom:14px;">
-          <div class="amount-label">金額</div>
+        <div class="amount-card ${state.type}">
           <div class="amount-row">
-            <span class="amount-currency">¥</span>
-            <input class="amount-input" id="amount-input" type="text"
-              inputmode="numeric" placeholder="0"
-              value="${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}"
-              style="font-size:52px;">
+            <div class="amount-row-inner">
+              <span class="amount-currency">¥</span>
+              <div class="amount-input" id="amount-input"
+                contenteditable="true" inputmode="numeric"
+                data-placeholder="0" spellcheck="false">${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}</div>
+            </div>
           </div>
-          <div id="calc-expr" style="display:none;font-size:12px;color:rgba(255,255,255,0.4);margin-top:4px;"></div>
-          <div style="display:flex;gap:8px;margin-top:14px;">
+          <div id="calc-expr" style="font-size:12px;color:rgba(255,255,255,0.35);
+            margin-top:4px;height:16px;overflow:hidden;letter-spacing:0.05em;"></div>
+          <div style="display:flex;gap:6px;margin-top:12px;">
+            <button id="calc-ac-btn"
+              style="flex:1;padding:7px 0;border-radius:8px;border:none;
+              background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);
+              font-size:13px;font-weight:600;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">AC</button>
             ${['+','−','×','÷'].map(op => `
               <button class="calc-op-btn" data-op="${op}"
-                style="flex:1;padding:8px 0;border-radius:9px;border:none;
-                background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);
+                style="flex:1;padding:7px 0;border-radius:8px;border:none;
+                background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
                 font-size:18px;font-weight:500;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">${op}</button>`).join('')}
             <button id="calc-eq-btn"
-              style="flex:1;padding:8px 0;border-radius:9px;border:none;
+              style="flex:1;padding:7px 0;border-radius:8px;border:none;
               background:var(--sage-lt);color:#fff;font-size:18px;font-weight:600;cursor:pointer;
               font-family:'Noto Sans JP',sans-serif;">＝</button>
           </div>
@@ -224,19 +229,7 @@ export async function openEditRecord(tx, onSave) {
           </div>
         </div>
 
-        <!-- 保存 -->
-        <button class="btn-primary" id="btn-save-edit" style="margin-bottom:0;">
-          <svg viewBox="0 0 24 24" width="16" height="16"><polyline points="20 6 9 17 4 12"/></svg>
-          変更を保存
-        </button>
-
-        <!-- キャンセル -->
-        <button id="btn-cancel-edit"
-          style="width:100%;padding:12px;border:none;background:none;
-          color:var(--mid);font-family:'Noto Sans JP',sans-serif;
-          font-size:13.5px;cursor:pointer;margin-top:4px;">
-          キャンセル
-        </button>
+        <!-- 保存・キャンセルはfixed save-barに移動 -->
 
         <!-- 複製 -->
         <button id="btn-duplicate-record"
@@ -270,7 +263,12 @@ export async function openEditRecord(tx, onSave) {
   }
 
   function bindEvents() {
-    const closeSheet = () => { Sound.playClose(); sheet.remove(); };
+    const closeSheet = () => {
+      const saveBar = document.getElementById('save-bar');
+      if (saveBar) saveBar.hidden = true;
+      Sound.playClose();
+      sheet.remove();
+    };
     sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
     document.getElementById('btn-close-edit-record')?.addEventListener('click', closeSheet);
 
@@ -285,17 +283,34 @@ export async function openEditRecord(tx, onSave) {
     // ── 金額 + インライン電卓 ──
     let calcLeft = '';
     let calcOp   = '';
+    let waitingForNextInput = false;
 
     const amountInput = document.getElementById('amount-input');
     const exprEl      = document.getElementById('calc-expr');
 
+    function moveCursorToEnd(el) {
+      el.focus();
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+
+    function adjustFontSize(digits) {
+      if (digits <= 9) amountInput.style.fontSize = '34px';
+      else             amountInput.style.fontSize = '28px';
+    }
+
     function displayAmount(raw) {
       const n = parseInt(String(raw).replace(/,/g,''), 10);
       if (!isNaN(n) && n > 0) {
-        amountInput.value = n.toLocaleString('ja-JP');
+        amountInput.textContent = n.toLocaleString('ja-JP');
         state.amount = String(n);
+        adjustFontSize(String(n).length);
       } else {
-        amountInput.value = '';
+        amountInput.textContent = '';
         state.amount = '';
       }
     }
@@ -303,21 +318,47 @@ export async function openEditRecord(tx, onSave) {
     function updateExpr() {
       if (calcLeft && calcOp && exprEl) {
         exprEl.textContent = `¥${Number(calcLeft).toLocaleString('ja-JP')} ${calcOp}`;
-        exprEl.style.display = 'block';
       } else if (exprEl) {
-        exprEl.style.display = 'none';
+        exprEl.textContent = '';
       }
     }
 
-    amountInput?.addEventListener('input', e => {
-      const raw = e.target.value.replace(/,/g,'');
+    // 初期フォントサイズ
+    adjustFontSize((state.amount || '').length);
+
+    amountInput?.addEventListener('input', () => {
+      let raw = amountInput.textContent.replace(/,/g,'').replace(/[^0-9]/g,'');
+      if (waitingForNextInput) {
+        waitingForNextInput = false;
+        raw = raw.slice(-1);
+        amountInput.textContent = raw;
+      }
       state.amount = raw;
-      if (raw && !isNaN(raw)) {
-        e.target.value = Number(raw).toLocaleString('ja-JP');
+      if (raw) {
+        amountInput.textContent = Number(raw).toLocaleString('ja-JP');
+        adjustFontSize(raw.length);
+        moveCursorToEnd(amountInput);
+      } else {
+        amountInput.textContent = '';
       }
     });
 
+    amountInput?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') e.preventDefault();
+    });
+
+    // ACボタン
+    document.getElementById('calc-ac-btn')?.addEventListener('mousedown', e => e.preventDefault());
+    document.getElementById('calc-ac-btn')?.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
+    document.getElementById('calc-ac-btn')?.addEventListener('click', () => {
+      calcLeft = ''; calcOp = ''; waitingForNextInput = false;
+      displayAmount(''); updateExpr();
+      moveCursorToEnd(amountInput);
+    });
+
     document.querySelectorAll('.calc-op-btn').forEach(btn => {
+      btn.addEventListener('mousedown', e => e.preventDefault());
+      btn.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
       btn.addEventListener('click', () => {
         const cur = state.amount || '0';
         if (!cur || cur === '0') return;
@@ -330,19 +371,21 @@ export async function openEditRecord(tx, onSave) {
         }
         calcOp = btn.dataset.op;
         updateExpr();
-        amountInput.value = '';
-        state.amount = '';
-        amountInput.focus();
+        waitingForNextInput = true;
         Sound.playTap();
       });
     });
 
+    document.getElementById('calc-eq-btn')?.addEventListener('mousedown', e => e.preventDefault());
+    document.getElementById('calc-eq-btn')?.addEventListener('touchstart', e => e.preventDefault(), { passive: false });
     document.getElementById('calc-eq-btn')?.addEventListener('click', () => {
       if (!calcLeft || !calcOp) return;
-      const result = calcFn(Number(calcLeft), Number(state.amount || '0'), calcOp);
+      const right = Number(state.amount || '0');
+      const result = calcFn(Number(calcLeft), right, calcOp);
+      const exprText = `¥${Number(calcLeft).toLocaleString('ja-JP')} ${calcOp} ¥${right.toLocaleString('ja-JP')} ＝`;
       displayAmount(result);
       calcLeft = ''; calcOp = '';
-      updateExpr();
+      if (exprEl) exprEl.textContent = exprText;
       Sound.playTap();
     });
 
@@ -384,7 +427,33 @@ export async function openEditRecord(tx, onSave) {
     });
 
     // 保存
+    // save-barを表示（キーボード上部固定）
+    const saveBar = document.getElementById('save-bar');
+    if (saveBar) {
+      saveBar.hidden = false;
+      // 保存ボタン
+      const saveBarBtn = document.getElementById('save-bar-btn');
+      if (saveBarBtn) {
+        const newSaveBtn = saveBarBtn.cloneNode(true);
+        saveBarBtn.parentNode.replaceChild(newSaveBtn, saveBarBtn);
+        newSaveBtn.addEventListener('click', () => {
+          document.getElementById('btn-save-edit')?.click();
+        });
+      }
+      // キャンセルボタン
+      const saveBarCancel = document.getElementById('save-bar-cancel');
+      if (saveBarCancel) {
+        const newCancelBtn = saveBarCancel.cloneNode(true);
+        saveBarCancel.parentNode.replaceChild(newCancelBtn, saveBarCancel);
+        newCancelBtn.addEventListener('click', () => {
+          saveBar.hidden = true;
+          closeSheet();
+        });
+      }
+    }
+
     document.getElementById('btn-cancel-edit')?.addEventListener('click', () => {
+      if (saveBar) saveBar.hidden = true;
       closeSheet();
     });
 
