@@ -316,21 +316,16 @@ export async function renderAddRecord(onSave, onReady) {
 
     // 初期表示時にフォントサイズを設定
     const initDigits = (state.amount || '').replace(/,/g,'').length;
-    const initFs = initDigits <= 3 ? 100
-                 : initDigits <= 5 ? 80
-                 : initDigits <= 7 ? 64
+    const initFs = initDigits <= 7 ? 64
                  : initDigits <= 9 ? 52 : 40;
-    if (amountInput) amountInput.style.fontSize = (initDigits === 0 ? 100 : initFs) + 'px';
+    if (amountInput) amountInput.style.fontSize = initFs + 'px';
 
     // 桁数に応じてフォントサイズを動的調整
     function adjustFontSize(digits) {
-      const fs = digits <= 3 ? 100
-               : digits <= 5 ? 80
-               : digits <= 7 ? 64
+      const fs = digits <= 7 ? 64
                : digits <= 9 ? 52
                : 40;
       amountInput.style.fontSize = fs + 'px';
-      console.log('adjustFontSize:', digits, '->', fs + 'px');
     }
 
     // 数値をコンマ付きで表示
