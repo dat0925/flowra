@@ -603,10 +603,6 @@ svg {
   border-radius: var(--radius);
   padding: 28px 24px 20px;
   margin-bottom: 14px;
-  min-height: 160px;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 }
 .amount-card.income   { background: var(--sage-dk); }
 .amount-card.transfer { background: #3a2e12; }
@@ -614,9 +610,9 @@ svg {
 .amount-row { display: flex; align-items: baseline; gap: 6px; }
 .amount-currency { font-size: 18px; font-weight: 300; color: rgba(255,255,255,0.4); }
 .amount-input {
-  font-family: 'Noto Serif JP', serif !important;
-  font-size: 130px !important;
-  font-weight: 600 !important;
+  font-family: 'Noto Serif JP', serif;
+  font-size: 100px;
+  font-weight: 600;
   color: #fff;
   background: none;
   border: none;
@@ -626,7 +622,7 @@ svg {
   line-height: 1.1;
   letter-spacing: -0.04em;
   caret-color: var(--sage-lt);
-  -webkit-text-size-adjust: none;
+  transition: font-size 0.15s ease;
 }
 .amount-input::placeholder { color: rgba(255,255,255,0.12); }
 .amount-hint { font-size: 11px; color: rgba(255,255,255,0.2); margin-top: 6px; }

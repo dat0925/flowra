@@ -141,7 +141,7 @@ export async function renderAddRecord(onSave, onReady) {
             <span class="amount-currency" style="font-size:28px;">¥</span>
             <input class="amount-input" id="amount-input" type="text" inputmode="numeric"
               placeholder="0" value="${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}"
-              autocomplete="off" style="font-size:130px;">
+              autocomplete="off">
           </div>
           <!-- 式表示：高さ固定でレイアウトシフトなし -->
           <div id="calc-expr" style="font-size:12px;color:rgba(255,255,255,0.35);
@@ -314,15 +314,27 @@ export async function renderAddRecord(onSave, onReady) {
     const amountInput = document.getElementById('amount-input');
     const exprEl      = document.getElementById('calc-expr');
 
+    // 桁数に応じてフォントサイズを動的調整
+    function adjustFontSize(digits) {
+      const fs = digits <= 3 ? 100
+               : digits <= 5 ? 80
+               : digits <= 7 ? 64
+               : digits <= 9 ? 52
+               : 40;
+      amountInput.style.fontSize = fs + 'px';
+    }
+
     // 数値をコンマ付きで表示
     function displayAmount(raw) {
       const n = parseInt(String(raw).replace(/,/g,''), 10);
       if (!isNaN(n) && n > 0) {
         amountInput.value = n.toLocaleString('ja-JP');
         state.amount = String(n);
+        adjustFontSize(String(n).length);
       } else {
         amountInput.value = '';
         state.amount = '';
+        adjustFontSize(0);
       }
     }
 
@@ -340,8 +352,10 @@ export async function renderAddRecord(onSave, onReady) {
       state.amount = raw;
       if (raw && !isNaN(raw) && raw !== '') {
         const formatted = Number(raw).toLocaleString('ja-JP');
-        const pos = e.target.selectionStart;
         e.target.value = formatted;
+        adjustFontSize(raw.length);
+      } else {
+        adjustFontSize(0);
       }
     });
 
