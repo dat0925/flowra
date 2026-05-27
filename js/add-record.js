@@ -235,11 +235,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
           </div>
         </div>
 
-        <button class="btn-primary" id="btn-save" style="margin-top:20px;">
-          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-          保存する
-        </button>
-        <button class="btn-secondary" id="btn-cancel">キャンセル</button>
+        <!-- 保存・キャンセルはキーボード上部のsave-barに移動 -->
       </div>`;
 
     const modalContent = document.getElementById('modal-content');
@@ -253,6 +249,17 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     // 閉じる
     document.getElementById('btn-close-modal')?.addEventListener('click', closeModal);
     document.getElementById('btn-cancel')?.addEventListener('click', closeModal);
+
+    // save-bar（キーボード上部固定バー）を表示
+    const saveBar = document.getElementById('save-bar');
+    if (saveBar) {
+      saveBar.hidden = false;
+      document.getElementById('save-bar-btn')?.addEventListener('click', save);
+      document.getElementById('save-bar-cancel')?.addEventListener('click', () => {
+        saveBar.hidden = true;
+        closeModal();
+      });
+    }
 
     // タグ ヘルプツールチップ
     document.getElementById('btn-tag-help')?.addEventListener('click', e => {
@@ -371,7 +378,14 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
 
     // contenteditable入力ハンドラ
     amountInput?.addEventListener('input', () => {
-      const raw = amountInput.textContent.replace(/,/g,'').replace(/[^0-9]/g,'');
+      let raw = amountInput.textContent.replace(/,/g,'').replace(/[^0-9]/g,'');
+      // 演算子押下後の最初の入力でクリア
+      if (waitingForNextInput) {
+        waitingForNextInput = false;
+        // 最後の1文字だけ残す
+        raw = raw.slice(-1);
+        amountInput.textContent = raw;
+      }
       state.amount = raw;
       if (raw) {
         const formatted = Number(raw).toLocaleString('ja-JP');
@@ -390,6 +404,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     });
 
     // 演算子ボタン
+    let waitingForNextInput = false; // 次の入力でクリアするフラグ
     document.querySelectorAll('.calc-op-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const currentVal = state.amount || '0';
@@ -406,10 +421,8 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
         calcOp = btn.dataset.op;
         updateExpr();
 
-        // 入力欄をクリアして次の数字を待つ
-        amountInput.textContent = '';
-        state.amount = '';
-        moveCursorToEnd(amountInput);
+        // 即クリアせず「次の入力が来たらクリア」フラグを立てる
+        waitingForNextInput = true;
         Sound.playTap();
       });
     });

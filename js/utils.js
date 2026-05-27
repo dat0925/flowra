@@ -53,6 +53,9 @@ export function closeModal() {
   const overlay = document.getElementById('modal-overlay');
   const sheet = document.getElementById('modal-add-record');
   if (sheet) sheet._swipeInit = false;
+  // save-barを非表示
+  const saveBar = document.getElementById('save-bar');
+  if (saveBar) saveBar.hidden = true;
   Sound.playClose();
   if (sheet) {
     sheet.classList.add('closing');

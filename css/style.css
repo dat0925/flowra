@@ -601,8 +601,12 @@ svg {
 .amount-card {
   background: var(--ink);
   border-radius: var(--radius);
-  padding: 28px 24px 20px;
+  padding: 20px 24px 16px;
   margin-bottom: 14px;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 .amount-card.income   { background: var(--sage-dk); }
 .amount-card.transfer { background: #3a2e12; }
@@ -991,4 +995,49 @@ svg {
 @keyframes sheet-slide-down {
   from { transform: translateY(0); }
   to   { transform: translateY(100%); }
+}
+
+/* キーボード上部固定保存バー */
+#save-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  background: var(--stone);
+  border-top: 1px solid var(--border);
+  padding: 10px 16px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+#save-bar[hidden] { display: none; }
+#save-bar-cancel {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: none;
+  color: var(--mid);
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+}
+#save-bar-btn {
+  flex: 2;
+  padding: 12px;
+  border-radius: 12px;
+  border: none;
+  background: var(--sage-dk);
+  color: #fff;
+  font-family: 'Noto Sans JP', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
