@@ -601,7 +601,7 @@ svg {
 .amount-card {
   background: var(--ink);
   border-radius: var(--radius);
-  padding: 20px 20px 16px;
+  padding: 28px 24px 20px;
   margin-bottom: 14px;
 }
 .amount-card.income   { background: var(--sage-dk); }
