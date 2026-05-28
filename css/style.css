@@ -670,7 +670,7 @@ svg {
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.12s;
+  transition: color 0.12s, border-color 0.12s;
   border: 1.5px solid transparent;
 }
 .tag-chip.on  { background: var(--sage-bg); color: var(--sage-dk); border-color: var(--sage-lt); font-weight: 600; }
