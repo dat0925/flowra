@@ -694,7 +694,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       const tmpEl = document.querySelector('[data-tx-id="' + optimisticTx.id + '"]');
       if (tmpEl) tmpEl.dataset.txId = tx.id;
     } catch (err) {
-      showToast('⚠️ 保存に失敗しました。再度お試しください。');
+      showToast('⚠️ ' + (err.message || JSON.stringify(err)));
       console.error('Save error:', err);
     }
   }
