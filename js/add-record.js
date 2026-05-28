@@ -843,21 +843,18 @@ async function showSuggest(onSave, onReady, accounts, tags) {
   const categoryGridHTML = categoryTags.length === 0 ? '' : `
     <div style="padding:0 16px 4px;">
       <div style="font-size:11px;color:var(--mid-lt);margin-bottom:10px;letter-spacing:0.05em;">カテゴリから始める</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
         ${categoryTags.map(tag => {
           const icon = CATEGORY_ICONS[tag.name];
           return `<button class="suggest-cat-btn" data-tag-id="${tag.id}"
-            style="display:flex;flex-direction:column;align-items:center;gap:5px;
-            padding:10px 4px;border-radius:12px;border:none;background:var(--stone);
-            cursor:pointer;transition:background 0.12s;">
-            <div style="width:40px;height:40px;border-radius:50%;background:${icon.bg};
-              display:flex;align-items:center;justify-content:center;">
-              <svg viewBox="0 0 24 24" width="20" height="20" fill="none"
-                stroke="${icon.stroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="${icon.path}"/>
-              </svg>
-            </div>
-            <span style="font-size:10px;color:var(--ink);font-weight:500;
+            style="display:flex;flex-direction:column;align-items:center;gap:6px;
+            padding:12px 4px 10px;border-radius:14px;border:none;background:${icon.bg};
+            cursor:pointer;transition:opacity 0.12s;">
+            <svg viewBox="0 0 24 24" width="26" height="26" fill="none"
+              stroke="${icon.stroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="${icon.path}"/>
+            </svg>
+            <span style="font-size:11px;color:var(--ink);font-weight:500;
               text-align:center;line-height:1.3;word-break:keep-all;">${tag.name}</span>
           </button>`;
         }).join('')}
