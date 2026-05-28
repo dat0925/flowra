@@ -149,7 +149,10 @@ async function renderAccountsContent(content, accounts) {
             <div class="form-row no-tap">
               <div class="row-body">
                 <div class="row-label">初期残高 (¥)</div>
-                <input class="text-input" id="new-acct-balance" type="number" inputmode="numeric" placeholder="0">
+                <div style="display:flex;align-items:center;gap:4px;">
+                  <span id="new-balance-sign" style="font-size:16px;color:var(--red);font-weight:600;display:none;">−</span>
+                  <input class="text-input" id="new-acct-balance" type="number" inputmode="numeric" placeholder="0" style="flex:1;">
+                </div>
               </div>
             </div>
             <div class="form-row no-tap" style="border-bottom:none;">
@@ -176,11 +179,18 @@ async function renderAccountsContent(content, accounts) {
       if (v.length > 1 && v.startsWith('0')) e.target.value = String(parseInt(v, 10));
     });
 
+    // 種別変更でマイナス符号切り替え（新規作成）
+    document.getElementById('new-acct-type')?.addEventListener('change', e => {
+      const sign = document.getElementById('new-balance-sign');
+      if (sign) sign.style.display = e.target.value === 'credit' ? 'block' : 'none';
+    });
+
     // 追加
     document.getElementById('btn-save-acct')?.addEventListener('click', async () => {
       const name    = document.getElementById('new-acct-name').value.trim();
       const type    = document.getElementById('new-acct-type').value;
-      const balance = parseInt(document.getElementById('new-acct-balance').value || '0', 10);
+      const rawBalance = parseInt(document.getElementById('new-acct-balance').value || '0', 10);
+      const balance = type === 'credit' ? -Math.abs(rawBalance) : rawBalance;
       if (!name) { showToast('口座名を入力してください'); return; }
       try {
         await DB.createAccount({ name, type, balance, color: selectedColor });
@@ -269,7 +279,12 @@ function openEditModal(acct) {
         <div class="form-row no-tap">
           <div class="row-body">
             <div class="row-label">残高を補正 (¥)</div>
-            <input class="text-input" id="edit-acct-balance" type="number" inputmode="numeric" value="${acct.balance}">
+            <div style="display:flex;align-items:center;gap:4px;">
+              <span id="edit-balance-sign" style="font-size:16px;color:var(--red);font-weight:600;
+                display:${acct.type==='credit'?'block':'none'};">−</span>
+              <input class="text-input" id="edit-acct-balance" type="number" inputmode="numeric"
+                value="${Math.abs(acct.balance)}" style="flex:1;">
+            </div>
           </div>
         </div>
         <div class="form-row no-tap" style="border-bottom:none;">
@@ -328,12 +343,17 @@ function openEditModal(acct) {
 
   // 名前・種別変更でプレビュー更新
   document.getElementById('edit-acct-name')?.addEventListener('input', updatePreview);
-  document.getElementById('edit-acct-type')?.addEventListener('change', updatePreview);
+  document.getElementById('edit-acct-type')?.addEventListener('change', e => {
+    updatePreview();
+    // クレカ選択時にマイナス符号を表示
+    const sign = document.getElementById('edit-balance-sign');
+    if (sign) sign.style.display = e.target.value === 'credit' ? 'block' : 'none';
+  });
 
   // 残高入力：先頭ゼロを除去
   document.getElementById('edit-acct-balance')?.addEventListener('input', e => {
-    const v = e.target.value.replace(/^0+(\d)/, '$1');
-    e.target.value = v;
+    const v = e.target.value;
+    if (v.length > 1 && v.startsWith('0')) e.target.value = String(parseInt(v, 10));
   });
 
   document.getElementById('btn-close-edit')?.addEventListener('click', closeModal);
@@ -341,7 +361,8 @@ function openEditModal(acct) {
   document.getElementById('btn-update-acct')?.addEventListener('click', async () => {
     const name    = document.getElementById('edit-acct-name').value.trim();
     const type    = document.getElementById('edit-acct-type').value;
-    const balance = parseInt(document.getElementById('edit-acct-balance').value || '0', 10);
+    const rawBalance = parseInt(document.getElementById('edit-acct-balance').value || '0', 10);
+    const balance = type === 'credit' ? -Math.abs(rawBalance) : rawBalance;
     if (!name) { showToast('口座名を入力してください'); return; }
     try {
       await DB.updateAccount(acct.id, { name, type, balance, color: editColor });
