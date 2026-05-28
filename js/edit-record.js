@@ -387,7 +387,7 @@ export async function openEditRecord(tx, onSave) {
       if (!calcLeft || !calcOp) return;
       const right = Number(state.amount || '0');
       const result = calcFn(Number(calcLeft), right, calcOp);
-      const exprText = `¥${Number(calcLeft).toLocaleString('ja-JP')} ${calcOp} ¥${right.toLocaleString('ja-JP')} ＝`;
+      const exprText = `¥${Number(calcLeft).toLocaleString('ja-JP')} ${calcOp} ¥${right.toLocaleString('ja-JP')} ＝ ¥${result.toLocaleString('ja-JP')}`;
       displayAmount(result);
       calcLeft = ''; calcOp = '';
       if (exprEl) exprEl.textContent = exprText;

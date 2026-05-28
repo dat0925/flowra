@@ -452,7 +452,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       const right = Number(state.amount || '0');
       const result = calculate(Number(calcLeft), right, calcOp);
       // 式を残すため exprEl のテキストを計算式として固定表示
-      const exprText = `¥${Number(calcLeft).toLocaleString('ja-JP')} ${calcOp} ¥${Number(right).toLocaleString('ja-JP')} ＝`;
+      const exprText = `¥${Number(calcLeft).toLocaleString('ja-JP')} ${calcOp} ¥${Number(right).toLocaleString('ja-JP')} ＝ ¥${result.toLocaleString('ja-JP')}`;
       displayAmount(result);
       calcLeft = '';
       calcOp   = '';

@@ -611,14 +611,15 @@ svg {
   margin-bottom: 4px;
   letter-spacing: 0.02em;
 }
-/* ホームのs-subと同じ */
+/* 電卓の式表示：補足ではなく計算文脈として重要なので少し大きく */
 .amount-card-sub {
-  font-size: 11.5px;
-  color: rgba(255,255,255,0.3);
-  margin-top: 4px;
-  height: 16px;
+  font-size: 13px;
+  color: rgba(255,255,255,0.5);
+  margin-top: 6px;
+  height: 18px;
   overflow: hidden;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 .amount-card.income   { background: var(--sage-dk); }
 .amount-card.transfer { background: #3a2e12; }
