@@ -273,14 +273,25 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     document.getElementById('btn-cancel')?.addEventListener('click', closeModal);
 
     // save-bar（キーボード上部固定バー）を表示
+    // cloneNodeでイベントをリセットしてから再バインド（累積防止）
     const saveBar = document.getElementById('save-bar');
     if (saveBar) {
       saveBar.hidden = false;
-      document.getElementById('save-bar-btn')?.addEventListener('click', save);
-      document.getElementById('save-bar-cancel')?.addEventListener('click', () => {
-        saveBar.hidden = true;
-        closeModal();
-      });
+      const oldSaveBtn = document.getElementById('save-bar-btn');
+      const oldCancelBtn = document.getElementById('save-bar-cancel');
+      if (oldSaveBtn) {
+        const newSaveBtn = oldSaveBtn.cloneNode(true);
+        oldSaveBtn.parentNode.replaceChild(newSaveBtn, oldSaveBtn);
+        newSaveBtn.addEventListener('click', save);
+      }
+      if (oldCancelBtn) {
+        const newCancelBtn = oldCancelBtn.cloneNode(true);
+        oldCancelBtn.parentNode.replaceChild(newCancelBtn, oldCancelBtn);
+        newCancelBtn.addEventListener('click', () => {
+          saveBar.hidden = true;
+          closeModal();
+        });
+      }
     }
 
     // タグ ヘルプツールチップ
