@@ -6,6 +6,7 @@ import { Sound } from './sound.js';
 import { DB }    from './db.js';
 import { showToast, openModal, closeModal } from './utils.js';
 import { getCachedTags, putTags } from './cache.js';
+import { warmupAddRecord } from './add-record.js';
 
 export async function renderSettings() {
   const content = document.getElementById('page-content');
@@ -137,6 +138,7 @@ function openTagEditSheet(tag, allTags) {
 
     try {
       await DB.updateTag(tag.id, { name });
+      await warmupAddRecord();
       Sound.playTap();
       closeSheet();
       showToast('✓ タグを更新しました');
@@ -152,6 +154,7 @@ function openTagEditSheet(tag, allTags) {
     if (!confirm(`「${tag.name}」を削除しますか？\n※ このタグが付いた記録からも外れます`)) return;
     try {
       await DB.deleteTag(tag.id);
+      await warmupAddRecord();
       Sound.playClose();
       closeSheet();
       showToast('タグを削除しました');
@@ -338,6 +341,7 @@ function openTagAddSheet(tags) {
 
     try {
       await DB.createTag(name);
+      await warmupAddRecord();
       Sound.playSave();
       closeSheet();
       showToast('✓ タグを追加しました');
