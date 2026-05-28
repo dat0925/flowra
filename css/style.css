@@ -892,7 +892,7 @@ svg {
   #bottom-nav    { display: flex; }
   #app           { flex-direction: column; }
   #main          { height: 100dvh; }
-  #page-content  { padding: 14px 14px calc(20px + env(safe-area-inset-bottom)); }
+  #page-content  { padding: 14px 14px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); }
 
   .summary-row { grid-template-columns: 1fr; gap: 10px; }
   .s-number { font-size: 26px; }
