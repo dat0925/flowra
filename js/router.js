@@ -49,6 +49,9 @@ export const Router = {
   navigate(page) {
     this.currentPage = page;
     Sound.playTap(); // 画面遷移音
+    // ページ遷移時にsave-barを確実に非表示
+    const saveBar = document.getElementById('save-bar');
+    if (saveBar) saveBar.hidden = true;
 
     // サイドバーのアクティブ状態
     document.querySelectorAll('.nav-item').forEach(el => {
