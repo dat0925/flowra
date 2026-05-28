@@ -207,7 +207,7 @@ function renderList() {
                 <div class="tx-amount ${tx.type}">
                   <span class="tx-currency">${sign}</span>${fmt(tx.amount)}
                 </div>
-                <div class="tx-account-name">${tx.account?.name || ''}</div>
+
               </div>
             </div>`;
         }).join('')}
