@@ -325,6 +325,14 @@ svg {
 }
 .btn-add:hover { background: var(--sage-dk); }
 .btn-add svg { stroke-width: 2.5; }
+/* デスクトップ：アイコンのみのコンパクトボタン */
+.btn-add-icon {
+  padding: 8px 10px;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  justify-content: center;
+}
 
 /* PAGE CONTENT */
 #page-content {
@@ -1023,8 +1031,15 @@ svg {
   padding: 10px 16px;
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
   display: flex;
-  gap: 10px;
-  align-items: center;
+  justify-content: center;
+}
+#save-bar > * { flex: 1; }
+/* モーダルと同じ最大幅でセンタリング */
+@media (min-width: 600px) {
+  #save-bar {
+    padding: 10px calc(50% - 240px);
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  }
 }
 #save-bar[hidden] { display: none; }
 #save-bar-cancel {
