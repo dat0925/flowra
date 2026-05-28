@@ -432,6 +432,9 @@ export async function openEditRecord(tx, onSave) {
             const sel = state.selectedTags.has(c.dataset.tagId);
             const isPrimary = sel && [...state.selectedTags][0] === c.dataset.tagId;
             c.className = 'tag-chip ' + (sel ? 'on' : 'off');
+            c.style.background = '';
+            c.style.color = '';
+            c.style.borderColor = '';
             c.style.position = 'relative';
             const existing = c.querySelector('.primary-badge');
             if (existing) existing.remove();

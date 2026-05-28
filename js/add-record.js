@@ -520,9 +520,13 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
             state.selectedTags.add(id);
             chip.className = 'tag-chip on';
           }
-          // 選択状態を全チップに反映
+          // 選択状態を全チップに反映（インラインstyleをリセットして確実に適用）
           document.querySelectorAll('.tag-chip[data-tag-id]').forEach(c => {
-            c.className = 'tag-chip ' + (state.selectedTags.has(c.dataset.tagId) ? 'on' : 'off');
+            const isOn = state.selectedTags.has(c.dataset.tagId);
+            c.className = 'tag-chip ' + (isOn ? 'on' : 'off');
+            c.style.background = '';
+            c.style.color = '';
+            c.style.borderColor = '';
           });
           Sound.playTap();
         });
