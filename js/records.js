@@ -197,10 +197,9 @@ function renderList() {
                 <div class="tx-name">${tx.memo || '（メモなし）'}</div>
                 <div class="tx-meta">
                   ${tx.tags && tx.tags.length > 0
-                    ? `<span class="tx-tag tx-tag-primary">${tx.tags[0].name}</span>`
+                    ? `<span class="tx-tag tx-tag-primary">${tx.tags[0].name}</span><span class="tx-acct" style="color:var(--mid-lt);">${acctName}</span>`
                     : `<span class="tx-acct">${acctName}</span>`
                   }
-                  <span class="tx-acct" style="color:var(--mid-lt);">${acctName}</span>
                   ${tx.is_unsettled ? '<span class="unsettled-dot"></span><span style="font-size:11px;color:var(--gold);font-weight:500;">未精算</span>' : ''}
                 </div>
               </div>
