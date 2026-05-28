@@ -676,13 +676,17 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     };
 
     Sound.playSave();
+    const saveBar = document.getElementById('save-bar');
+    if (saveBar) saveBar.hidden = true;
     closeModal();
     if (onSave) onSave(optimisticTx);
 
     // バックグラウンドで実際に保存
     try {
       const { upsertTransactions } = await import('./cache.js');
-      const tx = await DB.createTransaction(payload, [...state.selectedTags]);
+      const tagIds = [...state.selectedTags];
+      console.log('saving tags:', tagIds);
+      const tx = await DB.createTransaction(payload, tagIds);
       // キャッシュにも追記
       await upsertTransactions([{ ...tx, tags: [] }]);
 
