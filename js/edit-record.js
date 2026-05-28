@@ -38,7 +38,8 @@ export async function openEditRecord(tx, onSave) {
     return;
   }
 
-  const txTags = tx.tags || [];
+  // sort_orderで並べて主タグが先頭になるようにする
+  const txTags = (tx.tags || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   let state = {
     type:         tx.type,
     amount:       String(tx.amount),
@@ -203,10 +204,15 @@ export async function openEditRecord(tx, onSave) {
           <div class="tags-wrap" style="padding-top:6px;">
             ${tags.length === 0
               ? `<div style="font-size:12.5px;color:var(--mid-lt);padding:4px 0 8px;">タグがありません</div>`
-              : tags.map(t => `
-                  <div class="tag-chip ${state.selectedTags.has(t.id)?'on':'off'}"
-                    data-tag-id="${t.id}">${t.name}</div>
-                `).join('')
+              : tags.map(t => {
+                  const isSelected = state.selectedTags.has(t.id);
+                  const selectedArr = [...state.selectedTags];
+                  const isPrimary = isSelected && selectedArr[0] === t.id;
+                  return `<div class="tag-chip ${isSelected?'on':'off'}" data-tag-id="${t.id}" style="position:relative;">
+                    ${isPrimary ? '<span style="position:absolute;top:-5px;right:-5px;background:var(--sage-dk);color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;font-weight:600;">主</span>' : ''}
+                    ${t.name}
+                  </div>`;
+                }).join('')
             }
           </div>
         </div>
@@ -409,20 +415,37 @@ export async function openEditRecord(tx, onSave) {
       showAccountPicker(accounts, state.toAccountId, id => { state.toAccountId = id; render(); });
     });
 
-    // タグ
-    sheet.querySelectorAll('.tag-chip[data-tag-id]').forEach(chip => {
-      chip.addEventListener('click', () => {
-        const id = chip.dataset.tagId;
-        if (state.selectedTags.has(id)) {
-          state.selectedTags.delete(id);
-          chip.className = 'tag-chip off';
-        } else {
-          state.selectedTags.add(id);
-          chip.className = 'tag-chip on';
-        }
-        Sound.playTap();
+    // タグ（render後に再バインドできるよう関数化）
+    function bindTags() {
+      sheet.querySelectorAll('.tag-chip[data-tag-id]').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const id = chip.dataset.tagId;
+          if (state.selectedTags.has(id)) {
+            state.selectedTags.delete(id);
+          } else {
+            state.selectedTags.add(id);
+          }
+          // 全チップの表示を更新
+          sheet.querySelectorAll('.tag-chip[data-tag-id]').forEach(c => {
+            const sel = state.selectedTags.has(c.dataset.tagId);
+            const isPrimary = sel && [...state.selectedTags][0] === c.dataset.tagId;
+            c.className = 'tag-chip ' + (sel ? 'on' : 'off');
+            c.style.position = 'relative';
+            const existing = c.querySelector('.primary-badge');
+            if (existing) existing.remove();
+            if (isPrimary) {
+              const badge = document.createElement('span');
+              badge.className = 'primary-badge';
+              badge.style.cssText = 'position:absolute;top:-5px;right:-5px;background:var(--sage-dk);color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;font-weight:600;';
+              badge.textContent = '主';
+              c.appendChild(badge);
+            }
+          });
+          Sound.playTap();
+        });
       });
-    });
+    }
+    bindTags();
 
     // ？ツールチップ
     sheet.querySelector('#unsettled-help')?.addEventListener('click', e => {
