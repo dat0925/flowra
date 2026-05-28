@@ -869,7 +869,12 @@ async function showSuggest(onSave, onReady, accounts, tags) {
   const modalContent = document.getElementById('modal-content');
   modalContent.innerHTML = `
     <div style="padding:20px 0 8px;">
-      <div style="font-size:16px;font-weight:600;color:var(--ink);padding:0 20px 16px;">記録を追加</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0 16px 16px;">
+        <div style="font-size:16px;font-weight:600;color:var(--ink);">記録を追加</div>
+        <button id="suggest-close-btn" style="width:28px;height:28px;border-radius:50%;border:none;
+          background:var(--mist);color:var(--mid);font-size:14px;cursor:pointer;
+          display:flex;align-items:center;justify-content:center;">✕</button>
+      </div>
       ${categoryGridHTML}
       ${categoryGridHTML && suggestHTML ? `<div style="display:flex;align-items:center;gap:8px;margin:12px 16px 4px;">
         <div style="flex:1;height:1px;background:var(--border);"></div>
@@ -889,6 +894,23 @@ async function showSuggest(onSave, onReady, accounts, tags) {
   overlay.hidden = false;
   document.body.style.overflow = 'hidden';
   Sound.playOpen();
+
+  // ×ボタンで閉じる
+  document.getElementById('suggest-close-btn')?.addEventListener('click', () => {
+    overlay.hidden = true;
+    document.body.style.overflow = '';
+    Sound.playClose();
+  });
+
+  // オーバーレイ背景タップで閉じる
+  overlay.addEventListener('click', function onOverlayClick(e) {
+    if (e.target === overlay) {
+      overlay.hidden = true;
+      document.body.style.overflow = '';
+      Sound.playClose();
+      overlay.removeEventListener('click', onOverlayClick);
+    }
+  });
 
   // カテゴリボタンをタップ → カテゴリを主タグとして追加画面へ
   document.querySelectorAll('.suggest-cat-btn').forEach(btn => {
