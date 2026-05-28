@@ -673,8 +673,8 @@ svg {
   transition: all 0.12s;
   border: 1.5px solid transparent;
 }
-.tag-chip.on  { background: var(--sage-bg); color: var(--sage-dk); border-color: var(--sage-lt); }
-.tag-chip.off { background: var(--warm); color: var(--mid); border-color: var(--border); }
+.tag-chip.on  { background: var(--sage-bg); color: var(--sage-dk); border-color: var(--sage-lt); font-weight: 600; }
+.tag-chip.off { background: transparent; color: var(--mid-lt); border-color: var(--border); }
 .tag-chip.off:hover { background: var(--mist); color: var(--ink); }
 .tag-chip.new { border-style: dashed; }
 
