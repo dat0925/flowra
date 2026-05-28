@@ -560,6 +560,8 @@ export async function openEditRecord(tx, onSave) {
           await DB.deleteTransaction(tx.id);
           await markDeletedTransaction(tx.id);
           Sound.playClose();
+          const saveBar = document.getElementById('save-bar');
+          if (saveBar) saveBar.hidden = true;
           sheet.remove();
           showToast('記録を削除しました');
           if (onSave) onSave();
