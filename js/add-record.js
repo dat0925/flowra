@@ -786,7 +786,13 @@ async function showSuggest(onSave, onReady, accounts, tags) {
               white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
               ${tx.memo || '（メモなし）'}
             </span>
-            <span style="font-size:11px;color:var(--mid-lt);">${acctName(tx.account_id)}</span>
+            <span style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+              ${tx.tags && tx.tags.length > 0
+                ? `<span style="font-size:10px;font-weight:600;color:var(--sage-dk);background:var(--sage-bg);padding:1px 6px;border-radius:4px;">${tx.tags[0].name}</span>`
+                : ''
+              }
+              <span style="font-size:11px;color:var(--mid-lt);">${acctName(tx.account_id)}</span>
+            </span>
           </span>
           <span style="font-size:15px;font-weight:600;color:${typeColor[tx.type]};white-space:nowrap;">
             ¥${Number(tx.amount).toLocaleString('ja-JP')}
