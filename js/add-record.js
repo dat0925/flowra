@@ -497,9 +497,70 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       state.date = e.target.value;
     });
 
-    // メモ
-    document.getElementById('memo-input')?.addEventListener('input', e => {
+    // メモ（過去のメモから候補を表示）
+    const memoInput = document.getElementById('memo-input');
+    const memoWrap = memoInput?.closest('.form-row') || memoInput?.parentElement;
+
+    // 候補コンテナを作成
+    const memoSuggest = document.createElement('div');
+    memoSuggest.id = 'memo-suggest';
+    memoSuggest.style.cssText = `
+      display:none;position:absolute;z-index:200;
+      background:#fff;border:1px solid var(--border);
+      border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.08);
+      overflow:hidden;max-height:180px;overflow-y:auto;
+    `;
+    memoInput?.parentElement?.style && (memoInput.parentElement.style.position = 'relative');
+    memoInput?.parentElement?.appendChild(memoSuggest);
+
+    // 過去のメモ一覧を取得（重複除去・空除外）
+    let pastMemos = [];
+    getCachedTransactions().then(txs => {
+      const seen = new Set();
+      pastMemos = txs
+        .map(t => t.memo)
+        .filter(m => m && m.trim())
+        .filter(m => { if (seen.has(m)) return false; seen.add(m); return true; });
+    }).catch(() => {});
+
+    function showMemoSuggest(q) {
+      if (!q) { memoSuggest.style.display = 'none'; return; }
+      const matched = pastMemos.filter(m => m.includes(q)).slice(0, 5);
+      if (matched.length === 0) { memoSuggest.style.display = 'none'; return; }
+      memoSuggest.innerHTML = matched.map(m => `
+        <div class="memo-suggest-item" style="padding:10px 14px;font-size:13.5px;
+          color:var(--ink);cursor:pointer;border-bottom:1px solid var(--border);
+          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          ${m}
+        </div>`).join('');
+      memoSuggest.querySelectorAll('.memo-suggest-item').forEach((item, i) => {
+        item.addEventListener('mousedown', e => {
+          e.preventDefault();
+          memoInput.value = matched[i];
+          state.memo = matched[i];
+          memoSuggest.style.display = 'none';
+        });
+      });
+      // 位置をinputの下に設定
+      const rect = memoInput.getBoundingClientRect();
+      const parentRect = memoInput.parentElement.getBoundingClientRect();
+      memoSuggest.style.top = (rect.bottom - parentRect.top + 2) + 'px';
+      memoSuggest.style.left = '0';
+      memoSuggest.style.right = '0';
+      memoSuggest.style.display = 'block';
+    }
+
+    memoInput?.addEventListener('input', e => {
       state.memo = e.target.value;
+      showMemoSuggest(e.target.value);
+    });
+
+    memoInput?.addEventListener('blur', () => {
+      setTimeout(() => { memoSuggest.style.display = 'none'; }, 150);
+    });
+
+    memoInput?.addEventListener('focus', e => {
+      if (e.target.value) showMemoSuggest(e.target.value);
     });
 
     // URL
