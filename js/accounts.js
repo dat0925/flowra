@@ -170,6 +170,12 @@ async function renderAccountsContent(content, accounts) {
     let selectedColor = 'stone';
     renderColorPicker('new-color-picker', selectedColor, id => { selectedColor = id; });
 
+    // 残高入力：先頭ゼロを除去（新規作成）
+    document.getElementById('new-acct-balance')?.addEventListener('input', e => {
+      const v = e.target.value;
+      if (v.length > 1 && v.startsWith('0')) e.target.value = String(parseInt(v, 10));
+    });
+
     // 追加
     document.getElementById('btn-save-acct')?.addEventListener('click', async () => {
       const name    = document.getElementById('new-acct-name').value.trim();
@@ -323,6 +329,12 @@ function openEditModal(acct) {
   // 名前・種別変更でプレビュー更新
   document.getElementById('edit-acct-name')?.addEventListener('input', updatePreview);
   document.getElementById('edit-acct-type')?.addEventListener('change', updatePreview);
+
+  // 残高入力：先頭ゼロを除去
+  document.getElementById('edit-acct-balance')?.addEventListener('input', e => {
+    const v = e.target.value.replace(/^0+(\d)/, '$1');
+    e.target.value = v;
+  });
 
   document.getElementById('btn-close-edit')?.addEventListener('click', closeModal);
 
