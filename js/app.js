@@ -92,6 +92,9 @@ function showApp(user) {
   // データを事前ウォームアップ（次回のaddが同期的に開けるようにする）
   warmupAddRecord();
 
+  // 新規ユーザー向けデフォルトカテゴリタグを自動シード
+  _seedDefaultTags();
+
   // ボタンのクリックハンドラ
   const openAdd = () => {
     // dummy.focusはサジェスト画面をスキップして直接入力画面を開く時のみ行う
@@ -119,6 +122,31 @@ function showApp(user) {
   document.getElementById('btn-add-mobile')?.addEventListener('click', openAdd);
 
   Router.navigate('dashboard');
+}
+
+async function _seedDefaultTags() {
+  try {
+    const existing = await DB.getTags();
+    if (existing.length > 0) return; // すでにタグがあればスキップ
+    const defaults = [
+      { name: '食費',       color: '#7A9485', sort_order: 1 },
+      { name: '日用品',     color: '#7A8BA0', sort_order: 2 },
+      { name: '住居',       color: '#8A8070', sort_order: 3 },
+      { name: '光熱・水道', color: '#A09070', sort_order: 4 },
+      { name: '通信費',     color: '#7A7A9A', sort_order: 5 },
+      { name: 'サブスク',   color: '#8A7A9A', sort_order: 6 },
+      { name: '交通費',     color: '#7A9A8A', sort_order: 7 },
+      { name: '車',         color: '#8A9070', sort_order: 8 },
+      { name: '医療・健康', color: '#9A7A7A', sort_order: 9 },
+      { name: '保険料',     color: '#9A8A70', sort_order: 10 },
+      { name: '教育',       color: '#7A8A9A', sort_order: 11 },
+      { name: '娯楽・趣味', color: '#8A7A8A', sort_order: 12 },
+      { name: '服・美容',   color: '#9A7A8A', sort_order: 13 },
+    ];
+    for (const tag of defaults) {
+      await DB.createTag(tag.name, tag.color);
+    }
+  } catch (e) { /* silent */ }
 }
 
 // ── 保存後の軽量DOM更新 ──────────────────

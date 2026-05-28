@@ -764,14 +764,65 @@ async function showSuggest(onSave, onReady, accounts, tags) {
       </div>
     </div>`;
 
-  // モーダルにサジェスト+新規入力ボタンを表示
+  // カテゴリアイコン定義
+  const CATEGORY_ICONS = {
+    '食費':       { bg:'#E8F2ED', stroke:'#5C8C72', path:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z' },
+    '日用品':     { bg:'#E8EDF2', stroke:'#5C7A8C', path:'M6 2l1.5 4.5h9L18 2M3 9h18v2H3zm2 4h14v9H5z' },
+    '住居':       { bg:'#EEE8E0', stroke:'#8C7A5C', path:'M3 9.5L12 3l9 6.5V21H3V9.5zM9 21v-6h6v6' },
+    '光熱・水道': { bg:'#F2EDE0', stroke:'#8C7A4A', path:'M12 2a7 7 0 017 7c0 3.87-3.13 7-7 7S5 12.87 5 9a7 7 0 017-7zm0 12v4m-3 2h6' },
+    '通信費':     { bg:'#E8E8F2', stroke:'#5C5C8C', path:'M17 2H7a2 2 0 00-2 2v16a2 2 0 002 2h10a2 2 0 002-2V4a2 2 0 00-2-2zm-5 17a1 1 0 110-2 1 1 0 010 2z' },
+    'サブスク':   { bg:'#EDE8F2', stroke:'#7A5C8C', path:'M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z' },
+    '交通費':     { bg:'#E8F2EE', stroke:'#5C8C7A', path:'M17 8H7l-2 8h14l-2-8zm-9 8v3m8-3v3M3 8h18M8 8V5a2 2 0 014 0v3' },
+    '車':         { bg:'#EEF2E8', stroke:'#7A8C5C', path:'M5 17H3v-7l2-5h14l2 5v7h-2m-1 0H7m0 0a2 2 0 104 0m6 0a2 2 0 10-4 0' },
+    '医療・健康': { bg:'#F2E8E8', stroke:'#8C5C5C', path:'M12 2a10 10 0 100 20A10 10 0 0012 2zm1 14h-2v-4H7v-2h4V6h2v4h4v2h-4v4z' },
+    '保険料':     { bg:'#F2EDE8', stroke:'#8C7A5C', path:'M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7l-9-5z' },
+    '教育':       { bg:'#E8EEF2', stroke:'#5C7A8C', path:'M12 3L1 9l11 6 9-4.91V17h2V9L12 3zm-7 9.84V17l7 4 7-4v-4.16L12 17l-7-4.16z' },
+    '娯楽・趣味': { bg:'#EEE8F2', stroke:'#7A5C8C', path:'M14.5 2.5c0 1.5-1.5 7-1.5 7h-2S9 4 9 2.5a2.5 2.5 0 015 0zM12 11a1 1 0 110 2 1 1 0 010-2zm-7 9l2-9h10l2 9H5z' },
+    '服・美容':   { bg:'#F2E8EE', stroke:'#8C5C7A', path:'M20.38 8.57l-1.23 1.85a8 8 0 01-.22 7.58H5.07A8 8 0 0115.58 6.85l2.8-1.23 2 3z' },
+  };
+
+  // カテゴリグリッドHTML生成
+  const categoryTags = tags.filter(t => CATEGORY_ICONS[t.name]);
+  const otherTags = tags.filter(t => !CATEGORY_ICONS[t.name]);
+
+  const categoryGridHTML = categoryTags.length === 0 ? '' : `
+    <div style="padding:0 16px 4px;">
+      <div style="font-size:11px;color:var(--mid-lt);margin-bottom:10px;letter-spacing:0.05em;">カテゴリから始める</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+        ${categoryTags.map(tag => {
+          const icon = CATEGORY_ICONS[tag.name];
+          return `<button class="suggest-cat-btn" data-tag-id="${tag.id}"
+            style="display:flex;flex-direction:column;align-items:center;gap:5px;
+            padding:10px 4px;border-radius:12px;border:none;background:var(--stone);
+            cursor:pointer;transition:background 0.12s;">
+            <div style="width:40px;height:40px;border-radius:50%;background:${icon.bg};
+              display:flex;align-items:center;justify-content:center;">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+                stroke="${icon.stroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="${icon.path}"/>
+              </svg>
+            </div>
+            <span style="font-size:10px;color:var(--ink);font-weight:500;
+              text-align:center;line-height:1.3;word-break:keep-all;">${tag.name}</span>
+          </button>`;
+        }).join('')}
+      </div>
+    </div>`;
+
+  // モーダルにサジェスト+カテゴリ+新規入力ボタンを表示
   const overlay = document.getElementById('modal-overlay');
   const modalContent = document.getElementById('modal-content');
   modalContent.innerHTML = `
     <div style="padding:20px 0 8px;">
       <div style="font-size:16px;font-weight:600;color:var(--ink);padding:0 20px 16px;">記録を追加</div>
+      ${categoryGridHTML}
+      ${categoryGridHTML && suggestHTML ? `<div style="display:flex;align-items:center;gap:8px;margin:12px 16px 4px;">
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+        <span style="font-size:11px;color:var(--mid-lt);">最近の記録</span>
+        <div style="flex:1;height:1px;background:var(--border);"></div>
+      </div>` : ''}
       ${suggestHTML}
-      <div style="padding:0 20px 8px;">
+      <div style="padding:4px 20px 8px;">
         <button id="suggest-new-btn"
           style="width:100%;padding:14px;border-radius:14px;border:1.5px solid var(--border);
           background:none;color:var(--ink);font-family:'Noto Sans JP',sans-serif;
@@ -783,6 +834,23 @@ async function showSuggest(onSave, onReady, accounts, tags) {
   overlay.hidden = false;
   document.body.style.overflow = 'hidden';
   Sound.playOpen();
+
+  // カテゴリボタンをタップ → カテゴリを主タグとして追加画面へ
+  document.querySelectorAll('.suggest-cat-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const dummy = document.getElementById('ios-focus-trick');
+      dummy?.focus();
+      const tagId = btn.dataset.tagId;
+      overlay.hidden = true;
+      document.body.style.overflow = '';
+      renderAddRecord(onSave, () => {
+        setTimeout(() => {
+          const el = document.getElementById('amount-input');
+          if (el) { el.focus(); const r=document.createRange(),s=window.getSelection(); r.selectNodeContents(el); r.collapse(false); s.removeAllRanges(); s.addRange(r); }
+        }, 50);
+      }, { _skipSuggest: true, selectedTags: [tagId] });
+    });
+  });
 
   // サジェストアイテムをタップ
   document.querySelectorAll('.suggest-item').forEach(btn => {
