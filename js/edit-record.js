@@ -204,15 +204,17 @@ export async function openEditRecord(tx, onSave) {
           <div class="tags-wrap" style="padding-top:6px;">
             ${tags.length === 0
               ? `<div style="font-size:12.5px;color:var(--mid-lt);padding:4px 0 8px;">タグがありません</div>`
-              : tags.map(t => {
-                  const isSelected = state.selectedTags.has(t.id);
+              : (() => {
                   const selectedArr = [...state.selectedTags];
-                  const isPrimary = isSelected && selectedArr[0] === t.id;
-                  return `<div class="tag-chip ${isSelected?'on':'off'}" data-tag-id="${t.id}" style="position:relative;">
-                    ${isPrimary ? '<span style="position:absolute;top:-5px;right:-5px;background:var(--sage-dk);color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;font-weight:600;">主</span>' : ''}
-                    ${t.name}
-                  </div>`;
-                }).join('')
+                  return tags.map(t => {
+                    const isSelected = state.selectedTags.has(t.id);
+                    const isPrimary = isSelected && selectedArr[0] === t.id;
+                    return `<div class="tag-chip ${isSelected?'on':'off'}" data-tag-id="${t.id}" style="position:relative;">
+                      ${isPrimary ? '<span class="primary-badge" style="position:absolute;top:-5px;right:-5px;background:var(--sage-dk);color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;font-weight:600;">主</span>' : ''}
+                      ${t.name}
+                    </div>`;
+                  }).join('');
+                })()
             }
           </div>
         </div>

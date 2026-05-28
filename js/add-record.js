@@ -112,15 +112,17 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
                 タグがありません
                 <span id="btn-go-tags" style="color:var(--sage);cursor:pointer;font-weight:500;text-decoration:underline;">設定で追加 →</span>
                </div>`
-            : tags.map((t, i) => {
-                const isSelected = state.selectedTags.has(t.id);
+            : (() => {
                 const selectedArr = [...state.selectedTags];
-                const isPrimary = isSelected && selectedArr[0] === t.id;
-                return `<div class="tag-chip ${isSelected ? 'on' : 'off'}" data-tag-id="${t.id}" style="position:relative;">
-                  ${isPrimary ? '<span style="position:absolute;top:-5px;right:-5px;background:var(--sage-dk);color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;font-weight:600;">主</span>' : ''}
-                  ${t.name}
-                </div>`;
-              }).join('')
+                return tags.map(t => {
+                  const isSelected = state.selectedTags.has(t.id);
+                  const isPrimary = isSelected && selectedArr[0] === t.id;
+                  return `<div class="tag-chip ${isSelected ? 'on' : 'off'}" data-tag-id="${t.id}" style="position:relative;">
+                    ${isPrimary ? '<span class="primary-badge" style="position:absolute;top:-5px;right:-5px;background:var(--sage-dk);color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;font-weight:600;">主</span>' : ''}
+                    ${t.name}
+                  </div>`;
+                }).join('');
+              })()
           }
         </div>
       </div>`;
