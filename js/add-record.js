@@ -112,9 +112,15 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
                 タグがありません
                 <span id="btn-go-tags" style="color:var(--sage);cursor:pointer;font-weight:500;text-decoration:underline;">設定で追加 →</span>
                </div>`
-            : tags.map(t => `
-                <div class="tag-chip ${state.selectedTags.has(t.id) ? 'on' : 'off'}" data-tag-id="${t.id}">${t.name}</div>
-              `).join('')
+            : tags.map((t, i) => {
+                const isSelected = state.selectedTags.has(t.id);
+                const selectedArr = [...state.selectedTags];
+                const isPrimary = isSelected && selectedArr[0] === t.id;
+                return `<div class="tag-chip ${isSelected ? 'on' : 'off'}" data-tag-id="${t.id}" style="position:relative;">
+                  ${isPrimary ? '<span style="position:absolute;top:-5px;right:-5px;background:var(--sage-dk);color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;font-weight:600;">主</span>' : ''}
+                  ${t.name}
+                </div>`;
+              }).join('')
           }
         </div>
       </div>`;
@@ -335,6 +341,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       document.getElementById('btn-' + type)?.addEventListener('click', () => {
         state.type = type;
         render();
+        bindTags();
       });
     });
 
@@ -498,20 +505,28 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       showAccountPicker('to', id => { state.toAccountId = id; render(); });
     });
 
-    // タグ
-    document.querySelectorAll('.tag-chip[data-tag-id]').forEach(chip => {
-      chip.addEventListener('click', () => {
-        const id = chip.dataset.tagId;
-        if (state.selectedTags.has(id)) {
-          state.selectedTags.delete(id);
-          chip.className = 'tag-chip off';
-        } else {
-          state.selectedTags.add(id);
-          chip.className = 'tag-chip on';
-        }
-        Sound.playTap();
+    // タグ（render後に再バインドできるよう関数化）
+    function bindTags() {
+      document.querySelectorAll('.tag-chip[data-tag-id]').forEach(chip => {
+        chip.addEventListener('click', () => {
+          const id = chip.dataset.tagId;
+          if (state.selectedTags.has(id)) {
+            state.selectedTags.delete(id);
+            chip.className = 'tag-chip off';
+          } else {
+            // 主タグは1つだけ（先頭に追加）
+            state.selectedTags.add(id);
+            chip.className = 'tag-chip on';
+          }
+          // 選択状態を全チップに反映
+          document.querySelectorAll('.tag-chip[data-tag-id]').forEach(c => {
+            c.className = 'tag-chip ' + (state.selectedTags.has(c.dataset.tagId) ? 'on' : 'off');
+          });
+          Sound.playTap();
+        });
       });
-    });
+    }
+    bindTags();
 
     // 未精算トグル
     document.getElementById('toggle-unsettled')?.addEventListener('click', function() {
