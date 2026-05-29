@@ -11,6 +11,7 @@ import { renderSettings }     from './settings.js';
 import { fmt, showToast, openModal, closeModal } from './utils.js';
 import { renderRecords }     from './records.js';
 import { clearAll }          from './cache.js';
+import { DB }                from './db.js';
 
 export { fmt, showToast, openModal, closeModal };
 
