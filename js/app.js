@@ -252,7 +252,7 @@ async function showInviteAcceptDialog(token) {
   try {
     invite = await DB.getInviteByToken(token);
   } catch (e) {
-    showToast('招待リンクが無効です');
+    showToast('エラー詳細: ' + e.message);
     checkAndShowOnboarding(() => { warmupAddRecord(); });
     return;
   }
