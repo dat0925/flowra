@@ -316,9 +316,9 @@ export const DB = {
     const teamId = await this.getTeamId();
     const { data, error } = await supabase
       .from('team_members')
-      .select('id, user_id, role, created_at')
+      .select('user_id, role, joined_at')
       .eq('team_id', teamId)
-      .order('created_at');
+      .order('joined_at');
     if (error) throw error;
     return data;
   },
@@ -391,19 +391,23 @@ export const DB = {
     _teamId = null;
   },
 
-  async updateMemberRole(memberId, role) {
+  async updateMemberRole(userId, role) {
+    const teamId = await this.getTeamId();
     const { error } = await supabase
       .from('team_members')
       .update({ role })
-      .eq('id', memberId);
+      .eq('team_id', teamId)
+      .eq('user_id', userId);
     if (error) throw error;
   },
 
-  async removeMember(memberId) {
+  async removeMember(userId) {
+    const teamId = await this.getTeamId();
     const { error } = await supabase
       .from('team_members')
       .delete()
-      .eq('id', memberId);
+      .eq('team_id', teamId)
+      .eq('user_id', userId);
     if (error) throw error;
   },
 

@@ -333,7 +333,7 @@ function renderMembersList(members, myRole, currentUser) {
     const initial = isMe ? (currentUser?.email?.charAt(0).toUpperCase() || 'M') : 'P';
 
     return `
-      <div class="form-row" style="justify-content:space-between;gap:10px;" data-member-id="${m.id}">
+      <div class="form-row" style="justify-content:space-between;gap:10px;">
         <div style="display:flex;align-items:center;gap:10px;min-width:0;">
           <div style="width:34px;height:34px;border-radius:50%;background:${isMe ? 'var(--sage)' : 'var(--gold)'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;">${initial}</div>
           <div>
@@ -341,7 +341,7 @@ function renderMembersList(members, myRole, currentUser) {
             <div style="font-size:11px;color:var(--mid);">${isOwner ? 'オーナー' : '閲覧・編集'}</div>
           </div>
         </div>
-        ${(myRole === 'owner' && !isMe) ? `<button class="btn-member-remove" data-member-id="${m.id}" style="background:none;border:none;color:var(--mid-lt);font-size:18px;cursor:pointer;padding:0 4px;line-height:1;">×</button>` : ''}
+        ${(myRole === 'owner' && !isMe) ? `<button class="btn-member-remove" data-user-id="${m.user_id}" style="background:none;border:none;color:var(--mid-lt);font-size:18px;cursor:pointer;padding:0 4px;line-height:1;">×</button>` : ''}
       </div>
     `;
   }).join('');
@@ -351,7 +351,7 @@ function renderMembersList(members, myRole, currentUser) {
     btn.addEventListener('click', async () => {
       if (!confirm('このメンバーを削除しますか？')) return;
       try {
-        await DB.removeMember(btn.dataset.memberId);
+        await DB.removeMember(btn.dataset.userId);
         showToast('メンバーを削除しました');
         btn.closest('.form-row').remove();
       } catch (e) {
