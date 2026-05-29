@@ -5,6 +5,7 @@ import { Auth }       from './auth.js';
 import { Router, MonthState } from './router.js';
 import { renderDashboard }    from './dashboard.js';
 import { renderAddRecord, warmupAddRecord } from './add-record.js';
+import { checkAndShowOnboarding } from './onboarding.js';
 import { renderAccounts }     from './accounts.js';
 import { renderSettings }     from './settings.js';
 import { fmt, showToast, openModal, closeModal } from './utils.js';
@@ -91,6 +92,11 @@ function showApp(user) {
 
   // データを事前ウォームアップ（次回のaddが同期的に開けるようにする）
   warmupAddRecord();
+
+  // 新規ユーザーにオンボーディングを表示（口座0件の場合のみ）
+  checkAndShowOnboarding(() => {
+    warmupAddRecord();
+  });
 
   // 新規ユーザー向けデフォルトカテゴリタグを自動シード
   _seedDefaultTags();
