@@ -345,12 +345,12 @@ function renderMembersList(members, myRole, currentUser) {
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
           ${canManage ? `
             <select class="member-role-select" data-user-id="${m.user_id}" style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--white);color:var(--ink);cursor:pointer;">
-              <option value="member" ${m.role === 'member' ? 'selected' : ''}>閲覧・編集</option>
-              <option value="owner" ${m.role === 'owner' ? 'selected' : ''}>オーナー</option>
+              <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>閲覧のみ</option>
+              <option value="member" ${m.role === 'member' ? 'selected' : ''}>編集・削除可</option>
             </select>
             <button class="btn-member-remove" data-user-id="${m.user_id}" style="background:none;border:none;color:var(--mid-lt);font-size:20px;cursor:pointer;padding:0 2px;line-height:1;">×</button>
           ` : `
-            <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:${isOwner ? 'var(--sage-bg)' : 'var(--stone)'};color:${isOwner ? 'var(--sage-dk)' : 'var(--mid)'};">${isOwner ? 'オーナー' : '閲覧・編集'}</span>
+            <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:${isOwner ? 'var(--sage-bg)' : 'var(--stone)'};color:${isOwner ? 'var(--sage-dk)' : 'var(--mid)'};">${isOwner ? 'オーナー' : m.role === 'viewer' ? '閲覧のみ' : '編集・削除可'}</span>
           `}
         </div>
       </div>
