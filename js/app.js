@@ -38,6 +38,15 @@ function showLogin() {
 
 // ── 初期化 ──────────────────────────
 async function init() {
+  // 招待トークンをURLから取得して保存
+  const urlParams = new URLSearchParams(window.location.search);
+  const inviteToken = urlParams.get('invite');
+  if (inviteToken) {
+    sessionStorage.setItem('pendingInviteToken', inviteToken);
+    // URLをクリーンに
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+
   document.getElementById('btn-google-login')?.addEventListener('click', () => {
     Auth.signInWithGoogle();
   });
@@ -93,10 +102,14 @@ function showApp(user) {
   // データを事前ウォームアップ（次回のaddが同期的に開けるようにする）
   warmupAddRecord();
 
-  // 新規ユーザーにオンボーディングを表示（口座0件の場合のみ）
-  checkAndShowOnboarding(() => {
-    warmupAddRecord();
-  });
+  // ログイン後の招待処理 or 通常オンボーディング
+  const pendingToken = sessionStorage.getItem('pendingInviteToken');
+  if (pendingToken) {
+    sessionStorage.removeItem('pendingInviteToken');
+    showInviteAcceptDialog(pendingToken);
+  } else {
+    checkAndShowOnboarding(() => { warmupAddRecord(); });
+  }
 
   // 新規ユーザー向けデフォルトカテゴリタグを自動シード
   _seedDefaultTags();
@@ -231,3 +244,61 @@ document.getElementById('modal-overlay')?.addEventListener('click', e => {
 });
 
 init();
+
+// ── 招待受け入れダイアログ ──────────────
+async function showInviteAcceptDialog(token) {
+  let invite;
+  try {
+    invite = await DB.getInviteByToken(token);
+  } catch (e) {
+    showToast('招待リンクが無効です');
+    checkAndShowOnboarding(() => { warmupAddRecord(); });
+    return;
+  }
+
+  if (invite.used_at) {
+    showToast('この招待リンクは既に使用済みです');
+    checkAndShowOnboarding(() => { warmupAddRecord(); });
+    return;
+  }
+  if (new Date(invite.expires_at) < new Date()) {
+    showToast('招待リンクの有効期限が切れています');
+    checkAndShowOnboarding(() => { warmupAddRecord(); });
+    return;
+  }
+
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(28,43,34,0.6);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 0.3s;';
+  overlay.innerHTML = `
+    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:28px 28px 0 0;padding:32px 24px 48px;text-align:center;">
+      <div style="font-size:40px;margin-bottom:16px;">🤝</div>
+      <h2 style="font-family:'Noto Serif JP',serif;font-size:20px;font-weight:600;color:var(--ink);margin-bottom:12px;">共有への招待</h2>
+      <p style="font-size:14px;color:var(--mid);line-height:1.7;margin-bottom:32px;">家計データの共有に招待されています。<br>参加すると、同じデータを閲覧・編集できます。</p>
+      <button id="btn-accept-invite" style="width:100%;padding:16px;border-radius:14px;border:none;background:var(--sage);color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:12px;">参加する</button>
+      <button id="btn-decline-invite" style="background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;padding:8px;">断る</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.style.opacity = '1');
+
+  document.getElementById('btn-accept-invite')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-accept-invite');
+    btn.disabled = true;
+    btn.textContent = '参加中…';
+    try {
+      await DB.acceptInvite(token);
+      overlay.remove();
+      showToast('✓ 共有に参加しました');
+      window.location.reload();
+    } catch (e) {
+      showToast('エラー: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '参加する';
+    }
+  });
+
+  document.getElementById('btn-decline-invite')?.addEventListener('click', () => {
+    overlay.remove();
+    checkAndShowOnboarding(() => { warmupAddRecord(); });
+  });
+}

@@ -220,9 +220,10 @@ export const DB = {
   },
 
   async updateTransaction(id, payload, tagIds) {
+    const { data: { user } } = await supabase.auth.getUser();
     const { data: tx, error } = await supabase
       .from('transactions')
-      .update(payload)
+      .update({ ...payload, updated_by: user.id })
       .eq('id', id)
       .select()
       .single();
@@ -307,6 +308,103 @@ export const DB = {
       .single();
     if (error) throw error;
     return data;
+  },
+
+  // ── 招待・メンバー管理 ────────────────
+
+  async getTeamMembers() {
+    const teamId = await this.getTeamId();
+    const { data, error } = await supabase
+      .from('team_members')
+      .select('id, user_id, role, created_at, users:user_id(email, raw_user_meta_data)')
+      .eq('team_id', teamId)
+      .order('created_at');
+    if (error) throw error;
+    return data;
+  },
+
+  async getMyRole() {
+    const teamId = await this.getTeamId();
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from('team_members')
+      .select('role')
+      .eq('team_id', teamId)
+      .eq('user_id', user.id)
+      .single();
+    if (error) return 'member';
+    return data.role;
+  },
+
+  async createInvite(role = 'member') {
+    const teamId = await this.getTeamId();
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from('team_invites')
+      .insert({ team_id: teamId, role, created_by: user.id })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async getInviteByToken(token) {
+    const { data, error } = await supabase
+      .from('team_invites')
+      .select('*')
+      .eq('token', token)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async acceptInvite(token) {
+    const { data: { user } } = await supabase.auth.getUser();
+    // 招待を取得
+    const invite = await this.getInviteByToken(token);
+    if (!invite) throw new Error('招待が見つかりません');
+    if (invite.used_at) throw new Error('この招待リンクは既に使用済みです');
+    if (new Date(invite.expires_at) < new Date()) throw new Error('招待リンクの有効期限が切れています');
+
+    // 既にメンバーか確認
+    const { data: existing } = await supabase
+      .from('team_members')
+      .select('id')
+      .eq('team_id', invite.team_id)
+      .eq('user_id', user.id)
+      .single();
+    if (existing) throw new Error('既にこのチームのメンバーです');
+
+    // メンバー追加
+    const { error: joinError } = await supabase
+      .from('team_members')
+      .insert({ team_id: invite.team_id, user_id: user.id, role: invite.role });
+    if (joinError) throw joinError;
+
+    // 招待を使用済みに
+    await supabase
+      .from('team_invites')
+      .update({ used_at: new Date().toISOString(), used_by: user.id })
+      .eq('id', invite.id);
+
+    // チームIDキャッシュをリセット
+    _teamId = null;
+  },
+
+  async updateMemberRole(memberId, role) {
+    const { error } = await supabase
+      .from('team_members')
+      .update({ role })
+      .eq('id', memberId);
+    if (error) throw error;
+  },
+
+  async removeMember(memberId) {
+    const { error } = await supabase
+      .from('team_members')
+      .delete()
+      .eq('id', memberId);
+    if (error) throw error;
   },
 
   // ── 差分更新 ────────────────────────

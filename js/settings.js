@@ -18,16 +18,18 @@ export async function renderSettings() {
     Auth.getUser(),
   ]);
   if (cachedTags.length > 0) {
-    renderSettingsContent(content, user, null, cachedTags);
+    renderSettingsContent(content, user, null, cachedTags, 'owner', []);
   } else {
     content.innerHTML = '<div class="spinner"></div>';
   }
 
   // バックグラウンドで最新取得
   try {
-    const [team, tags] = await Promise.all([DB.getTeam(), DB.getTags()]);
+    const [team, tags, myRole, members] = await Promise.all([
+      DB.getTeam(), DB.getTags(), DB.getMyRole(), DB.getTeamMembers()
+    ]);
     await putTags(tags);
-    renderSettingsContent(content, user, team, tags);
+    renderSettingsContent(content, user, team, tags, myRole, members);
   } catch (e) {
     if (cachedTags.length === 0) {
       content.innerHTML = `<div class="empty-state"><div class="empty-state-title">エラー: ${e.message}</div></div>`;
@@ -166,7 +168,7 @@ function openTagEditSheet(tag, allTags) {
   });
 }
 
-async function renderSettingsContent(content, user, team, tags) {
+async function renderSettingsContent(content, user, team, tags, myRole = 'owner', members = []) {
   content.innerHTML = `
     <!-- プロフィール -->
     <div class="panel" style="margin-bottom:16px;">
@@ -199,18 +201,21 @@ async function renderSettingsContent(content, user, team, tags) {
       </div>
     </div>
 
-    <!-- チーム共有 -->
+    <!-- メンバー共有 -->
     <div class="panel" style="margin-bottom:16px;">
-      <div class="panel-head"><div class="panel-title">チーム共有</div></div>
-      <div style="padding:16px 18px;">
-        <p style="font-size:13px;color:var(--mid);margin-bottom:12px;">招待リンクを共有してメンバーを追加できます。</p>
-        <button class="btn-primary" id="btn-copy-invite">
-          <svg viewBox="0 0 24 24">
-            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
-            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+      <div class="panel-head"><div class="panel-title">パートナー共有</div></div>
+      <div id="members-list" style="padding:0 0 4px;"></div>
+      <div style="padding:12px 16px 16px;">
+        <button class="btn-primary" id="btn-create-invite" ${myRole !== 'owner' ? 'disabled style="opacity:0.5;"' : ''}>
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <line x1="19" y1="8" x2="19" y2="14"/>
+            <line x1="22" y1="11" x2="16" y2="11"/>
           </svg>
-          招待リンクをコピー
+          招待リンクを発行
         </button>
+        ${myRole !== 'owner' ? '<p style="font-size:12px;color:var(--mid);margin-top:8px;text-align:center;">招待はオーナーのみ発行できます</p>' : ''}
       </div>
     </div>
 
@@ -255,6 +260,9 @@ async function renderSettingsContent(content, user, team, tags) {
   // タグリスト描画
   renderTagList(tags);
 
+  // メンバーリスト描画
+  renderMembersList(members, myRole, user);
+
   // ── イベント ──
 
   document.getElementById('btn-replay-onboarding')?.addEventListener('click', () => {
@@ -265,9 +273,22 @@ async function renderSettingsContent(content, user, team, tags) {
     if (confirm('ログアウトしますか？')) Auth.signOut();
   });
 
-  document.getElementById('btn-copy-invite')?.addEventListener('click', () => {
-    navigator.clipboard.writeText(window.location.origin + '?invite=' + (team?.id || ''))
-      .then(() => showToast('招待リンクをコピーしました'));
+  // 招待リンク発行
+  document.getElementById('btn-create-invite')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-create-invite');
+    btn.disabled = true;
+    btn.textContent = '生成中…';
+    try {
+      const invite = await DB.createInvite('member');
+      const url = `${window.location.origin}?invite=${invite.token}`;
+      await navigator.clipboard.writeText(url);
+      showToast('招待リンクをコピーしました（7日間有効）');
+    } catch (e) {
+      showToast('エラー: ' + e.message);
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> 招待リンクを発行`;
+    }
   });
 
   document.getElementById('toggle-sound')?.addEventListener('click', function() {
@@ -280,6 +301,56 @@ async function renderSettingsContent(content, user, team, tags) {
   // ＋追加 → タグ追加シート
   document.getElementById('btn-add-tag-open')?.addEventListener('click', () => {
     openTagAddSheet(tags);
+  });
+}
+
+// ── メンバーリスト描画 ──
+function renderMembersList(members, myRole, currentUser) {
+  const wrap = document.getElementById('members-list');
+  if (!wrap) return;
+
+  if (!members.length) {
+    wrap.innerHTML = '<div style="padding:12px 18px;font-size:13px;color:var(--mid);">メンバーなし</div>';
+    return;
+  }
+
+  wrap.innerHTML = members.map(m => {
+    const meta = m.users?.raw_user_meta_data || {};
+    const name = meta.full_name || meta.name || m.users?.email || '不明';
+    const email = m.users?.email || '';
+    const isMe = m.user_id === currentUser?.id;
+    const isOwner = m.role === 'owner';
+    const initial = name.charAt(0).toUpperCase();
+
+    return `
+      <div class="form-row" style="justify-content:space-between;gap:10px;" data-member-id="${m.id}" data-member-role="${m.role}">
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+          <div style="width:34px;height:34px;border-radius:50%;background:var(--sage);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;">${initial}</div>
+          <div style="min-width:0;">
+            <div style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}${isMe ? ' <span style="font-size:11px;color:var(--mid);">(あなた)</span>' : ''}</div>
+            <div style="font-size:11px;color:var(--mid);">${email}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:${isOwner ? 'var(--sage-bg)' : 'var(--stone)'};color:${isOwner ? 'var(--sage-dk)' : 'var(--mid)'};">${isOwner ? 'オーナー' : '閲覧・編集'}</span>
+          ${(myRole === 'owner' && !isMe) ? `<button class="btn-member-remove" data-member-id="${m.id}" style="background:none;border:none;color:var(--mid-lt);font-size:18px;cursor:pointer;padding:0 2px;line-height:1;">×</button>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 削除ボタン
+  wrap.querySelectorAll('.btn-member-remove').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('このメンバーを削除しますか？')) return;
+      try {
+        await DB.removeMember(btn.dataset.memberId);
+        showToast('メンバーを削除しました');
+        btn.closest('.form-row').remove();
+      } catch (e) {
+        showToast('エラー: ' + e.message);
+      }
+    });
   });
 }
 
