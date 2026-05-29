@@ -10,6 +10,7 @@ import { renderAccounts }     from './accounts.js';
 import { renderSettings }     from './settings.js';
 import { fmt, showToast, openModal, closeModal } from './utils.js';
 import { renderRecords }     from './records.js';
+import { clearAll }          from './cache.js';
 
 export { fmt, showToast, openModal, closeModal };
 
@@ -54,7 +55,7 @@ async function init() {
   // セッション変化を監視（ログアウト検知用）
   Auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') {
-      showLogin();
+      clearAll().finally(() => showLogin());
     }
   });
 
