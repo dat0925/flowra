@@ -315,10 +315,7 @@ export const DB = {
   async getTeamMembers() {
     const teamId = await this.getTeamId();
     const { data, error } = await supabase
-      .from('team_members')
-      .select('user_id, role, joined_at')
-      .eq('team_id', teamId)
-      .order('joined_at');
+      .rpc('get_team_member_profiles', { p_team_id: teamId });
     if (error) throw error;
     return data;
   },

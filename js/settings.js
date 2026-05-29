@@ -329,24 +329,47 @@ function renderMembersList(members, myRole, currentUser) {
   wrap.innerHTML = members.map(m => {
     const isMe = m.user_id === currentUser?.id;
     const isOwner = m.role === 'owner';
-    const label = isMe ? 'あなた' : 'パートナー';
-    const initial = isMe ? (currentUser?.email?.charAt(0).toUpperCase() || 'M') : 'P';
+    const name = m.full_name || m.email?.split('@')[0] || 'メンバー';
+    const initial = name.charAt(0).toUpperCase();
+    const canManage = myRole === 'owner' && !isMe;
 
     return `
       <div class="form-row" style="justify-content:space-between;gap:10px;">
-        <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-          <div style="width:34px;height:34px;border-radius:50%;background:${isMe ? 'var(--sage)' : 'var(--gold)'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;">${initial}</div>
-          <div>
-            <div style="font-size:14px;font-weight:500;">${label}</div>
-            <div style="font-size:11px;color:var(--mid);">${isOwner ? 'オーナー' : '閲覧・編集'}</div>
+        <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
+          <div style="width:36px;height:36px;border-radius:50%;background:${isMe ? 'var(--sage)' : 'var(--gold)'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;">${initial}</div>
+          <div style="min-width:0;flex:1;">
+            <div style="font-size:14px;font-weight:500;">${name}${isMe ? ' <span style="font-size:11px;color:var(--mid);">(あなた)</span>' : ''}</div>
+            <div style="font-size:11px;color:var(--mid);">${m.email || ''}</div>
           </div>
         </div>
-        ${(myRole === 'owner' && !isMe) ? `<button class="btn-member-remove" data-user-id="${m.user_id}" style="background:none;border:none;color:var(--mid-lt);font-size:18px;cursor:pointer;padding:0 4px;line-height:1;">×</button>` : ''}
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          ${canManage ? `
+            <select class="member-role-select" data-user-id="${m.user_id}" style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--white);color:var(--ink);cursor:pointer;">
+              <option value="member" ${m.role === 'member' ? 'selected' : ''}>閲覧・編集</option>
+              <option value="owner" ${m.role === 'owner' ? 'selected' : ''}>オーナー</option>
+            </select>
+            <button class="btn-member-remove" data-user-id="${m.user_id}" style="background:none;border:none;color:var(--mid-lt);font-size:20px;cursor:pointer;padding:0 2px;line-height:1;">×</button>
+          ` : `
+            <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:${isOwner ? 'var(--sage-bg)' : 'var(--stone)'};color:${isOwner ? 'var(--sage-dk)' : 'var(--mid)'};">${isOwner ? 'オーナー' : '閲覧・編集'}</span>
+          `}
+        </div>
       </div>
     `;
   }).join('');
 
-  // 削除ボタン
+  // 権限変更
+  wrap.querySelectorAll('.member-role-select').forEach(sel => {
+    sel.addEventListener('change', async () => {
+      try {
+        await DB.updateMemberRole(sel.dataset.userId, sel.value);
+        showToast('権限を変更しました');
+      } catch (e) {
+        showToast('エラー: ' + e.message);
+      }
+    });
+  });
+
+  // メンバー削除
   wrap.querySelectorAll('.btn-member-remove').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (!confirm('このメンバーを削除しますか？')) return;
