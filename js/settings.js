@@ -7,6 +7,7 @@ import { DB }    from './db.js';
 import { showToast, openModal, closeModal } from './utils.js';
 import { getCachedTags, putTags } from './cache.js';
 import { warmupAddRecord } from './add-record.js';
+import { showOnboardingForReplay } from './onboarding.js';
 
 export async function renderSettings() {
   const content = document.getElementById('page-content');
@@ -181,6 +182,13 @@ async function renderSettingsContent(content, user, team, tags) {
         <span style="font-size:14px;font-weight:500;">チーム名</span>
         <span style="color:var(--mid);">${team?.name || '—'}</span>
       </div>
+      <div class="form-row" id="btn-replay-onboarding" style="color:var(--sage);">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+          <path d="M3 3v5h5"/>
+        </svg>
+        オンボーディングをもう一度見る
+      </div>
       <div class="form-row" id="btn-logout" style="color:var(--red);">
         <svg viewBox="0 0 24 24" width="16" height="16" style="color:var(--red)">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -248,6 +256,10 @@ async function renderSettingsContent(content, user, team, tags) {
   renderTagList(tags);
 
   // ── イベント ──
+
+  document.getElementById('btn-replay-onboarding')?.addEventListener('click', () => {
+    showOnboardingForReplay();
+  });
 
   document.getElementById('btn-logout')?.addEventListener('click', () => {
     if (confirm('ログアウトしますか？')) Auth.signOut();

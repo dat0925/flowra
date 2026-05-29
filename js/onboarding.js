@@ -31,6 +31,11 @@ export async function checkAndShowOnboarding(onComplete) {
   }
 }
 
+// 設定画面からの再表示用（データそのままで体験）
+export function showOnboardingForReplay() {
+  showOnboarding(() => {}); // 完了後は何もしない
+}
+
 function showOnboarding(onComplete) {
   const overlay = document.createElement('div');
   overlay.id = 'onboarding-overlay';
