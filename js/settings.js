@@ -281,8 +281,20 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
     try {
       const invite = await DB.createInvite('member');
       const url = `${window.location.origin}?invite=${invite.token}`;
-      await navigator.clipboard.writeText(url);
-      showToast('招待リンクをコピーしました（7日間有効）');
+
+      // iOSではclipboard APIが失敗することがあるのでフォールバック付き
+      let copied = false;
+      try {
+        await navigator.clipboard.writeText(url);
+        copied = true;
+      } catch (_) {}
+
+      if (copied) {
+        showToast('招待リンクをコピーしました（7日間有効）');
+      } else {
+        // コピー失敗時はURLを表示して手動コピーさせる
+        showInviteUrlDialog(url);
+      }
     } catch (e) {
       showToast('エラー: ' + e.message);
     } finally {
@@ -352,6 +364,38 @@ function renderMembersList(members, myRole, currentUser) {
       }
     });
   });
+}
+
+// ── 招待URL表示ダイアログ（クリップボードAPI失敗時のフォールバック）──
+function showInviteUrlDialog(url) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(28,43,34,0.6);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 0.3s;';
+  overlay.innerHTML = `
+    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:28px 28px 0 0;padding:28px 24px 48px;">
+      <h3 style="font-size:16px;font-weight:600;color:var(--ink);margin-bottom:8px;">招待リンク</h3>
+      <p style="font-size:13px;color:var(--mid);margin-bottom:16px;">以下のリンクをコピーしてパートナーに送ってください（7日間有効）</p>
+      <div style="background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-size:12px;color:var(--ink);word-break:break-all;margin-bottom:16px;-webkit-user-select:text;user-select:text;">${url}</div>
+      <button id="btn-invite-share" style="width:100%;padding:14px;border-radius:14px;border:none;background:var(--sage);color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;">共有する</button>
+      <button id="btn-invite-close" style="width:100%;padding:10px;background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;">閉じる</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.style.opacity = '1');
+
+  // Web Share API（iOSで使える）
+  document.getElementById('btn-invite-share')?.addEventListener('click', async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Flowra 招待リンク', url });
+        overlay.remove();
+      } catch (_) {}
+    } else {
+      // Web Share APIもない場合はテキスト選択を促す
+      showToast('上のURLを長押しでコピーしてください');
+    }
+  });
+
+  document.getElementById('btn-invite-close')?.addEventListener('click', () => overlay.remove());
 }
 
 // ── タグ追加ボトムシート ──
