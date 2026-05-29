@@ -56,6 +56,7 @@ async function init() {
   // セッション変化を監視（ログアウト検知用）
   Auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT') {
+      DB.clearActiveTeamId();
       clearAll().finally(() => showLogin());
     }
   });
@@ -103,6 +104,9 @@ function showApp(user) {
 
   // データを事前ウォームアップ（次回のaddが同期的に開けるようにする）
   warmupAddRecord();
+
+  // チーム切り替えUIを初期化
+  initTeamSwitcher();
 
   // ログイン後の招待処理 or 通常オンボーディング
   const pendingToken = sessionStorage.getItem('pendingInviteToken');
@@ -303,4 +307,50 @@ async function showInviteAcceptDialog(token) {
     overlay.remove();
     checkAndShowOnboarding(() => { warmupAddRecord(); });
   });
+}
+
+// ── チーム切り替えUI ──────────────────
+async function initTeamSwitcher() {
+  try {
+    const teams = await DB.getAllTeams();
+    const switcher = document.getElementById('team-switcher');
+    if (!switcher) return;
+
+    // 1チームのみなら非表示
+    if (teams.length <= 1) {
+      switcher.hidden = true;
+      return;
+    }
+
+    switcher.hidden = false;
+    const activeId = await DB.getTeamId();
+
+    switcher.innerHTML = teams.map(t => {
+      const teamId = t.team_id;
+      const name = t.teams?.name || (t.role === 'owner' ? '自分のチーム' : '共有チーム');
+      const isActive = teamId === activeId;
+      return `
+        <button class="team-switch-btn ${isActive ? 'active' : ''}" data-team-id="${teamId}"
+          style="font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid ${isActive ? 'var(--sage)' : 'var(--border)'};background:${isActive ? 'var(--sage)' : 'transparent'};color:${isActive ? '#fff' : 'rgba(255,255,255,0.6)'};cursor:pointer;">
+          ${t.role === 'owner' ? '🏠 ' : '👥 '}${name}
+        </button>
+      `;
+    }).join('');
+
+    switcher.querySelectorAll('.team-switch-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const teamId = btn.dataset.teamId;
+        if (teamId === await DB.getTeamId()) return;
+        DB.setActiveTeamId(teamId);
+        // キャッシュクリアして再描画
+        const { clearAll: clearCache } = await import('./cache.js');
+        await clearCache();
+        await initTeamSwitcher();
+        Router.navigate(Router.currentPage);
+        showToast('チームを切り替えました');
+      });
+    });
+  } catch (e) {
+    console.error('team switcher error:', e);
+  }
 }

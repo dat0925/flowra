@@ -9,20 +9,70 @@ const PAGE_SIZE = 50; // 1回の取得件数
 
 // ── キャッシュ ──
 let _teamId = null;
+let _allTeams = null; // 所属チーム一覧キャッシュ
 
 export const DB = {
 
   // ── チーム ──────────────────────────
 
-  async getTeamId() {
-    if (_teamId) return _teamId;
+  // アクティブチームIDをlocalStorageから取得
+  getActiveTeamId() {
+    return localStorage.getItem('flowra_active_team_id');
+  },
+
+  // アクティブチームIDをlocalStorageに保存
+  setActiveTeamId(teamId) {
+    localStorage.setItem('flowra_active_team_id', teamId);
+    _teamId = teamId; // メモリキャッシュも更新
+  },
+
+  // アクティブチームIDをクリア（ログアウト時）
+  clearActiveTeamId() {
+    localStorage.removeItem('flowra_active_team_id');
+    _teamId = null;
+    _allTeams = null;
+  },
+
+  // 自分がオーナーのチームIDを取得
+  async getOwnTeamId() {
+    const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await supabase
       .from('team_members')
       .select('team_id')
+      .eq('user_id', user.id)
+      .eq('role', 'owner')
       .limit(1)
       .single();
     if (error) throw error;
-    _teamId = data.team_id;
+    return data.team_id;
+  },
+
+  // 所属チーム一覧を取得
+  async getAllTeams() {
+    if (_allTeams) return _allTeams;
+    const { data, error } = await supabase
+      .from('team_members')
+      .select('team_id, role, teams:team_id(id, name)')
+      .order('joined_at');
+    if (error) throw error;
+    _allTeams = data;
+    return _allTeams;
+  },
+
+  async getTeamId() {
+    if (_teamId) return _teamId;
+
+    // localStorageにアクティブチームIDがあればそれを使う
+    const activeId = this.getActiveTeamId();
+    if (activeId) {
+      _teamId = activeId;
+      return _teamId;
+    }
+
+    // なければ自分がオーナーのチームをデフォルトに
+    const ownTeamId = await this.getOwnTeamId();
+    this.setActiveTeamId(ownTeamId);
+    _teamId = ownTeamId;
     return _teamId;
   },
 
@@ -406,6 +456,21 @@ export const DB = {
       .eq('team_id', teamId)
       .eq('user_id', userId);
     if (error) throw error;
+  },
+
+  // 自分がオーナーでないチームから脱退
+  async leaveTeam(teamId) {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { error } = await supabase
+      .from('team_members')
+      .delete()
+      .eq('team_id', teamId)
+      .eq('user_id', user.id);
+    if (error) throw error;
+    // 自分のチームに戻す
+    _allTeams = null;
+    const ownTeamId = await this.getOwnTeamId();
+    this.setActiveTeamId(ownTeamId);
   },
 
   // ── 差分更新 ────────────────────────

@@ -206,7 +206,8 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
       <div class="panel-head"><div class="panel-title">パートナー共有</div></div>
       <div id="members-list" style="padding:0 0 4px;"></div>
       <div style="padding:12px 16px 16px;">
-        <button class="btn-primary" id="btn-create-invite" ${myRole !== 'owner' ? 'disabled style="opacity:0.5;"' : ''}>
+        ${myRole === 'owner' ? `
+        <button class="btn-primary" id="btn-create-invite">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
             <circle cx="9" cy="7" r="4"/>
@@ -215,7 +216,12 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
           </svg>
           招待リンクを発行
         </button>
-        ${myRole !== 'owner' ? '<p style="font-size:12px;color:var(--mid);margin-top:8px;text-align:center;">招待はオーナーのみ発行できます</p>' : ''}
+        ` : `
+        <button class="btn-primary" id="btn-leave-team" style="background:var(--red);">
+          このチームから脱退する
+        </button>
+        <p style="font-size:12px;color:var(--mid);margin-top:8px;text-align:center;">脱退すると自分のデータに戻ります</p>
+        `}
       </div>
     </div>
 
@@ -267,6 +273,19 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
 
   document.getElementById('btn-replay-onboarding')?.addEventListener('click', () => {
     showOnboardingForReplay();
+  });
+
+  // チーム脱退
+  document.getElementById('btn-leave-team')?.addEventListener('click', async () => {
+    if (!confirm('このチームから脱退しますか？\n自分のデータに切り替わります。')) return;
+    try {
+      const teamId = await DB.getTeamId();
+      await DB.leaveTeam(teamId);
+      showToast('チームから脱退しました');
+      window.location.reload();
+    } catch (e) {
+      showToast('エラー: ' + e.message);
+    }
   });
 
   document.getElementById('btn-logout')?.addEventListener('click', () => {
