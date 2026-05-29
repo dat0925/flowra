@@ -327,26 +327,21 @@ function renderMembersList(members, myRole, currentUser) {
   }
 
   wrap.innerHTML = members.map(m => {
-    const meta = m.users?.raw_user_meta_data || {};
-    const name = meta.full_name || meta.name || m.users?.email || '不明';
-    const email = m.users?.email || '';
     const isMe = m.user_id === currentUser?.id;
     const isOwner = m.role === 'owner';
-    const initial = name.charAt(0).toUpperCase();
+    const label = isMe ? 'あなた' : 'パートナー';
+    const initial = isMe ? (currentUser?.email?.charAt(0).toUpperCase() || 'M') : 'P';
 
     return `
-      <div class="form-row" style="justify-content:space-between;gap:10px;" data-member-id="${m.id}" data-member-role="${m.role}">
+      <div class="form-row" style="justify-content:space-between;gap:10px;" data-member-id="${m.id}">
         <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-          <div style="width:34px;height:34px;border-radius:50%;background:var(--sage);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;">${initial}</div>
-          <div style="min-width:0;">
-            <div style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${name}${isMe ? ' <span style="font-size:11px;color:var(--mid);">(あなた)</span>' : ''}</div>
-            <div style="font-size:11px;color:var(--mid);">${email}</div>
+          <div style="width:34px;height:34px;border-radius:50%;background:${isMe ? 'var(--sage)' : 'var(--gold)'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0;">${initial}</div>
+          <div>
+            <div style="font-size:14px;font-weight:500;">${label}</div>
+            <div style="font-size:11px;color:var(--mid);">${isOwner ? 'オーナー' : '閲覧・編集'}</div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:${isOwner ? 'var(--sage-bg)' : 'var(--stone)'};color:${isOwner ? 'var(--sage-dk)' : 'var(--mid)'};">${isOwner ? 'オーナー' : '閲覧・編集'}</span>
-          ${(myRole === 'owner' && !isMe) ? `<button class="btn-member-remove" data-member-id="${m.id}" style="background:none;border:none;color:var(--mid-lt);font-size:18px;cursor:pointer;padding:0 2px;line-height:1;">×</button>` : ''}
-        </div>
+        ${(myRole === 'owner' && !isMe) ? `<button class="btn-member-remove" data-member-id="${m.id}" style="background:none;border:none;color:var(--mid-lt);font-size:18px;cursor:pointer;padding:0 4px;line-height:1;">×</button>` : ''}
       </div>
     `;
   }).join('');

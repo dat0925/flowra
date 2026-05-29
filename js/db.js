@@ -316,7 +316,7 @@ export const DB = {
     const teamId = await this.getTeamId();
     const { data, error } = await supabase
       .from('team_members')
-      .select('id, user_id, role, created_at, users:user_id(email, raw_user_meta_data)')
+      .select('id, user_id, role, created_at')
       .eq('team_id', teamId)
       .order('created_at');
     if (error) throw error;
