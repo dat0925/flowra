@@ -204,34 +204,26 @@ export const Router = {
       activeGhost.style.transform  = 'translateX(0)';
 
       setTimeout(() => {
-        // Step2: 月を更新し、新コンテンツをopacity:0でghost真上に配置
-        if (dir === 'next') MonthState.next(); else MonthState.prev();
-        this._updateMonthLabels(dir);
+        // Step2: ghostを即非表示にし、新コンテンツをその場に配置して表示
+        ghostPrev().style.transition = 'none';
+        ghostNext().style.transition = 'none';
+        ghostPrev().style.opacity    = '0';
+        ghostNext().style.opacity    = '0';
+        ghostPrev().style.transform  = `translateX(-${w}px)`;
+        ghostNext().style.transform  = `translateX(${w}px)`;
 
         content.style.transition = 'none';
         content.style.transform  = 'translateX(0)';
-        content.style.opacity    = '0';
 
-        // Step3: 1フレーム後にクロスフェード
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          const fadeDur = '0.2s ease';
-          content.style.transition     = `opacity ${fadeDur}`;
-          activeGhost.style.transition = `opacity ${fadeDur}, transform 0s`;
-          content.style.opacity        = '1';
-          activeGhost.style.opacity    = '0';
+        // 月更新（renderRecordsが走る）
+        if (dir === 'next') MonthState.next(); else MonthState.prev();
+        this._updateMonthLabels(dir);
 
-          // Step4: フェード完了後にゴーストをリセット
-          setTimeout(() => {
-            content.style.transition     = 'none';
-            content.style.opacity        = '';
-            ghostPrev().style.transition = 'none';
-            ghostNext().style.transition = 'none';
-            ghostPrev().style.opacity    = '';
-            ghostNext().style.opacity    = '';
-            ghostPrev().style.transform  = 'translateX(-100%)';
-            ghostNext().style.transform  = 'translateX(100%)';
-          }, 220);
-        }));
+        // Step3: レンダリング完了後にghostを復活
+        setTimeout(() => {
+          ghostPrev().style.opacity = '';
+          ghostNext().style.opacity = '';
+        }, 400);
       }, 290);
     };
 
