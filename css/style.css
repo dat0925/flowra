@@ -30,11 +30,10 @@
    RESET & BASE
 ══════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; overflow: hidden; background: var(--ink); overscroll-behavior: none; }
+html, body { height: 100%; overflow: hidden; background: var(--ink); }
 
 body {
   font-family: 'Noto Sans JP', sans-serif;
-  background: var(--ink);
   color: var(--ink);
   font-size: 14px;
   line-height: 1.5;
@@ -165,9 +164,12 @@ svg {
 ══════════════════════════════ */
 #app {
   display: flex;
-  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   height: 100dvh;
-  height: var(--app-h, 100dvh);
   overflow: hidden;
 }
 
@@ -268,7 +270,6 @@ svg {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
-  background: var(--stone);
 }
 
 /* TOPBAR */
@@ -517,16 +518,26 @@ body.page-records #mobile-month-label {
 #bottom-nav {
   display: none;
   background: var(--ink);
-  height: var(--nav-h);
+  height: calc(var(--nav-h) + max(env(safe-area-inset-bottom), 12px));
   border-top: 1px solid rgba(255,255,255,0.06);
   align-items: center;
   justify-content: space-around;
   padding: 0 4px;
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
-  box-sizing: content-box;
+  padding-bottom: max(env(safe-area-inset-bottom), 12px);
   flex-shrink: 0;
   position: relative;
   z-index: 2;
+}
+/* ホームバー領域を確実に塗りつぶす */
+#bottom-nav::after {
+  content: '';
+  position: absolute;
+  bottom: calc(-1 * max(env(safe-area-inset-bottom), 12px));
+  left: 0;
+  right: 0;
+  height: max(env(safe-area-inset-bottom), 12px);
+  background: var(--ink);
+  pointer-events: none;
 }
 .b-tab {
   display: flex;
@@ -1042,8 +1053,8 @@ body.page-records #mobile-month-label {
   #topbar        { display: none; }
   #mobile-header { display: block; }
   #bottom-nav    { display: flex; }
-  #app           { flex-direction: column; height: var(--app-h, 100dvh); }
-  #main          { flex: 1; min-height: 0; }
+  #app           { flex-direction: column; }
+  #main          { height: 100dvh; }
   #page-content  { padding: 14px 14px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); }
 
   .summary-row { grid-template-columns: 1fr; gap: 10px; }
