@@ -688,17 +688,23 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     `;
     sheet.innerHTML = `
       <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;
-        max-height:70vh;overflow-y:auto;padding-bottom:32px;">
-        <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 0;"></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;">
-          <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">${label}</div>
-          <button id="btn-close-picker" style="width:28px;height:28px;border-radius:50%;background:var(--mist);border:none;
-            display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">
-            <svg viewBox="0 0 24 24" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+        display:flex;flex-direction:column;max-height:75vh;">
+        <!-- 固定ヘッダー -->
+        <div style="flex-shrink:0;">
+          <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 0;"></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;">
+            <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">${label}</div>
+            <button id="btn-close-picker" style="width:28px;height:28px;border-radius:50%;background:var(--mist);border:none;
+              display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">
+              <svg viewBox="0 0 24 24" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          </div>
         </div>
-        <div style="background:#fff;border-radius:14px;margin:0 14px;overflow:hidden;border:1px solid var(--border);">
-          ${itemsHTML}
+        <!-- スクロール可能なリスト -->
+        <div style="overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 14px 32px;">
+          <div style="background:#fff;border-radius:14px;overflow:hidden;border:1px solid var(--border);">
+            ${itemsHTML}
+          </div>
         </div>
       </div>`;
 
