@@ -370,6 +370,17 @@ export const DB = {
     return data;
   },
 
+  // 複数チームのオーナー情報を一括取得（チーム切り替えUI用）
+  async getTeamMemberProfiles(teamIds) {
+    const results = [];
+    for (const teamId of teamIds) {
+      const { data } = await supabase
+        .rpc('get_team_member_profiles', { p_team_id: teamId });
+      if (data) results.push(...data.map(d => ({ ...d, team_id: teamId })));
+    }
+    return results;
+  },
+
   async getMyRole() {
     const teamId = await this.getTeamId();
     const { data: { user } } = await supabase.auth.getUser();
