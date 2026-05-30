@@ -409,21 +409,19 @@ svg {
   flex-shrink: 0;
 }
 #mobile-month-label {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 600;
   color: rgba(255,255,255,0.88);
   white-space: nowrap;
-  min-width: 72px;
+  width: 96px;
   text-align: center;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
   transition: opacity 0.18s;
   overflow: hidden;
 }
-/* records画面では月ラベルをさらに強調 */
+/* records画面でも同サイズ（色のみ強調） */
 body.page-records #mobile-month-label {
-  font-size: 15px;
   color: #fff;
-  letter-spacing: 0.03em;
 }
 /* スライド中の月ラベルアニメーション */
 #mobile-month-label.slide-in-left {
@@ -445,7 +443,7 @@ body.page-records #mobile-month-label {
   font-size: 11px;
   letter-spacing: 0.01em;
   color: rgba(255,255,255,0.65);
-  min-width: 88px;
+  width: 100px;
 }
 .ghost-month-header {
   font-size: 11px;
