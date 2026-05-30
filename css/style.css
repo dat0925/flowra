@@ -439,7 +439,13 @@ body.page-records #mobile-month-label {
   from { opacity: 0; transform: translateX(-16px); }
   to   { opacity: 1; transform: translateX(0); }
 }
-/* ghost panel のコンテンツ */
+/* ドラッグ中：方向ラベルをやや小さく・等幅で自然に収める */
+#mobile-month-label[data-dragging] {
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  color: rgba(255,255,255,0.65);
+  min-width: 88px;
+}
 .ghost-month-header {
   font-size: 11px;
   font-weight: 600;

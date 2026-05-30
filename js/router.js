@@ -137,20 +137,40 @@ export const Router = {
       content.style.transition = 'none';
       content.style.transform  = `translateX(${dx}px)`;
 
+      const label = document.getElementById('mobile-month-label');
+
       if (dx < 0) {
         // 左スワイプ → next ghost を右から引き込む
         ghostNext().style.transition = 'none';
         ghostNext().style.transform  = `translateX(calc(100% + ${dx}px))`;
         ghostNext().style.opacity    = '1';
+        ghostPrev().style.transition = 'none';
         ghostPrev().style.transform  = 'translateX(-100%)';
         ghostPrev().style.opacity    = '0';
+        // ヘッダー: 5月 → 6月
+        if (label && !label.dataset.dragging) {
+          label.dataset.dragging = '1';
+          const { year, month } = MonthState;
+          const ny = month === 12 ? year + 1 : year;
+          const nm = month === 12 ? 1 : month + 1;
+          label.textContent = `${month}月 → ${nm}月`;
+        }
       } else if (dx > 0) {
         // 右スワイプ → prev ghost を左から引き込む
         ghostPrev().style.transition = 'none';
         ghostPrev().style.transform  = `translateX(calc(-100% + ${dx}px))`;
         ghostPrev().style.opacity    = '1';
+        ghostNext().style.transition = 'none';
         ghostNext().style.transform  = 'translateX(100%)';
         ghostNext().style.opacity    = '0';
+        // ヘッダー: 4月 ← 5月
+        if (label && !label.dataset.dragging) {
+          label.dataset.dragging = '1';
+          const { year, month } = MonthState;
+          const py = month === 1 ? year - 1 : year;
+          const pm = month === 1 ? 12 : month - 1;
+          label.textContent = `${pm}月 ← ${month}月`;
+        }
       }
     };
 
@@ -162,11 +182,20 @@ export const Router = {
       ghostNext().style.transition = ease;
       ghostPrev().style.transform  = 'translateX(-100%)';
       ghostNext().style.transform  = 'translateX(100%)';
+      // ヘッダーラベルを元に戻す
+      const label = document.getElementById('mobile-month-label');
+      if (label) {
+        delete label.dataset.dragging;
+        label.textContent = MonthState.label();
+      }
     };
 
     // コミット：ghostの上に新コンテンツをクロスフェード
     const commitSlide = (dir) => {
       const w = carousel.offsetWidth;
+      // ヘッダーラベルのdraggingフラグを解除（_updateMonthLabelsが新ラベルをセット）
+      const label = document.getElementById('mobile-month-label');
+      if (label) delete label.dataset.dragging;
 
       // Step1: contentをスライドアウト、ghostを中央へスライドイン
       content.style.transition = ease;
