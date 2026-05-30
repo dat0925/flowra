@@ -202,11 +202,12 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
     </div>
 
     <!-- メンバー共有 -->
+    ${myRole === 'owner' ? `
+    <!-- オーナー：招待したパートナー一覧 -->
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head"><div class="panel-title">パートナー共有</div></div>
       <div id="members-list" style="padding:0 0 4px;"></div>
       <div style="padding:12px 16px 16px;">
-        ${myRole === 'owner' ? `
         <button class="btn-primary" id="btn-create-invite">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -216,14 +217,21 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
           </svg>
           招待リンクを発行
         </button>
-        ` : `
+      </div>
+    </div>
+    ` : `
+    <!-- 招待された側：参加中のチーム -->
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="panel-title">参加中のチーム</div></div>
+      <div id="joined-team-info" style="padding:0 0 4px;"></div>
+      <div style="padding:12px 16px 16px;">
         <button class="btn-primary" id="btn-leave-team" style="background:var(--red);">
           このチームから脱退する
         </button>
         <p style="font-size:12px;color:var(--mid);margin-top:8px;text-align:center;">脱退すると自分のデータに戻ります</p>
-        `}
       </div>
     </div>
+    `}
 
     <!-- タグ管理 -->
     <div class="panel" style="margin-bottom:16px;">
@@ -266,8 +274,12 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
   // タグリスト描画
   renderTagList(tags);
 
-  // メンバーリスト描画
-  renderMembersList(members, myRole, user);
+  // メンバーリスト描画（オーナー用）/ 参加チーム表示（招待側用）
+  if (myRole === 'owner') {
+    renderMembersList(members, myRole, user);
+  } else {
+    renderJoinedTeamInfo(members, user);
+  }
 
   // ── イベント ──
 
@@ -335,48 +347,42 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
   });
 }
 
-// ── メンバーリスト描画 ──
+// ── メンバーリスト描画（オーナー用：自分以外のメンバー一覧）──
 function renderMembersList(members, myRole, currentUser) {
   const wrap = document.getElementById('members-list');
   if (!wrap) return;
 
-  if (!members.length) {
-    wrap.innerHTML = '<div style="padding:12px 18px;font-size:13px;color:var(--mid);">メンバーなし</div>';
+  // 自分以外のメンバーのみ表示
+  const others = members.filter(m => m.user_id !== currentUser?.id);
+
+  if (!others.length) {
+    wrap.innerHTML = '<div style="padding:12px 18px;font-size:13px;color:var(--mid);">まだ招待していません</div>';
     return;
   }
 
-  wrap.innerHTML = members.map(m => {
-    const isMe = m.user_id === currentUser?.id;
-    const isOwner = m.role === 'owner';
+  wrap.innerHTML = others.map(m => {
     const name = m.full_name || m.email?.split('@')[0] || 'メンバー';
     const initial = name.charAt(0).toUpperCase();
-    const canManage = myRole === 'owner' && !isMe;
-
     return `
       <div class="form-row" style="justify-content:space-between;gap:10px;">
         <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
-          <div style="width:36px;height:36px;border-radius:50%;background:${isMe ? 'var(--sage)' : 'var(--gold)'};color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;">${initial}</div>
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;">${initial}</div>
           <div style="min-width:0;flex:1;">
-            <div style="font-size:14px;font-weight:500;">${name}${isMe ? ' <span style="font-size:11px;color:var(--mid);">(あなた)</span>' : ''}</div>
+            <div style="font-size:14px;font-weight:500;">${name}</div>
             <div style="font-size:11px;color:var(--mid);">${m.email || ''}</div>
           </div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          ${canManage ? `
-            <select class="member-role-select" data-user-id="${m.user_id}" style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--white);color:var(--ink);cursor:pointer;">
-              <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>閲覧のみ</option>
-              <option value="member" ${m.role === 'member' ? 'selected' : ''}>編集・削除可</option>
-            </select>
-            <button class="btn-member-remove" data-user-id="${m.user_id}" style="background:none;border:none;color:var(--mid-lt);font-size:20px;cursor:pointer;padding:0 2px;line-height:1;">×</button>
-          ` : `
-            <span style="font-size:11px;padding:3px 8px;border-radius:20px;background:${isOwner ? 'var(--sage-bg)' : 'var(--stone)'};color:${isOwner ? 'var(--sage-dk)' : 'var(--mid)'};">${isOwner ? 'オーナー' : m.role === 'viewer' ? '閲覧のみ' : '編集・削除可'}</span>
-          `}
+          <select class="member-role-select" data-user-id="${m.user_id}" style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--white);color:var(--ink);cursor:pointer;">
+            <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>閲覧のみ</option>
+            <option value="member" ${m.role !== 'viewer' ? 'selected' : ''}>編集・削除可</option>
+          </select>
+          <button class="btn-member-remove" data-user-id="${m.user_id}" style="background:none;border:none;color:var(--mid-lt);font-size:20px;cursor:pointer;padding:0 2px;line-height:1;">×</button>
         </div>
       </div>
     `;
   }).join('');
 
-  // 権限変更
   wrap.querySelectorAll('.member-role-select').forEach(sel => {
     sel.addEventListener('change', async () => {
       try {
@@ -388,7 +394,6 @@ function renderMembersList(members, myRole, currentUser) {
     });
   });
 
-  // メンバー削除
   wrap.querySelectorAll('.btn-member-remove').forEach(btn => {
     btn.addEventListener('click', async () => {
       if (!confirm('このメンバーを削除しますか？')) return;
@@ -401,6 +406,28 @@ function renderMembersList(members, myRole, currentUser) {
       }
     });
   });
+}
+
+// ── 参加中チーム表示（招待された側用）──
+function renderJoinedTeamInfo(members, currentUser) {
+  const wrap = document.getElementById('joined-team-info');
+  if (!wrap) return;
+
+  const owner = members.find(m => m.role === 'owner');
+  if (!owner) return;
+
+  const name = owner.full_name || owner.email?.split('@')[0] || 'オーナー';
+  const initial = name.charAt(0).toUpperCase();
+
+  wrap.innerHTML = `
+    <div class="form-row" style="gap:10px;">
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--sage);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;">${initial}</div>
+      <div>
+        <div style="font-size:14px;font-weight:500;">${name}のチーム</div>
+        <div style="font-size:11px;color:var(--mid);">${owner.email || ''}</div>
+      </div>
+    </div>
+  `;
 }
 
 // ── 招待URL表示ダイアログ（クリップボードAPI失敗時のフォールバック）──
