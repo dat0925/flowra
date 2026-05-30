@@ -1038,7 +1038,7 @@ body.page-records #mobile-month-label {
   #mobile-header { display: block; }
   #bottom-nav    { display: flex; }
   #app           { flex-direction: column; }
-  #main          { height: 100dvh; }
+  #main          { flex: 1; min-height: 0; }
   #page-content  { padding: 14px 14px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); }
 
   .summary-row { grid-template-columns: 1fr; gap: 10px; }

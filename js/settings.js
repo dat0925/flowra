@@ -33,7 +33,8 @@ export async function renderSettings() {
     // 自分のチーム（owner）は常に取得
     const ownEntry  = allTeams.find(t => t.role === 'owner');
     const ownTeamId = ownEntry?.team_id;
-    const ownTeam   = ownEntry?.teams || null;
+    const ownTeamRaw = ownEntry?.teams;
+    const ownTeam = Array.isArray(ownTeamRaw) ? (ownTeamRaw[0] ?? null) : (ownTeamRaw ?? null);
 
     // 自分のチームのメンバー一覧
     const ownMembers = ownTeamId
