@@ -30,11 +30,10 @@
    RESET & BASE
 ══════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; overflow: hidden; }
+html, body { height: 100%; overflow: hidden; background: var(--ink); }
 
 body {
   font-family: 'Noto Sans JP', sans-serif;
-  background: var(--stone);
   color: var(--ink);
   font-size: 14px;
   line-height: 1.5;
