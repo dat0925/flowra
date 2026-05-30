@@ -359,7 +359,7 @@ svg {
   align-items: flex-start;
   justify-content: flex-start;
   padding-top: 0;
-  opacity: 0.78;
+  opacity: 0;
   background: var(--stone);
 }
 #ghost-prev {

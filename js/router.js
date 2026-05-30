@@ -146,7 +146,7 @@ export const Router = {
         // 左スワイプ → next ghost を右から引き込む
         ghostNext().style.transition = 'none';
         ghostNext().style.transform  = `translateX(${w + dx}px)`;
-        ghostNext().style.opacity    = '1';
+        ghostNext().style.opacity    = '0.78';
         ghostPrev().style.transition = 'none';
         ghostPrev().style.transform  = `translateX(-${w}px)`;
         ghostPrev().style.opacity    = '0';
@@ -161,7 +161,7 @@ export const Router = {
         // 右スワイプ → prev ghost を左から引き込む
         ghostPrev().style.transition = 'none';
         ghostPrev().style.transform  = `translateX(${dx - w}px)`;
-        ghostPrev().style.opacity    = '1';
+        ghostPrev().style.opacity    = '0.78';
         ghostNext().style.transition = 'none';
         ghostNext().style.transform  = `translateX(${w}px)`;
         ghostNext().style.opacity    = '0';
@@ -205,6 +205,7 @@ export const Router = {
       content.style.transition = ease;
       content.style.transform  = dir === 'next' ? `translateX(-${w}px)` : `translateX(${w}px)`;
       const activeGhost = dir === 'next' ? ghostNext() : ghostPrev();
+      activeGhost.style.opacity    = '0.78';
       activeGhost.style.transition = ease;
       activeGhost.style.transform  = 'translateX(0)';
 
@@ -224,10 +225,10 @@ export const Router = {
         if (dir === 'next') MonthState.next(); else MonthState.prev();
         this._updateMonthLabels(dir);
 
-        // Step3: レンダリング完了後にghostを復活
+        // Step3: レンダリング完了後にghostをリセット（位置だけ戻す、opacityは0のまま）
         setTimeout(() => {
-          ghostPrev().style.opacity = '';
-          ghostNext().style.opacity = '';
+          ghostPrev().style.opacity = '0';
+          ghostNext().style.opacity = '0';
         }, 400);
       }, 290);
     };
