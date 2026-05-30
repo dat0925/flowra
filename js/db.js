@@ -89,6 +89,19 @@ export const DB = {
     return data;
   },
 
+  async updateTeam(teamId, payload) {
+    const { data, error } = await supabase
+      .from('teams')
+      .update(payload)
+      .eq('id', teamId)
+      .select()
+      .single();
+    if (error) throw error;
+    // キャッシュをリセット
+    _allTeams = null;
+    return data;
+  },
+
   // ── 口座 ────────────────────────────
 
   async getAccounts() {

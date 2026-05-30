@@ -194,9 +194,12 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
           <div class="row-label">${user?.email || ''}</div>
         </div>
       </div>
-      <div class="form-row no-tap" style="justify-content:space-between;">
+      <div class="form-row ${myRole === 'owner' ? '' : 'no-tap'}" id="${myRole === 'owner' ? 'btn-edit-team-name' : ''}" style="justify-content:space-between;">
         <span style="font-size:14px;font-weight:500;">チーム名</span>
-        <span style="color:var(--mid);">${team?.name || '—'}</span>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="color:var(--mid);">${team?.name || '—'}</span>
+          ${myRole === 'owner' ? `<svg viewBox="0 0 24 24" width="13" height="13" style="color:var(--mid-lt);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>` : ''}
+        </div>
       </div>
       <div class="form-row" id="btn-replay-onboarding" style="color:var(--sage);">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
@@ -298,6 +301,11 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
 
   document.getElementById('btn-replay-onboarding')?.addEventListener('click', () => {
     showOnboardingForReplay();
+  });
+
+  // チーム名編集（オーナーのみ）
+  document.getElementById('btn-edit-team-name')?.addEventListener('click', () => {
+    if (team) openTeamNameSheet(team);
   });
 
   // チーム脱退
@@ -528,6 +536,84 @@ function showLeaveTeamModal() {
   overlay.querySelector('#btn-leave-cancel')?.addEventListener('click', () => {
     overlay.style.opacity = '0';
     setTimeout(() => overlay.remove(), 300);
+  });
+}
+
+// ── チーム名編集ボトムシート ──
+function openTeamNameSheet(team) {
+  Sound.playOpen();
+
+  const sheet = document.createElement('div');
+  sheet.id = 'team-name-sheet';
+  sheet.style.cssText = `
+    position:fixed;inset:0;z-index:700;
+    background:rgba(28,43,34,0.45);
+    display:flex;align-items:flex-end;justify-content:center;
+  `;
+
+  sheet.innerHTML = `
+    <div style="background:var(--stone);width:100%;max-width:480px;
+      border-radius:20px 20px 0 0;padding:0 16px 36px;">
+      <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 16px;"></div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+        <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">チーム名を変更</div>
+        <button id="btn-close-team-name-sheet"
+          style="width:28px;height:28px;border-radius:50%;background:var(--mist);border:none;
+          display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">
+          <svg viewBox="0 0 24 24" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+
+      <div class="form-section" style="margin-bottom:14px;">
+        <div class="form-row no-tap">
+          <div class="row-body">
+            <div class="row-label">チーム名</div>
+            <input class="text-input" id="edit-team-name" value="${team.name}"
+              style="font-size:16px;" placeholder="例：遠藤家">
+          </div>
+        </div>
+      </div>
+      <div id="team-name-error" style="display:none;font-size:11.5px;color:var(--red);margin:-8px 0 10px 2px;"></div>
+
+      <button class="btn-primary" id="btn-save-team-name">
+        <svg viewBox="0 0 24 24" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>
+        変更を保存
+      </button>
+    </div>`;
+
+  document.body.appendChild(sheet);
+
+  setTimeout(() => document.getElementById('edit-team-name')?.focus(), 100);
+
+  const closeSheet = () => { Sound.playClose(); sheet.remove(); };
+  sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
+  document.getElementById('btn-close-team-name-sheet')?.addEventListener('click', closeSheet);
+
+  document.getElementById('btn-save-team-name')?.addEventListener('click', async () => {
+    const name    = document.getElementById('edit-team-name').value.trim();
+    const errorEl = document.getElementById('team-name-error');
+
+    if (!name) {
+      errorEl.textContent = 'チーム名を入力してください';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    try {
+      await DB.updateTeam(team.id, { name });
+      Sound.playTap();
+      closeSheet();
+      showToast('✓ チーム名を変更しました');
+      renderSettings();
+    } catch (e) {
+      errorEl.textContent = '更新に失敗しました: ' + e.message;
+      errorEl.style.display = 'block';
+    }
+  });
+
+  document.getElementById('edit-team-name')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('btn-save-team-name')?.click();
   });
 }
 
