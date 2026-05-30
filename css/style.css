@@ -516,16 +516,14 @@ body.page-records #mobile-month-label {
 #bottom-nav {
   display: none;
   background: var(--ink);
-  height: calc(var(--nav-h) + max(env(safe-area-inset-bottom), 12px));
+  height: var(--nav-h);
   border-top: 1px solid rgba(255,255,255,0.06);
   align-items: center;
   justify-content: space-around;
   padding: 0 4px;
-  padding-bottom: max(env(safe-area-inset-bottom), 12px);
   flex-shrink: 0;
   position: relative;
   z-index: 2;
-  box-shadow: 0 max(env(safe-area-inset-bottom), 12px) 0 var(--ink);
 }
 .b-tab {
   display: flex;
