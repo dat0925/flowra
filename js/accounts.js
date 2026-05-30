@@ -223,17 +223,16 @@ async function renderAccountsContent(content, accounts) {
       const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
       if (swapIdx < 0 || swapIdx >= accounts.length) return;
 
-      const a = accounts[idx];
-      const b = accounts[swapIdx];
-      const newOrderA = b.sort_order ?? swapIdx;
-      const newOrderB = a.sort_order ?? idx;
-
       try {
-        await Promise.all([
-          DB.updateAccount(a.id, { sort_order: newOrderA }),
-          DB.updateAccount(b.id, { sort_order: newOrderB }),
-        ]);
-        // キャッシュ更新して再描画
+        // 全口座のsort_orderを現在の表示順で0,1,2...に正規化してからswap
+        const updates = accounts.map((a, i) => {
+          let order = i;
+          if (i === idx) order = swapIdx;
+          if (i === swapIdx) order = idx;
+          return DB.updateAccount(a.id, { sort_order: order });
+        });
+        await Promise.all(updates);
+
         const updated = await DB.getAccounts();
         await import('./cache.js').then(({ putAccounts }) => putAccounts(updated));
         renderAccounts();
