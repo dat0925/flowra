@@ -31,25 +31,26 @@
 ```
 flowra/
 ├── index.html          # メインHTML（単一ページ）
+├── manifest.json       # PWA設定（theme-color: #1C2B22）
+├── sw.js               # Service Worker
 ├── css/
 │   └── style.css       # 全スタイル（CSS変数でテーマ管理）
-├── js/
-│   ├── app.js          # エントリポイント・ルーティング・共有UI
-│   ├── db.js           # Supabase全操作（唯一のDB層）
-│   ├── auth.js         # 認証処理
-│   ├── cache.js        # IndexedDB キャッシュ層
-│   ├── router.js       # ページルーター・月カルーセル
-│   ├── dashboard.js    # ホーム画面
-│   ├── records.js      # 記録一覧
-│   ├── add-record.js   # 記録追加モーダル
-│   ├── edit-record.js  # 記録編集
-│   ├── accounts.js     # 口座管理
-│   ├── settings.js     # 設定画面
-│   ├── onboarding.js   # 初回オンボーディング
-│   ├── sound.js        # 操作音
-│   ├── utils.js        # 共通ユーティリティ（openModal等）
-│   └── config.js       # Supabaseクライアント初期化
-└── sw.js               # Service Worker
+└── js/
+    ├── app.js          # エントリポイント・ルーティング・共有UI
+    ├── db.js           # Supabase全操作（唯一のDB層）
+    ├── auth.js         # 認証処理
+    ├── cache.js        # IndexedDB キャッシュ層
+    ├── router.js       # ページルーター・月カルーセル
+    ├── dashboard.js    # ホーム画面
+    ├── records.js      # 記録一覧
+    ├── add-record.js   # 記録追加モーダル
+    ├── edit-record.js  # 記録編集
+    ├── accounts.js     # 口座管理
+    ├── settings.js     # 設定画面
+    ├── onboarding.js   # 初回オンボーディング
+    ├── sound.js        # 操作音
+    ├── utils.js        # 共通ユーティリティ（openModal/closeModal等）
+    └── config.js       # Supabaseクライアント初期化
 ```
 
 ---
@@ -86,7 +87,7 @@ flowra/
 
 ### `tags`
 カテゴリタグ
-- `id`, `team_id`, `name`, `color`, `icon`
+- `id`, `team_id`, `name`, `color`, `icon`, `sort_order`
 
 ### `comments`
 記録へのコメント
@@ -143,7 +144,7 @@ flowra/
 ### メンバー管理UI
 - メンバー行タップ → ボトムシートで権限変更・削除
 - 削除は2段階確認（誤タップ防止）
-- 権限変更はカード選択式（編集・削除可 / 閲覧のみ）
+- 権限変更はテキストのみのカード選択式（SVGアイコン不要、中央揃えで見やすい）
 
 ### 脱退フロー
 - 「このチームから脱退する」→ 確認モーダル → 「脱退する」と入力 → 脱退
@@ -216,10 +217,38 @@ IndexedDB（`cache.js`）でオフライン対応：
 
 ## PWA対応メモ
 
+### レイアウト構造（重要）
+```css
+html, body { height: 100%; overflow: hidden; background: var(--ink); }
+body { background: var(--ink); overflow: hidden; }
+#app { display: flex; height: 100dvh; overflow: hidden; }
+#main { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; background: var(--stone); }
+/* モバイル */
+#app { flex-direction: column; }
+#main { height: 100dvh; }
+```
+
+- `body` と `html` の背景を `var(--ink)` にすることでボトムナビ下の隙間を視覚的に解消
+- `#main` に `background: var(--stone)` を明示することでコンテンツエリアの色を保護
+- **`body` の背景を変えるとき `#main` の背景も必ず明示すること**（過去に総残高カードが壊れた教訓）
+
+### ボトムナビ
+```css
+#bottom-nav {
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  position: relative;
+  z-index: 2;
+}
+```
+- `position: fixed` にするとフレックス高さ計算が壊れるため使わない
+- `box-shadow` や `::after` でホームバー下を塗る方法は不安定なため使わない
+- ホームバー下の余白が残る場合は `body/html` の背景色で対処する
+
+### その他
 - `viewport-fit=cover, maximum-scale=1.0, user-scalable=no` でダブルタップズーム無効
-- `#app { position: fixed; inset: 0; height: 100dvh }` でbodyスクロールを封じる
-- `#bottom-nav` の高さは `max(env(safe-area-inset-bottom), 12px)` で最低余白を保証
-- `#bottom-nav::after { pointer-events: none }` でホームバー塗りつぶし
+- `theme-color: #1C2B22`（manifest.json と index.html 両方に設定）
+- PWAをホームから削除→再追加でキャッシュ起因の表示崩れが解消することがある
 - `user-select: none` を全体に適用済み（長押しメニュー抑制）
 - クリップボードAPIが失敗する場合はWeb Share APIにフォールバック
 
@@ -243,6 +272,18 @@ IndexedDB（`cache.js`）でオフライン対応：
 
 ---
 
+## バグ修正の鉄則
+
+**ある機能を直そうとして別の機能が壊れたとき：**
+
+1. `git log --oneline` で壊れる前のコミットを特定する
+2. `git show <hash>:path/to/file.css` でそのファイルの内容を確認する
+3. 動いていた状態を理解してから修正する
+
+新しいコードを書く前に必ず動いていた状態を確認すること。今日のボトムナビ問題で5回以上この手順を怠って遠回りした。
+
+---
+
 ## 既知の未完了タスク
 
 ### 🟢 次フェーズ候補
@@ -259,6 +300,12 @@ IndexedDB（`cache.js`）でオフライン対応：
    - Supabaseに別アプリ（MIRRA）のテーブルが混在
    - 対象: `appointments`, `conversations`, `customers`, `karte`, `salons`
 
+4. **ボトムナビ下の余白（未解決）**
+   - iOSのPWAでホームバー下にわずかな余白が残る
+   - `body/html { background: var(--ink) }` で視覚的には目立たなくなっている
+   - `env(safe-area-inset-bottom)` がPWAで正しく取れていない可能性あり
+   - PWAをホームから削除→再追加で解消するか未確認
+
 ---
 
 ## 開発メモ
@@ -270,6 +317,7 @@ IndexedDB（`cache.js`）でオフライン対応：
 - RLS変更時は再帰に注意。`SECURITY DEFINER`関数で回避するパターンを使うこと
 - `db.js` の `_allTeams` キャッシュは `updateTeam()` / `leaveTeam()` 時にリセット済み
 - CSS と JS で同じプロパティを管理すると競合する（ghost opacity の教訓）
+- `body` の背景色を変えるときは必ず `#main` の背景色も明示すること
 
 ---
 
@@ -286,19 +334,17 @@ IndexedDB（`cache.js`）でオフライン対応：
 - **feat**: ghostパネルに隣月の実データを表示（キャッシュから取得）
 - **feat**: 月ラベルにスライドアニメーション（方向連動）、固定幅化で位置揺れ解消
 - **feat**: ドラッグ中ヘッダーに方向ラベル表示（`5月 → 6月`）
-- **refactor**: 設定画面を2セクション構造に刷新（自分のチーム常時表示 + 参加中チーム別表示）
+- **refactor**: 設定画面を2セクション構造に刷新
 - **feat**: メンバー管理をボトムシート化（削除2段階確認・権限変更カード選択式）
 - **feat**: 口座並び替え↑↓ボタン（sort_order正規化方式）
-- **fix**: ghost opacity をJS完全管理に統一（CSS/JS競合解消）
-- **fix**: ghost DOM順序を `insertBefore` でcontentより背後に（z-index不要）
+- **fix**: ghost opacity をJS完全管理に統一
+- **fix**: ghost DOM順序を `insertBefore` でcontentより背後に
 - **fix**: スワイプ判定を厳格化（閾値12px・横が縦の2倍以上）
-- **fix**: タグ保存後にキャッシュで消える問題（`tags:[]`上書き修正）
+- **fix**: タグ保存後にキャッシュで消える問題
 - **fix**: 保存直後のタグ表示・タップ編集（`patchAddRecord`刷新）
-- **fix**: `tags[0]`がnullでクラッシュするバグ
 - **fix**: チーム名更新エラー（`ownTeamId`を明示的に渡す）
 - **fix**: 保存後にsave-barが残る問題（二重closeModal削除）
-- **fix**: 口座選択シートのヘッダー固定（閉じるボタンが隠れる問題）
+- **fix**: 口座選択シートのヘッダー固定
 - **fix**: iOS PWA ダブルタップズーム無効化
-- **fix**: iOS PWA ボトムナビ safe-area 対応
-- **fix**: iOS PWA ヘッダー・フッター流れる問題（`#app { position: fixed }`）
 - **fix**: touchend縦スクロール判定時のghost残り問題
+- **fix**: `body/html` 背景を `var(--ink)` に、`#main` 背景を `var(--stone)` に明示
