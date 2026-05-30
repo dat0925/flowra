@@ -89,6 +89,16 @@ export const DB = {
     return data;
   },
 
+  async getTeamById(teamId) {
+    const { data, error } = await supabase
+      .from('teams')
+      .select('*')
+      .eq('id', teamId)
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
   async updateTeam(teamId, payload) {
     const { data, error } = await supabase
       .from('teams')
