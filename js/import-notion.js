@@ -115,10 +115,14 @@ function processPage(page, flowraAccounts, tagNameToId) {
   const 日付     = props['日付']?.date?.start;
   const 金額     = props['金額']?.number;
   const 分類     = props['分類']?.select?.name || null;
+  const 管理     = props['管理']?.select?.name || null;
   const account  = props['アカウント']?.select?.name || '';
   const 内容     = getText(props['内容']);
   const 支払先   = getText(props['支払先']);
   const メモ     = getText(props['メモ']);
+
+  // 除外フィルタ（JS側で判定）
+  if (管理 === '除外' || 分類 === '除外') return null;
 
   // 必須フィールドチェック
   if (!日付 || 金額 == null) return null;

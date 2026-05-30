@@ -29,18 +29,6 @@ Deno.serve(async (req: Request) => {
 
     const queryBody: Record<string, unknown> = {
       page_size: 100,
-      filter: {
-        and: [
-          { or: [
-            { property: '管理', select: { does_not_equal: '除外' } },
-            { property: '管理', select: { is_empty: true } },
-          ]},
-          { or: [
-            { property: '分類', select: { does_not_equal: '除外' } },
-            { property: '分類', select: { is_empty: true } },
-          ]},
-        ],
-      },
     };
     if (cursor) queryBody.start_cursor = cursor;
 
