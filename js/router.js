@@ -328,6 +328,12 @@ export const Router = {
     // body クラスでページ種別を公開（CSS から参照）
     this._syncPageClass();
 
+    // records画面のときは月が変わったらコンテンツを再描画
+    if (this.currentPage === 'records' && dir) {
+      const handler = this._pageHandlers['records'];
+      if (handler) handler();
+    }
+
     // ghostパネルに隣月データをロード（records画面のみ）
     if (this.currentPage === 'records') {
       this._loadGhostPanels();
