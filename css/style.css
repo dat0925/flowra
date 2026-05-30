@@ -521,7 +521,7 @@ body.page-records #mobile-month-label {
   align-items: center;
   justify-content: space-around;
   padding: 0 4px;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px);
   box-sizing: content-box;
   flex-shrink: 0;
   position: relative;
