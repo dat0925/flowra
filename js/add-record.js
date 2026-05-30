@@ -769,10 +769,11 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     try {
       const { upsertTransactions } = await import('./cache.js');
       const tagIds = [...state.selectedTags];
-      console.log('saving tags:', tagIds);
       const tx = await DB.createTransaction(payload, tagIds);
-      // キャッシュにも追記
-      await upsertTransactions([{ ...tx, tags: [] }]);
+
+      // タグ情報をキャッシュに正しく保存（tags: [] で上書きしない）
+      const cachedTags = tags.filter(t => tagIds.includes(t.id));
+      await upsertTransactions([{ ...tx, tags: cachedTags }]);
 
       // 仮IDの行を正式IDに差し替え
       const tmpEl = document.querySelector('[data-tx-id="' + optimisticTx.id + '"]');
