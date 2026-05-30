@@ -166,6 +166,7 @@ svg {
 #app {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -178,6 +179,7 @@ svg {
   flex-direction: column;
   padding: 0 0 20px;
   height: 100vh;
+  height: 100dvh;
   overflow-y: auto;
 }
 
