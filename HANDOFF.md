@@ -348,3 +348,23 @@ body { background: var(--ink); overflow: hidden; }
 - **fix**: iOS PWA ダブルタップズーム無効化
 - **fix**: touchend縦スクロール判定時のghost残り問題
 - **fix**: `body/html` 背景を `var(--ink)` に、`#main` 背景を `var(--stone)` に明示
+
+### 2026-05-30（セッション3）
+- **fix**: ボトムナビ下余白を `3cfd80d` のCSS/JSを復元して解消（css/style.css・js/app.js のみ差し替え、機能系ファイルは無変更）
+- **fix**: `DB.updateTeam()` の `.single()` を削除（複数行返却時の `Cannot coerce the result to a single JSON object` エラー解消）
+- **fix**: `settings.js` の `ownTeam` JOINが配列で返る場合に `[0]` を取るよう正規化
+- **wip**: チーム名変更後の画面反映（保存は成功するがUI更新が効いていない・未解決）
+
+### ボトムナビ鉄則（セッション3で学んだこと）
+- `#main { height: 100dvh }` はモバイルメディアクエリ内に**必須**。削除すると起動直後フッターがずれる → **絶対に触らないこと**
+- `overscroll-behavior: none` → フッターが下にずれた
+- `window.innerHeight` で `--app-h` をセット → 同上
+- `#main { flex: 1 }` → 同上
+- 上記3つはすべて試して失敗。再実装しないこと
+- 安定状態のコミット: `3cfd80d`（`css/style.css` / `js/app.js`）
+
+### チーム名反映問題（未解決・次回調査ポイント）
+- `DB.updateTeam()` 自体は成功（トーストは表示される）
+- `_allTeams` キャッシュは `null` リセット済み
+- `renderSettings()` 再呼び出し後も古い名前が表示される
+- 調査ポイント: `getAllTeams()` の `teams:team_id(id,name)` JOINがSupabaseのスキーマキャッシュにより古い値を返している可能性。`?select=` クエリをブラウザのNetworkタブで確認すること
