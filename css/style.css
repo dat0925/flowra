@@ -520,6 +520,8 @@ body.page-records #mobile-month-label {
   padding: 0 4px;
   padding-bottom: env(safe-area-inset-bottom);
   flex-shrink: 0;
+  position: relative;
+  z-index: 2;
 }
 .b-tab {
   display: flex;

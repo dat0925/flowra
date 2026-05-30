@@ -139,17 +139,16 @@ export const Router = {
       content.style.transition = 'none';
       content.style.transform  = `translateX(${tx}px)`;
 
-      // ghostのオフセット：w より小さくすることで早めに顔を出す
-      const ghostOffset = Math.round(w * 0.80);
+      // ghost は w*0.80 の位置からスタートし rawDx 分動く（早めに顔を出す）
+      const ghostStart = Math.round(w * 0.80);
       const label = document.getElementById('mobile-month-label');
 
       if (rawDx < 0) {
-        // 左スワイプ → next ghost を右から引き込む
         ghostNext().style.transition = 'none';
-        ghostNext().style.transform  = `translateX(${ghostOffset + rawDx}px)`;
+        ghostNext().style.transform  = `translateX(${ghostStart + rawDx}px)`;
         ghostNext().style.opacity    = '0.78';
         ghostPrev().style.transition = 'none';
-        ghostPrev().style.transform  = `translateX(-${ghostOffset}px)`;
+        ghostPrev().style.transform  = `translateX(-${w}px)`;
         ghostPrev().style.opacity    = '0';
         if (label && !label.dataset.dragging) {
           label.dataset.dragging = '1';
@@ -158,12 +157,11 @@ export const Router = {
           label.textContent = `${month}月 → ${nm}月`;
         }
       } else if (rawDx > 0) {
-        // 右スワイプ → prev ghost を左から引き込む
         ghostPrev().style.transition = 'none';
-        ghostPrev().style.transform  = `translateX(${rawDx - ghostOffset}px)`;
+        ghostPrev().style.transform  = `translateX(${rawDx - ghostStart}px)`;
         ghostPrev().style.opacity    = '0.78';
         ghostNext().style.transition = 'none';
-        ghostNext().style.transform  = `translateX(${ghostOffset}px)`;
+        ghostNext().style.transform  = `translateX(${w}px)`;
         ghostNext().style.opacity    = '0';
         if (label && !label.dataset.dragging) {
           label.dataset.dragging = '1';
@@ -177,16 +175,14 @@ export const Router = {
     // リセット（キャンセル時）
     const cancelDrag = () => {
       const w = carousel.offsetWidth;
-      const ghostOffset = Math.round(w * 0.80);
       content.style.transition     = ease;
       content.style.transform      = 'translateX(0)';
       ghostPrev().style.transition = ease;
       ghostNext().style.transition = ease;
-      ghostPrev().style.transform  = `translateX(-${ghostOffset}px)`;
-      ghostNext().style.transform  = `translateX(${ghostOffset}px)`;
+      ghostPrev().style.transform  = `translateX(-${w}px)`;
+      ghostNext().style.transform  = `translateX(${w}px)`;
       ghostPrev().style.opacity    = '0';
       ghostNext().style.opacity    = '0';
-      // ヘッダーラベルを元に戻す
       const label = document.getElementById('mobile-month-label');
       if (label) {
         delete label.dataset.dragging;
@@ -194,15 +190,12 @@ export const Router = {
       }
     };
 
-    // コミット：ghostの上に新コンテンツをクロスフェード
+    // コミット
     const commitSlide = (dir) => {
       const w = carousel.offsetWidth;
-      const ghostOffset = Math.round(w * 0.80);
-      // ヘッダーラベルのdraggingフラグを解除（_updateMonthLabelsが新ラベルをセット）
       const label = document.getElementById('mobile-month-label');
       if (label) delete label.dataset.dragging;
 
-      // Step1: contentをスライドアウト、ghostを中央へスライドイン
       content.style.transition = ease;
       content.style.transform  = dir === 'next' ? `translateX(-${w}px)` : `translateX(${w}px)`;
       const activeGhost = dir === 'next' ? ghostNext() : ghostPrev();
@@ -211,20 +204,18 @@ export const Router = {
       activeGhost.style.transform  = 'translateX(0)';
 
       setTimeout(() => {
-        // Step2: transition を切ってから ghost を即座に非表示
         ghostPrev().style.transition = 'none';
         ghostNext().style.transition = 'none';
         void ghostPrev().offsetWidth;
         ghostPrev().style.opacity   = '0';
         ghostNext().style.opacity   = '0';
-        ghostPrev().style.transform = `translateX(-${ghostOffset}px)`;
-        ghostNext().style.transform = `translateX(${ghostOffset}px)`;
+        ghostPrev().style.transform = `translateX(-${w}px)`;
+        ghostNext().style.transform = `translateX(${w}px)`;
 
         content.style.transition = 'none';
         content.style.transform  = 'translateX(0)';
         content.style.opacity    = '1';
 
-        // 月更新（renderRecordsが走る）
         if (dir === 'next') MonthState.next(); else MonthState.prev();
         this._updateMonthLabels(dir);
       }, 290);
