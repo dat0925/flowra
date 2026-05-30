@@ -368,3 +368,47 @@ body { background: var(--ink); overflow: hidden; }
 - `_allTeams` キャッシュは `null` リセット済み
 - `renderSettings()` 再呼び出し後も古い名前が表示される
 - 調査ポイント: `getAllTeams()` の `teams:team_id(id,name)` JOINがSupabaseのスキーマキャッシュにより古い値を返している可能性。`?select=` クエリをブラウザのNetworkタブで確認すること
+
+### 2026-05-30（セッション4）
+- **fix**: チーム名変更後のUI反映（3層構造のバグを解消）
+  - 第1層: `renderSettings`の再描画でcatchが握り潰していた → DOM直接更新に変更
+  - 第2層: `getTeamById`がRLSエラーで失敗 → catchが`cachedTags.length > 0`条件で無視
+  - 第3層: `teams`テーブルにUPDATE RLSポリシーがなくDB書き込みが静かに失敗していた
+  - Supabase SQL Editorで`is_team_owner()`関数と`team_owners_can_update_teams`ポリシーを追加
+- **fix**: `updateTeam()`で0件更新を検知してエラーにする（SupabaseのRLS静かな失敗対策）
+- **feat**: チーム名をヘッダー切り替えボタン・参加中チームに反映（オーナー名はサブテキストへ）
+- **fix**: コンテンツ少ない時のiOSバウンス問題（`overscroll-behavior-y: contain` + 境界`preventDefault`）
+- **fix**: 月ラベル固定幅化で揺れ解消（`min-width`→`width: 96px`）+ 全画面フォントサイズ15pxに統一
+
+---
+
+## SupabaseのRLS「静かな失敗」パターン
+
+**重要**: SupabaseはRLSで更新が弾かれても`error`を返さず、`data: []`を返す。トーストが出ても書き込めていない可能性がある。
+
+**対処パターン（必ずこの形で書く）:**
+```js
+const { data, error } = await supabase
+  .from('some_table')
+  .update(payload)
+  .eq('id', id)
+  .select(); // ← 必須
+if (error) throw error;
+if (!data || data.length === 0) throw new Error('更新が拒否されました（RLS）');
+```
+
+**バグ切り分けの方法:**
+- トーストが出た → 「例外は起きていない」だけがわかる（DB書き込み成功の証拠ではない）
+- リロード後も変わらない → DBに書き込めていないと確定（フロント問題ではない）
+- この2つが同時 → RLSか権限の問題をまず疑う
+
+**RLSポリシー追加時の注意:**
+- `IN (SELECT ...)` はポリシー式に使えない（`set-returning functions are not allowed`エラー）
+- `SECURITY DEFINER`関数を作って`is_team_owner(id)`のような形で使うこと
+- `my_all_team_ids()`もset-returning functionなのでSELECTポリシーに直接使えない場合がある
+
+**現在追加済みのSupabase関数:**
+- `is_team_owner(p_team_id uuid)` → 自分がそのチームのownerかbooleanで返す
+
+**現在追加済みのRLSポリシー（teamsテーブル）:**
+- `team_owners_can_update_teams`: `is_team_owner(id)` でownerのみUPDATE可
