@@ -106,9 +106,10 @@ export const DB = {
       .eq('id', teamId)
       .select();
     if (error) throw error;
+    if (!data || data.length === 0) throw new Error('RLSにより更新が拒否されました。Supabaseのポリシーを確認してください。');
     // キャッシュをリセット
     _allTeams = null;
-    return data?.[0] ?? null;
+    return data[0];
   },
 
   // ── 口座 ────────────────────────────
