@@ -362,53 +362,163 @@ function renderMembersList(members, currentUser) {
   }
 
   wrap.innerHTML = others.map(m => {
-    const name    = m.full_name || m.email?.split('@')[0] || 'メンバー';
-    const initial = name.charAt(0).toUpperCase();
+    const name      = m.full_name || m.email?.split('@')[0] || 'メンバー';
+    const initial   = name.charAt(0).toUpperCase();
+    const roleLabel = m.role === 'viewer' ? '閲覧のみ' : '編集・削除可';
+    const roleBg    = m.role === 'viewer' ? 'var(--stone)' : 'var(--sage-bg)';
+    const roleColor = m.role === 'viewer' ? 'var(--mid)' : 'var(--sage-dk)';
     return `
-      <div class="form-row no-tap" style="align-items:center;gap:10px;padding:12px 16px;">
+      <div class="form-row member-row" data-user-id="${m.user_id}" style="align-items:center;gap:10px;padding:12px 16px;cursor:pointer;">
         <div style="width:36px;height:36px;border-radius:50%;background:var(--gold);color:#fff;
           display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;">${initial}</div>
         <div style="flex:1;min-width:0;">
           <div style="font-size:14px;font-weight:500;margin-bottom:4px;">${name}</div>
-          <select class="member-role-select" data-user-id="${m.user_id}"
-            style="font-size:12px;padding:3px 8px;border-radius:8px;border:1px solid var(--border);
-            background:var(--white);color:var(--ink);cursor:pointer;margin-bottom:3px;display:block;">
-            <option value="viewer"  ${m.role === 'viewer' ? 'selected' : ''}>閲覧のみ</option>
-            <option value="member"  ${m.role !== 'viewer' ? 'selected' : ''}>編集・削除可</option>
-          </select>
-          <div style="font-size:11px;color:var(--mid-lt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.email || ''}</div>
+          <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${roleBg};color:${roleColor};">${roleLabel}</span>
         </div>
-        <button class="btn-member-remove" data-user-id="${m.user_id}"
-          style="width:28px;height:28px;border-radius:50%;background:var(--mist);border:none;
-          color:var(--mid);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
-          <svg viewBox="0 0 24 24" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
+        <svg viewBox="0 0 24 24" width="14" height="14" style="color:var(--mid-lt);flex-shrink:0;">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
       </div>
     `;
   }).join('');
 
-  wrap.querySelectorAll('.member-role-select').forEach(sel => {
-    sel.addEventListener('change', async () => {
+  // 行タップ → メンバー管理ボトムシート
+  wrap.querySelectorAll('.member-row').forEach(row => {
+    row.addEventListener('click', () => {
+      const member = others.find(m => m.user_id === row.dataset.userId);
+      if (member) openMemberSheet(member, () => renderMembersList(members, currentUser));
+    });
+  });
+}
+
+// ── メンバー管理ボトムシート ──
+function openMemberSheet(member, onUpdate) {
+  Sound.playOpen();
+  const name = member.full_name || member.email?.split('@')[0] || 'メンバー';
+
+  const sheet = document.createElement('div');
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:700;background:rgba(28,43,34,0.45);display:flex;align-items:flex-end;justify-content:center;';
+  sheet.innerHTML = `
+    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:0 16px 40px;">
+      <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 20px;"></div>
+
+      <!-- メンバー情報 -->
+      <div style="display:flex;align-items:center;gap:12px;padding:0 2px 20px;border-bottom:1px solid var(--border);margin-bottom:20px;">
+        <div style="width:44px;height:44px;border-radius:50%;background:var(--gold);color:#fff;
+          display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:600;flex-shrink:0;">
+          ${name.charAt(0).toUpperCase()}
+        </div>
+        <div>
+          <div style="font-size:15px;font-weight:600;">${name}</div>
+          <div style="font-size:12px;color:var(--mid);margin-top:2px;">${member.email || ''}</div>
+        </div>
+      </div>
+
+      <!-- 権限変更 -->
+      <div style="font-size:12px;color:var(--mid);font-weight:500;margin-bottom:8px;letter-spacing:0.04em;">アクセス権限</div>
+      <div style="display:flex;gap:8px;margin-bottom:24px;">
+        <button class="role-btn ${member.role !== 'viewer' ? 'role-btn-active' : ''}" data-role="member"
+          style="flex:1;padding:10px;border-radius:12px;border:1.5px solid ${member.role !== 'viewer' ? 'var(--sage)' : 'var(--border)'};
+          background:${member.role !== 'viewer' ? 'var(--sage-bg)' : 'var(--white)'};
+          color:${member.role !== 'viewer' ? 'var(--sage-dk)' : 'var(--mid)'};font-size:13px;font-weight:500;cursor:pointer;">
+          <div style="font-size:11px;margin-bottom:2px;">✎ 編集・削除可</div>
+          <div style="font-size:10px;opacity:0.7;">記録の追加・変更ができる</div>
+        </button>
+        <button class="role-btn ${member.role === 'viewer' ? 'role-btn-active' : ''}" data-role="viewer"
+          style="flex:1;padding:10px;border-radius:12px;border:1.5px solid ${member.role === 'viewer' ? 'var(--sage)' : 'var(--border)'};
+          background:${member.role === 'viewer' ? 'var(--sage-bg)' : 'var(--white)'};
+          color:${member.role === 'viewer' ? 'var(--sage-dk)' : 'var(--mid)'};font-size:13px;font-weight:500;cursor:pointer;">
+          <div style="font-size:11px;margin-bottom:2px;">👁 閲覧のみ</div>
+          <div style="font-size:10px;opacity:0.7;">記録を見るだけ</div>
+        </button>
+      </div>
+
+      <!-- 削除 -->
+      <button id="btn-sheet-remove"
+        style="width:100%;padding:13px;border-radius:14px;border:1px solid var(--border);
+        background:var(--white);color:var(--mid);font-size:14px;font-weight:500;cursor:pointer;">
+        このメンバーを削除…
+      </button>
+    </div>`;
+
+  document.body.appendChild(sheet);
+  const closeSheet = () => { Sound.playClose(); sheet.remove(); };
+  sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
+
+  // 権限ボタン
+  let currentRole = member.role;
+  sheet.querySelectorAll('.role-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const newRole = btn.dataset.role;
+      if (newRole === currentRole) return;
       try {
-        await DB.updateMemberRole(sel.dataset.userId, sel.value);
-        showToast('権限を変更しました');
+        await DB.updateMemberRole(member.user_id, newRole);
+        currentRole = newRole;
+        member.role = newRole;
+        // ボタンのスタイルを更新
+        sheet.querySelectorAll('.role-btn').forEach(b => {
+          const active = b.dataset.role === newRole;
+          b.style.border      = `1.5px solid ${active ? 'var(--sage)' : 'var(--border)'}`;
+          b.style.background  = active ? 'var(--sage-bg)' : 'var(--white)';
+          b.style.color       = active ? 'var(--sage-dk)' : 'var(--mid)';
+        });
+        showToast('✓ 権限を変更しました');
+        onUpdate();
       } catch (e) {
         showToast('エラー: ' + e.message);
       }
     });
   });
 
-  wrap.querySelectorAll('.btn-member-remove').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      if (!confirm('このメンバーを削除しますか？')) return;
-      try {
-        await DB.removeMember(btn.dataset.userId);
-        showToast('メンバーを削除しました');
-        btn.closest('.form-row').remove();
-      } catch (e) {
-        showToast('エラー: ' + e.message);
-      }
-    });
+  // 削除 → 確認モーダル
+  sheet.querySelector('#btn-sheet-remove')?.addEventListener('click', () => {
+    closeSheet();
+    showRemoveMemberModal(member, name, onUpdate);
+  });
+}
+
+// ── メンバー削除確認モーダル ──
+function showRemoveMemberModal(member, name, onUpdate) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(28,43,34,0.6);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 0.25s;';
+  overlay.innerHTML = `
+    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:28px 28px 0 0;padding:32px 24px 48px;">
+      <h3 style="font-family:'Noto Serif JP',serif;font-size:18px;font-weight:600;color:var(--ink);margin-bottom:10px;">${name}を削除しますか？</h3>
+      <p style="font-size:14px;color:var(--mid);line-height:1.7;margin-bottom:28px;">
+        削除するとこのメンバーはチームのデータにアクセスできなくなります。再度招待することで復元できます。
+      </p>
+      <button id="btn-remove-confirm"
+        style="width:100%;padding:14px;border-radius:14px;border:none;background:var(--red);color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;">
+        削除する
+      </button>
+      <button id="btn-remove-cancel"
+        style="width:100%;padding:10px;background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;">
+        キャンセル
+      </button>
+    </div>`;
+
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.style.opacity = '1');
+
+  overlay.querySelector('#btn-remove-confirm')?.addEventListener('click', async () => {
+    const btn = overlay.querySelector('#btn-remove-confirm');
+    btn.disabled = true;
+    btn.textContent = '処理中…';
+    try {
+      await DB.removeMember(member.user_id);
+      overlay.remove();
+      showToast('メンバーを削除しました');
+      onUpdate();
+    } catch (e) {
+      showToast('エラー: ' + e.message);
+      btn.disabled = false;
+      btn.textContent = '削除する';
+    }
+  });
+
+  overlay.querySelector('#btn-remove-cancel')?.addEventListener('click', () => {
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.remove(), 250);
   });
 }
 
