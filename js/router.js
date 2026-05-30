@@ -86,50 +86,168 @@ export const Router = {
 
     // 月ナビ（モバイル）
     document.getElementById('btn-month-prev')?.addEventListener('click', () => {
-      MonthState.prev();
-      this._updateMonthLabels();
+      this._slideMonth('prev');
     });
     document.getElementById('btn-month-next')?.addEventListener('click', () => {
-      MonthState.next();
-      this._updateMonthLabels();
+      this._slideMonth('next');
     });
 
-    // スワイプで月移動（モバイルヘッダー全体）
-    const mobileHeader = document.getElementById('mobile-header');
-    if (mobileHeader) {
-      let _touchStartX = 0;
-      let _touchStartY = 0;
-      mobileHeader.addEventListener('touchstart', (e) => {
-        _touchStartX = e.touches[0].clientX;
-        _touchStartY = e.touches[0].clientY;
-      }, { passive: true });
-      mobileHeader.addEventListener('touchend', (e) => {
-        const dx = e.changedTouches[0].clientX - _touchStartX;
-        const dy = e.changedTouches[0].clientY - _touchStartY;
-        // 横方向が主体（縦ズレが横移動より小さい）かつ40px以上スワイプ
-        if (Math.abs(dx) > 40 && Math.abs(dy) < Math.abs(dx) * 0.6) {
-          if (dx < 0) {
-            // 左スワイプ → 次の月
-            MonthState.next();
-          } else {
-            // 右スワイプ → 前の月
-            MonthState.prev();
-          }
-          this._updateMonthLabels();
-        }
-      }, { passive: true });
-    }
     // 月ナビ（デスクトップ）
     document.getElementById('btn-month-prev-d')?.addEventListener('click', () => {
-      MonthState.prev();
-      this._updateMonthLabels();
+      this._slideMonth('prev');
     });
     document.getElementById('btn-month-next-d')?.addEventListener('click', () => {
-      MonthState.next();
-      this._updateMonthLabels();
+      this._slideMonth('next');
     });
 
     this._updateMonthLabels();
+    this._initCarousel();
+  },
+
+  _initCarousel() {
+    const carousel = document.getElementById('content-carousel');
+    const content  = document.getElementById('page-content');
+    if (!carousel || !content) return;
+
+    // ghost パネルを追加（前月・次月のぞき見用）
+    ['prev','next'].forEach(side => {
+      const g = document.createElement('div');
+      g.id = `ghost-${side}`;
+      g.className = 'ghost-panel';
+      g.innerHTML = '<div class="spinner"></div>';
+      carousel.appendChild(g);
+    });
+
+    let startX = 0, startY = 0;
+    let curX   = 0;
+    let active = false;
+    let axis   = null; // 'h' | 'v' | null
+
+    const setTransform = (dx, animate) => {
+      const ease = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
+      content.style.transition          = animate ? ease : 'none';
+      ghostPrev().style.transition      = animate ? ease : 'none';
+      ghostNext().style.transition      = animate ? ease : 'none';
+      content.style.transform           = `translateX(${dx}px)`;
+      ghostPrev().style.transform       = `translateX(calc(-100% + ${dx}px))`;
+      ghostNext().style.transform       = `translateX(calc(100% + ${dx}px))`;
+    };
+
+    const ghostPrev = () => document.getElementById('ghost-prev');
+    const ghostNext = () => document.getElementById('ghost-next');
+
+    const reset = (animate) => setTransform(0, animate);
+
+    carousel.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      curX   = 0;
+      active = true;
+      axis   = null;
+      content.style.transition = 'none';
+    }, { passive: true });
+
+    carousel.addEventListener('touchmove', (e) => {
+      if (!active) return;
+      const dx = e.touches[0].clientX - startX;
+      const dy = e.touches[0].clientY - startY;
+
+      // 軸が決まっていなければ判定
+      if (!axis) {
+        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
+        axis = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+      }
+      if (axis !== 'h') return;
+
+      curX = dx;
+
+      // 端の抵抗感（ゴム感）
+      const w = carousel.offsetWidth;
+      let tx = curX;
+      if (Math.abs(tx) > w * 0.5) {
+        tx = Math.sign(tx) * (w * 0.5 + (Math.abs(tx) - w * 0.5) * 0.2);
+      }
+
+      setTransform(tx, false);
+    }, { passive: true });
+
+    carousel.addEventListener('touchend', (e) => {
+      if (!active || axis !== 'h') { active = false; axis = null; return; }
+      active = false;
+      axis   = null;
+
+      const w = carousel.offsetWidth;
+      const threshold = w * 0.28;
+
+      if (curX < -threshold) {
+        // → 次月へスライドアウト（左へ）
+        content.style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
+        ghostNext().style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
+        content.style.transform     = `translateX(-${w}px)`;
+        ghostNext().style.transform = `translateX(0)`;
+        setTimeout(() => {
+          // 右側から滑り込む準備
+          content.style.transition = 'none';
+          content.style.transform  = `translateX(${w}px)`;
+          ghostPrev().style.transform = 'translateX(-100%)';
+          ghostNext().style.transform = 'translateX(100%)';
+          MonthState.next();
+          this._updateMonthLabels();
+          // 2フレーム待ってからスライドイン
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            content.style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
+            content.style.transform  = 'translateX(0)';
+          }));
+        }, 280);
+      } else if (curX > threshold) {
+        // → 前月へスライドアウト（右へ）
+        content.style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
+        ghostPrev().style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
+        content.style.transform     = `translateX(${w}px)`;
+        ghostPrev().style.transform = `translateX(0)`;
+        setTimeout(() => {
+          // 左側から滑り込む準備
+          content.style.transition = 'none';
+          content.style.transform  = `translateX(-${w}px)`;
+          ghostPrev().style.transform = 'translateX(-100%)';
+          ghostNext().style.transform = 'translateX(100%)';
+          MonthState.prev();
+          this._updateMonthLabels();
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            content.style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
+            content.style.transform  = 'translateX(0)';
+          }));
+        }, 280);
+      } else {
+        reset(true);
+      }
+      curX = 0;
+    }, { passive: true });
+  },
+
+  _slideMonth(dir) {
+    const content = document.getElementById('page-content');
+    const carousel = document.getElementById('content-carousel');
+    if (!content || !carousel) {
+      if (dir === 'next') MonthState.next(); else MonthState.prev();
+      this._updateMonthLabels();
+      return;
+    }
+    const w = carousel.offsetWidth;
+    const outX = dir === 'next' ? -w : w;
+    const inX  = dir === 'next' ?  w : -w;
+    content.style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
+    content.style.transform  = `translateX(${outX}px)`;
+    setTimeout(() => {
+      content.style.transition = 'none';
+      content.style.transform  = `translateX(${inX}px)`;
+      if (dir === 'next') MonthState.next(); else MonthState.prev();
+      this._updateMonthLabels();
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        content.style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
+        content.style.transform  = 'translateX(0)';
+      }));
+    }, 280);
   },
 
   _updateMonthLabels() {

@@ -335,12 +335,35 @@ svg {
 }
 
 /* PAGE CONTENT */
-#page-content {
+/* CAROUSEL */
+#content-carousel {
   flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+#page-content {
+  position: absolute;
+  inset: 0;
   overflow-y: auto;
   padding: 24px 28px 48px;
   -webkit-overflow-scrolling: touch;
+  will-change: transform;
 }
+.ghost-panel {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 60px;
+  opacity: 0.45;
+  background: var(--bg, #F5F3EF);
+}
+#ghost-prev  { transform: translateX(-100%); }
+#ghost-next  { transform: translateX(100%); }
 
 /* MOBILE HEADER */
 #mobile-header {
