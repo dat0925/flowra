@@ -30,7 +30,7 @@
    RESET & BASE
 ══════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; }
+html, body { height: 100%; overflow: hidden; }
 
 body {
   font-family: 'Noto Sans JP', sans-serif;
@@ -39,7 +39,9 @@ body {
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
 }
 
 /* iOSタップハイライト全消し・テキスト選択禁止（PWA用） */
