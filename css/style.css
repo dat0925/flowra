@@ -351,6 +351,7 @@ svg {
   padding: 24px 28px 48px;
   -webkit-overflow-scrolling: touch;
   will-change: transform;
+  overscroll-behavior-y: contain;
 }
 .ghost-panel {
   position: absolute;

@@ -240,7 +240,18 @@ export const Router = {
           axis = 'v';
         }
       }
-      if (axis === 'v') return;
+      if (axis === 'v') {
+        // iOSバウンス防止: スクロール端での上下スワイプはpreventDefault
+        const pageEl = document.getElementById('page-content');
+        if (pageEl) {
+          const atTop    = pageEl.scrollTop <= 0;
+          const atBottom = pageEl.scrollTop + pageEl.clientHeight >= pageEl.scrollHeight - 1;
+          if ((dy > 0 && atTop) || (dy < 0 && atBottom)) {
+            e.preventDefault();
+          }
+        }
+        return;
+      }
 
       e.preventDefault();
       curX = dx;
