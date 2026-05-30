@@ -354,7 +354,6 @@ function renderMembersList(members, currentUser) {
   const wrap = document.getElementById('members-list');
   if (!wrap) return;
 
-  // 自分以外のメンバーのみ表示
   const others = members.filter(m => m.user_id !== currentUser?.id);
 
   if (!others.length) {
@@ -363,24 +362,27 @@ function renderMembersList(members, currentUser) {
   }
 
   wrap.innerHTML = others.map(m => {
-    const name = m.full_name || m.email?.split('@')[0] || 'メンバー';
+    const name    = m.full_name || m.email?.split('@')[0] || 'メンバー';
     const initial = name.charAt(0).toUpperCase();
     return `
-      <div class="form-row" style="justify-content:space-between;gap:10px;">
-        <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1;">
-          <div style="width:36px;height:36px;border-radius:50%;background:var(--gold);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;">${initial}</div>
-          <div style="min-width:0;flex:1;">
-            <div style="font-size:14px;font-weight:500;">${name}</div>
-            <div style="font-size:11px;color:var(--mid);">${m.email || ''}</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-          <select class="member-role-select" data-user-id="${m.user_id}" style="font-size:12px;padding:4px 8px;border-radius:8px;border:1px solid var(--border);background:var(--white);color:var(--ink);cursor:pointer;">
-            <option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>閲覧のみ</option>
-            <option value="member" ${m.role !== 'viewer' ? 'selected' : ''}>編集・削除可</option>
+      <div class="form-row no-tap" style="align-items:center;gap:10px;padding:12px 16px;">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--gold);color:#fff;
+          display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;">${initial}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:14px;font-weight:500;margin-bottom:4px;">${name}</div>
+          <select class="member-role-select" data-user-id="${m.user_id}"
+            style="font-size:12px;padding:3px 8px;border-radius:8px;border:1px solid var(--border);
+            background:var(--white);color:var(--ink);cursor:pointer;margin-bottom:3px;display:block;">
+            <option value="viewer"  ${m.role === 'viewer' ? 'selected' : ''}>閲覧のみ</option>
+            <option value="member"  ${m.role !== 'viewer' ? 'selected' : ''}>編集・削除可</option>
           </select>
-          <button class="btn-member-remove" data-user-id="${m.user_id}" style="background:none;border:none;color:var(--mid-lt);font-size:20px;cursor:pointer;padding:0 2px;line-height:1;">×</button>
+          <div style="font-size:11px;color:var(--mid-lt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${m.email || ''}</div>
         </div>
+        <button class="btn-member-remove" data-user-id="${m.user_id}"
+          style="width:28px;height:28px;border-radius:50%;background:var(--mist);border:none;
+          color:var(--mid);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;">
+          <svg viewBox="0 0 24 24" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
       </div>
     `;
   }).join('');
