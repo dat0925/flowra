@@ -170,19 +170,7 @@ svg {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 100dvh;
   overflow: hidden;
-}
-/* ホームバー下の隙間をボトムナビと同色で塗る */
-#app::after {
-  content: '';
-  position: fixed;
-  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
-  left: 0;
-  right: 0;
-  height: env(safe-area-inset-bottom, 0px);
-  background: var(--ink);
-  pointer-events: none;
 }
 
 /* SIDEBAR */
@@ -1066,7 +1054,6 @@ body.page-records #mobile-month-label {
   #mobile-header { display: block; }
   #bottom-nav    { display: flex; }
   #app           { flex-direction: column; }
-  #main          { height: 100dvh; }
   #page-content  { padding: 14px 14px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); }
 
   .summary-row { grid-template-columns: 1fr; gap: 10px; }
