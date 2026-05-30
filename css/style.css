@@ -960,9 +960,13 @@ body.page-records #mobile-month-label {
 .tx-account-name { font-size: 11px; color: var(--mid-lt); margin-top: 3px; }
 
 /* ACCOUNT LIST */
-.acct-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 18px; cursor: pointer; transition: background 0.12s; gap: 12px; }
+.acct-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px 11px 6px; cursor: default; transition: background 0.12s; gap: 8px; position: relative; border-bottom: 1px solid var(--border); }
+.acct-item:last-of-type { border-bottom: none; }
 .acct-item:hover { background: var(--warm); }
-.acct-left { display: flex; align-items: center; gap: 11px; }
+.acct-item.is-dragging { background: var(--white); box-shadow: 0 6px 20px rgba(28,43,34,0.13); border-radius: 12px; z-index: 100; opacity: 0.97; border-bottom: none; }
+.drag-handle { width: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--mid-lt); touch-action: none; cursor: grab; padding: 8px 4px; }
+.drag-handle:active { cursor: grabbing; }
+.acct-left { display: flex; align-items: center; gap: 11px; flex: 1; min-width: 0; }
 .acct-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
 .acct-icon svg { width: 16px; height: 16px; }
 .acct-name { font-size: 13.5px; font-weight: 500; }

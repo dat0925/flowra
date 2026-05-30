@@ -95,8 +95,14 @@ async function renderAccountsContent(content, accounts) {
     const total = accounts.reduce((s, a) => s + a.balance, 0);
 
     const itemsHTML = accounts.map((a, i) => `
-      ${i > 0 ? '<div class="acct-divider"></div>' : ''}
-      <div class="acct-item" data-id="${a.id}">
+      <div class="acct-item" data-id="${a.id}" data-idx="${i}">
+        <div class="drag-handle">
+          <svg viewBox="0 0 10 16" width="10" height="16" fill="var(--mid-lt)" stroke="none">
+            <circle cx="3" cy="3"  r="1.5"/><circle cx="7" cy="3"  r="1.5"/>
+            <circle cx="3" cy="8"  r="1.5"/><circle cx="7" cy="8"  r="1.5"/>
+            <circle cx="3" cy="13" r="1.5"/><circle cx="7" cy="13" r="1.5"/>
+          </svg>
+        </div>
         <div class="acct-left">
           ${acctIconHTML(a)}
           <div>
@@ -104,17 +110,7 @@ async function renderAccountsContent(content, accounts) {
             <div class="acct-type-label">${typeLabel(a.type)}</div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;">
-          <div style="display:flex;flex-direction:column;gap:2px;">
-            <button class="btn-acct-up" data-id="${a.id}" ${i === 0 ? 'disabled' : ''}
-              style="width:26px;height:22px;border-radius:6px;border:1px solid var(--border);background:var(--warm);cursor:pointer;display:flex;align-items:center;justify-content:center;color:${i === 0 ? 'var(--mid-lt)' : 'var(--mid)'};padding:0;">
-              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
-            </button>
-            <button class="btn-acct-down" data-id="${a.id}" ${i === accounts.length - 1 ? 'disabled' : ''}
-              style="width:26px;height:22px;border-radius:6px;border:1px solid var(--border);background:var(--warm);cursor:pointer;display:flex;align-items:center;justify-content:center;color:${i === accounts.length - 1 ? 'var(--mid-lt)' : 'var(--mid)'};padding:0;">
-              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-            </button>
-          </div>
+        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
           <div class="acct-balance" style="color:${a.balance<0?'var(--red)':'var(--ink)'}">
             ${a.balance < 0 ? '<span class="acct-balance-cur">−¥</span>' : '<span class="acct-balance-cur">¥</span>'}${fmt(Math.abs(a.balance))}
           </div>
@@ -217,34 +213,22 @@ async function renderAccountsContent(content, accounts) {
       });
     });
 
-    // ↑↓ 並び替えボタン
-    const reorder = async (id, dir) => {
-      const idx = accounts.findIndex(a => a.id === id);
-      const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
-      if (swapIdx < 0 || swapIdx >= accounts.length) return;
-
-      try {
-        // 全口座のsort_orderを現在の表示順で0,1,2...に正規化してからswap
-        const updates = accounts.map((a, i) => {
-          let order = i;
-          if (i === idx) order = swapIdx;
-          if (i === swapIdx) order = idx;
-          return DB.updateAccount(a.id, { sort_order: order });
-        });
-        await Promise.all(updates);
-
-        const updated = await DB.getAccounts();
-        await import('./cache.js').then(({ putAccounts }) => putAccounts(updated));
-        renderAccounts();
-      } catch (e) { showToast('エラー: ' + e.message); }
-    };
-
-    document.querySelectorAll('.btn-acct-up').forEach(btn => {
-      btn.addEventListener('click', () => reorder(btn.dataset.id, 'up'));
-    });
-    document.querySelectorAll('.btn-acct-down').forEach(btn => {
-      btn.addEventListener('click', () => reorder(btn.dataset.id, 'down'));
-    });
+    // ドラッグ並び替え初期化
+    const listWrap = content.querySelector('.panel');
+    if (listWrap) {
+      initDragSort(listWrap, accounts, async (newOrder) => {
+        try {
+          const updates = newOrder.map((a, i) => DB.updateAccount(a.id, { sort_order: i }));
+          await Promise.all(updates);
+          const updated = await DB.getAccounts();
+          const { putAccounts: put } = await import('./cache.js');
+          await put(updated);
+          renderAccountsContent(content, updated);
+        } catch (e) {
+          showToast('エラー: ' + e.message);
+        }
+      });
+    }
 }
 
 // カラーピッカーを描画
@@ -273,6 +257,93 @@ function renderColorPicker(containerId, selectedId, onChange) {
       el.classList.add('selected');
       onChange(id);
     });
+  });
+}
+
+// ── ドラッグ並び替え ──
+function initDragSort(listEl, accounts, onReorder) {
+  const items = Array.from(listEl.querySelectorAll('.acct-item'));
+  if (items.length <= 1) return;
+
+  let dragging    = null;
+  let dragIdx     = -1;
+  let newIdx      = -1;
+  let startY      = 0;
+  let lastY       = 0;
+  let dragH       = 0;
+  let origCenters = [];
+
+  const onMove = e => {
+    if (!dragging) return;
+    e.preventDefault();
+    lastY = e.touches[0].clientY;
+    const dy = lastY - startY;
+    dragging.style.transform = `translateY(${dy}px)`;
+
+    // 最も近いスロットを探す（元位置基準）
+    const fingerY = lastY;
+    let best = dragIdx, bestDist = Infinity;
+    origCenters.forEach((cy, i) => {
+      const d = Math.abs(fingerY - cy);
+      if (d < bestDist) { bestDist = d; best = i; }
+    });
+    newIdx = best;
+
+    items.forEach((el, i) => {
+      if (el === dragging) return;
+      el.style.transition = 'transform 0.15s ease';
+      let shift = 0;
+      if (newIdx > dragIdx && i > dragIdx && i <= newIdx) shift = -dragH;
+      else if (newIdx < dragIdx && i >= newIdx && i < dragIdx) shift = dragH;
+      el.style.transform = `translateY(${shift}px)`;
+    });
+  };
+
+  const onEnd = () => {
+    if (!dragging) return;
+    const finalIdx = newIdx >= 0 ? newIdx : dragIdx;
+
+    items.forEach(el => {
+      el.style.transition = 'none';
+      el.style.transform  = '';
+    });
+    dragging.classList.remove('is-dragging');
+    dragging = null;
+    newIdx   = -1;
+
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend',  onEnd);
+
+    if (finalIdx !== dragIdx) {
+      const newOrder = [...accounts];
+      const [moved]  = newOrder.splice(dragIdx, 1);
+      newOrder.splice(finalIdx, 0, moved);
+      onReorder(newOrder);
+    }
+  };
+
+  listEl.querySelectorAll('.drag-handle').forEach(handle => {
+    handle.addEventListener('touchstart', e => {
+      const item = handle.closest('.acct-item');
+      const idx  = items.indexOf(item);
+      if (idx < 0) return;
+
+      dragging    = item;
+      dragIdx     = idx;
+      newIdx      = idx;
+      dragH       = item.offsetHeight + 1;
+      startY      = e.touches[0].clientY;
+      lastY       = startY;
+      origCenters = items.map(el => {
+        const r = el.getBoundingClientRect();
+        return r.top + r.height / 2;
+      });
+
+      item.classList.add('is-dragging');
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener('touchend',  onEnd,  { passive: true });
+      e.stopPropagation();
+    }, { passive: true });
   });
 }
 
