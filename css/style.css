@@ -522,6 +522,10 @@ body.page-records #mobile-month-label {
   flex-shrink: 0;
   position: relative;
   z-index: 2;
+  /* PWA: ホームバー領域まで背景色を伸ばす */
+  margin-bottom: calc(-1 * env(safe-area-inset-bottom));
+  padding-bottom: calc(env(safe-area-inset-bottom) + 0px);
+  box-shadow: 0 env(safe-area-inset-bottom) 0 var(--ink);
 }
 .b-tab {
   display: flex;
