@@ -207,7 +207,7 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
       <div class="form-row" id="btn-edit-team-name" style="justify-content:space-between;">
         <span style="font-size:14px;font-weight:500;">チーム名</span>
         <div style="display:flex;align-items:center;gap:6px;">
-          <span style="color:var(--mid);">${ownTeam?.name || '—'}</span>
+          <span id="team-name-display" style="color:var(--mid);">${ownTeam?.name || '—'}</span>
           <svg viewBox="0 0 24 24" width="13" height="13" style="color:var(--mid-lt);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
       </div>
@@ -731,8 +731,15 @@ function openTeamNameSheet(team, teamId) {
       Sound.playTap();
       closeSheet();
       showToast('✓ チーム名を変更しました');
-      document.getElementById('page-content').innerHTML = '<div class="spinner"></div>';
-      await renderSettings();
+      // DOM直接更新（re-renderのキャッシュ問題を回避）
+      const displayEl = document.getElementById('team-name-display');
+      if (displayEl) {
+        displayEl.textContent = name;
+      } else {
+        // フォールバック: フルre-render
+        document.getElementById('page-content').innerHTML = '<div class="spinner"></div>';
+        await renderSettings();
+      }
     } catch (e) {
       errorEl.textContent = '更新に失敗しました: ' + e.message;
       errorEl.style.display = 'block';
