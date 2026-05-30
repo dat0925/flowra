@@ -274,8 +274,8 @@ export async function showImportNotion() {
       const errorEl  = document.getElementById('token-error');
       const btn      = document.getElementById('btn-validate-token');
 
-      if (!token || !token.startsWith('secret_')) {
-        errorEl.textContent = 'トークンは secret_ から始まります';
+      if (!token || (!token.startsWith('secret_') && !token.startsWith('ntn_'))) {
+        errorEl.textContent = 'トークンは secret_ または ntn_ から始まります';
         errorEl.style.display = 'block';
         return;
       }
