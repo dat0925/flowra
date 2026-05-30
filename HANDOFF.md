@@ -73,6 +73,7 @@ flowra/
 ### `accounts`
 口座情報
 - `id`, `team_id`, `name`, `type`, `icon`, `color`, `balance`, `sort_order`, `is_archived`
+- `sort_order` で並び順を管理（口座管理画面の↑↓ボタンで変更可能）
 
 ### `transactions`
 収支記録
@@ -81,6 +82,7 @@ flowra/
 ### `transaction_tags`
 記録とタグの中間テーブル
 - `transaction_id`, `tag_id`
+- **注意**: `tag_id` が NULL になるケースがある（タグ削除後の残骸）。コード側で `filter(t => t)` してnullを除外すること
 
 ### `tags`
 カテゴリタグ
@@ -124,21 +126,32 @@ flowra/
 ### チーム切り替えUI
 - モバイルヘッダーの2行目に表示（複数チーム所属時のみ）
 - 1行目: ロゴ + 月ナビ + アバター（常時表示）
-- 2行目: `🏠 個人` / `👥 [オーナー名]` のボタン形式（名前が長い場合は省略表示）
+- 2行目: `🏠 個人` / `👥 [オーナー名]` のボタン形式
 
-### 設定画面の分岐
-- **ownerの場合**: パートナー一覧 + 招待リンク発行 + チーム名編集
-- **memberの場合**: 参加中チーム表示（オーナー名・権限） + 脱退リンク
-- role判定は**アクティブチームのrole**で行う（`getAllTeams()`からactiveTeamIdで絞り込み）
+### 設定画面の構成（2セクション構造）
+- **パートナー共有**（常時表示）: 自分のチームへの招待リンク発行・メンバー管理・チーム名編集
+- **参加中のチーム**（他チームに招待されている場合のみ表示）: オーナー名・権限・脱退ボタン
+- この構造により、招待された側でも自分のチームへの招待リンクを発行できる
+
+### チーム名編集
+- `renderSettingsContent` に `ownTeamId` を明示的に引数で渡す必要がある
+- `getAllTeams()` のJOIN結果 `teams:team_id(id, name)` は配列になることがある。`team.id` ではなく `ownTeamId`（`team_members.team_id`）を使うこと
+
+### 招待リンク発行
+- `DB.createInviteForOwnTeam()` を使う（`createInvite()` はアクティブチームに対して発行するため、他チームを閲覧中だと意図しないチームに招待される）
+
+### メンバー管理UI
+- メンバー行タップ → ボトムシートで権限変更・削除
+- 削除は2段階確認（誤タップ防止）
+- 権限変更はカード選択式（編集・削除可 / 閲覧のみ）
 
 ### 脱退フロー
-- 「このチームから脱退する」テキストリンク → 確認モーダル → 「脱退する」と入力 → 脱退
+- 「このチームから脱退する」→ 確認モーダル → 「脱退する」と入力 → 脱退
 - 脱退後は自動的に自分のチームに戻る
 
 ### viewerロール制限
 - `+`ボタン（記録追加）を非表示
-- 記録タップ時のシートを「閲覧のみ」モードで表示（タイトル変更・保存/削除/複製ボタン非表示）
-- チーム切り替え時に `applyViewerMode()` を再実行して状態を同期
+- 記録タップ時のシートを「閲覧のみ」モードで表示
 
 ---
 
@@ -154,6 +167,7 @@ IndexedDB（`cache.js`）でオフライン対応：
 
 - ログアウト時に`clearAll()`で全消去（別アカウント漏れを防止）
 - `localStorage: flowra_active_team_id` もログアウト時にクリア
+- 保存時は `tags` を含めてキャッシュに保存すること（`tags: []` で上書きするとタグが消える）
 
 ---
 
@@ -162,36 +176,70 @@ IndexedDB（`cache.js`）でオフライン対応：
 モバイルでの月切り替えをスライドカルーセルで実装。
 
 ### 構造
-- `#content-carousel`（overflow:hidden ラッパー）の中に `#page-content` を配置
-- ghost パネル（`#ghost-prev` / `#ghost-next`）を動的生成してドラッグ時に隣月をのぞかせる
+- `#content-carousel`（overflow:hidden ラッパー）の中に ghost パネル → `#page-content` の順でDOM配置
+- ghost パネル（`#ghost-prev` / `#ghost-next`）はDOMで `#page-content` より前に挿入（z-index不要）
+- ghost の opacity は**JSで完全管理**（CSS側には書かない）。初期値 `opacity:0`
 
-### 動作
-- **ドラッグ中**: コンテンツが指に追随。反対側からghostパネルがのぞく
-- **離したとき**: しきい値（28%）超えでスライド完了 → `MonthState.next()/prev()` → 新コンテンツが逆側からスライドイン
-- **軸ロック**: 横スワイプ確定後は `e.preventDefault()` で縦スクロールを完全封鎖（`passive:false`）
-- **< > ボタン**: `_slideMonth()` を呼び出し、ボタン操作でも同じアニメーション
-- 未来月への制限なし（将来日付の記録も閲覧可能）
+### ghost の opacity 管理ルール
+| 状態 | opacity |
+|------|---------|
+| 静止時 | `0`（JSで明示） |
+| ドラッグ中（アクティブ側） | `0.78` |
+| ドラッグ中（非アクティブ側） | `0` |
+| commitSlide完了後 | `0` |
+
+- `_loadGhostPanels()` が innerHTML を更新した後も `opacity:0` を明示すること
+- `touchend` で縦スクロール判定（`axis !== 'h'`）で早期returnする場合もghostをリセットすること
+
+### ghost の位置計算（px固定）
+- `ghostNext`: `translateX(tx + w)` — contentの右隣
+- `ghostPrev`: `translateX(tx - w)` — contentの左隣
+- **%指定は使わない**（要素幅基準になりズレる）
+- 静止時リセット: `translateX(-w)` / `translateX(w)`
+
+### スワイプ判定
+- 判定開始: 12px移動後
+- 横スワイプ確定条件: `|dx| > |dy| × 2`（斜め移動をタップとみなして除外）
+- これによりレコードタップ時の微ブレでスライドが誤発動しない
+
+### 動作フロー
+1. `touchstart`: startX/Y記録
+2. `touchmove`: 12px超えたら軸判定 → 横確定で `trackDrag(tx, rawDx, w)`
+3. `touchend`: 28%閾値超えで `commitSlide(dir)` / 未満で `cancelDrag()`
+4. `commitSlide`: content退場 + ghost中央へ → 290ms後に月更新 + content即配置
+5. `_updateMonthLabels`: ラベル更新 + `renderRecords()` + `_loadGhostPanels()`
 
 ### スワイプ有効画面
-**記録一覧のみ**スワイプジェスチャーを有効にしている。
-
-| 画面 | スワイプ | 理由 |
-|------|----------|------|
-| 記録一覧 | ✅ 有効 | 月ごとのレコードが切り替わる |
-| ホーム | ❌ 無効 | 総残高は現在値固定のため誤解を招く |
-| 口座 | ❌ 無効 | 月の概念がない |
-| 設定 | ❌ 無効 | 月の概念がない |
-
-`< >` ボタンはすべての画面で有効（明示的な操作なので問題なし）。
+記録一覧のみ有効。`< >` ボタンは全画面で有効。
 
 ---
 
-## iOS PWA 対応メモ
+## PWA対応メモ
 
+- `viewport-fit=cover, maximum-scale=1.0, user-scalable=no` でダブルタップズーム無効
+- `#app { position: fixed; inset: 0; height: 100dvh }` でbodyスクロールを封じる
+- `#bottom-nav` の高さは `max(env(safe-area-inset-bottom), 12px)` で最低余白を保証
+- `#bottom-nav::after { pointer-events: none }` でホームバー塗りつぶし
 - `user-select: none` を全体に適用済み（長押しメニュー抑制）
-- キーボード表示はダミーinput（`#ios-focus-trick`）を同期的にfocusしてから非同期処理
 - クリップボードAPIが失敗する場合はWeb Share APIにフォールバック
-- `navigator.clipboard.writeText`はHTTPSかつユーザー操作直後のみ動作
+
+---
+
+## 口座並び替え
+
+- `accounts.js` の↑↓ボタンで `sort_order` を更新
+- **重要**: 既存の `sort_order` がバラバラな場合があるため、swap時は全口座を `0,1,2...` に正規化してからswapする
+- 更新後は `DB.getAccounts()` → `putAccounts()` → `renderAccounts()` の順で再描画
+
+---
+
+## 保存後の楽観的UI（patchAddRecord）
+
+記録保存後、再描画なしでリストの先頭に行を差し込む。
+
+- `tx.tags`（タグオブジェクト配列）を含めて渡すこと
+- 保存時に `tags: []` でキャッシュを上書きしない（`add-record.js` の `upsertTransactions` に注意）
+- 差し込んだ行にクリックイベントを付与すること（付け忘れるとタップで編集画面に行けない）
 
 ---
 
@@ -199,35 +247,58 @@ IndexedDB（`cache.js`）でオフライン対応：
 
 ### 🟢 次フェーズ候補
 
-1. **Excelインポート**
+1. **タグの並び替え**
+   - 設定画面のタグ管理に↑↓ボタンを追加
+   - 追加画面のカテゴリ選択にも反映
+
+2. **Excelインポート**
    - オーナーが過去データ（約3万件）をExcelから一括インポートしたい
    - 列構成は未確認。実装前に列構成の確認が必要
 
-2. **MIRRAテーブルの削除**
+3. **MIRRAテーブルの削除**
    - Supabaseに別アプリ（MIRRA）のテーブルが混在
-   - パートナー招待前に削除推奨
    - 対象: `appointments`, `conversations`, `customers`, `karte`, `salons`
 
 ---
 
 ## 開発メモ
 
-- **Claude Codeより会話型Claudeで開発** - iPadのみで開発しているためCLIなし
+- **Claude Codeより会話型Claudeで開発** - スマホ・iPadのみで開発しているためCLIなし
 - PATは都度発行・失効はオーナーが手動で行う（fine-grained PAT推奨）
 - Supabaseのスキーマ変更は必ずSQL Editorで実施後にコードを変更する順番で
 - `team_members`テーブルは`id`カラムがないので注意（`(team_id, user_id)`で識別）
 - RLS変更時は再帰に注意。`SECURITY DEFINER`関数で回避するパターンを使うこと
 - `db.js` の `_allTeams` キャッシュは `updateTeam()` / `leaveTeam()` 時にリセット済み
+- CSS と JS で同じプロパティを管理すると競合する（ghost opacity の教訓）
 
 ---
 
 ## 変更履歴
 
-### 2026-05-30
-- **fix**: `settings.js` role判定をアクティブチームベースに修正（`allTeams.find` → `activeTeamId`で絞り込み）
-- **fix**: モバイルヘッダーを1行に圧縮（ロゴ + 月ナビ + アバター）、チーム切り替えは2行目
-- **feat**: viewerロールの編集制限を実装（`+`ボタン非表示・編集シートを閲覧のみモードに）
-- **feat**: チーム名カスタマイズ機能（設定画面 → チーム名行タップ → ボトムシートで編集）
-- **fix**: 未来月への月ナビ制限を撤廃
-- **feat**: 月切り替えをスライドカルーセルに変更（ドラッグ・ghostパネル・軸ロック実装）
-- **fix**: 月カルーセルのスワイプを記録一覧のみに制限（ホーム等では誤解を招くため無効化）
+### 2026-05-30（セッション1）
+- **fix**: `settings.js` role判定をアクティブチームベースに修正
+- **fix**: モバイルヘッダーを1行に圧縮（ロゴ + 月ナビ + アバター）
+- **feat**: viewerロールの編集制限を実装
+- **feat**: チーム名カスタマイズ機能
+- **feat**: 月切り替えをスライドカルーセルに変更
+
+### 2026-05-30（セッション2）
+- **feat**: ghostパネルに隣月の実データを表示（キャッシュから取得）
+- **feat**: 月ラベルにスライドアニメーション（方向連動）、固定幅化で位置揺れ解消
+- **feat**: ドラッグ中ヘッダーに方向ラベル表示（`5月 → 6月`）
+- **refactor**: 設定画面を2セクション構造に刷新（自分のチーム常時表示 + 参加中チーム別表示）
+- **feat**: メンバー管理をボトムシート化（削除2段階確認・権限変更カード選択式）
+- **feat**: 口座並び替え↑↓ボタン（sort_order正規化方式）
+- **fix**: ghost opacity をJS完全管理に統一（CSS/JS競合解消）
+- **fix**: ghost DOM順序を `insertBefore` でcontentより背後に（z-index不要）
+- **fix**: スワイプ判定を厳格化（閾値12px・横が縦の2倍以上）
+- **fix**: タグ保存後にキャッシュで消える問題（`tags:[]`上書き修正）
+- **fix**: 保存直後のタグ表示・タップ編集（`patchAddRecord`刷新）
+- **fix**: `tags[0]`がnullでクラッシュするバグ
+- **fix**: チーム名更新エラー（`ownTeamId`を明示的に渡す）
+- **fix**: 保存後にsave-barが残る問題（二重closeModal削除）
+- **fix**: 口座選択シートのヘッダー固定（閉じるボタンが隠れる問題）
+- **fix**: iOS PWA ダブルタップズーム無効化
+- **fix**: iOS PWA ボトムナビ safe-area 対応
+- **fix**: iOS PWA ヘッダー・フッター流れる問題（`#app { position: fixed }`）
+- **fix**: touchend縦スクロール判定時のghost残り問題
