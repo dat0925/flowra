@@ -15,6 +15,15 @@ import { DB }                from './db.js';
 
 export { fmt, showToast, openModal, closeModal };
 
+// ── PWA高さ修正: window.innerHeightで--app-hをセット ──
+// iOSのPWAでは100dvhがホームバーを正しく考慮しないため
+// window.innerHeightの実測値をCSS変数に反映する
+(function setAppHeight() {
+  const set = () => document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
+  set();
+  window.addEventListener('resize', set);
+})();
+
 // ── スプラッシュ非表示 ──────────────
 function hideSplash() {
   const splash = document.getElementById('splash');

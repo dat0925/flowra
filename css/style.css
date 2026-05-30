@@ -30,7 +30,7 @@
    RESET & BASE
 ══════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; overflow: hidden; background: var(--ink); }
+html, body { height: 100%; overflow: hidden; background: var(--ink); overscroll-behavior: none; }
 
 body {
   font-family: 'Noto Sans JP', sans-serif;
@@ -167,6 +167,7 @@ svg {
   display: flex;
   height: 100vh;
   height: 100dvh;
+  height: var(--app-h, 100dvh);
   overflow: hidden;
 }
 
@@ -1041,7 +1042,7 @@ body.page-records #mobile-month-label {
   #topbar        { display: none; }
   #mobile-header { display: block; }
   #bottom-nav    { display: flex; }
-  #app           { flex-direction: column; height: 100dvh; }
+  #app           { flex-direction: column; height: var(--app-h, 100dvh); }
   #main          { flex: 1; min-height: 0; }
   #page-content  { padding: 14px 14px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); }
 
