@@ -50,9 +50,11 @@ export const DB = {
   // 所属チーム一覧を取得
   async getAllTeams() {
     if (_allTeams) return _allTeams;
+    const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await supabase
       .from('team_members')
       .select('team_id, role, teams:team_id(id, name)')
+      .eq('user_id', user.id)
       .order('joined_at');
     if (error) throw error;
     _allTeams = data;
