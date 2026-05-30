@@ -6,8 +6,7 @@ import { Sound } from './sound.js';
 import { showToast } from './utils.js';
 
 const NOTION_DB_ID  = '1dd85cf70c4c8055949bf3ad4ecf7ef0';
-const NOTION_VER    = '2022-06-28';
-const NOTION_BASE   = 'https://api.notion.com/v1';
+const PROXY_URL     = 'https://copyzpsyagscqrvkrwjo.supabase.co/functions/v1/notion-proxy';
 
 // ── Notionアカウント名 → Flowra口座名 マッピング ──────────
 // 右辺がFlowraの口座名（部分一致で解決）
@@ -58,40 +57,18 @@ const ACCOUNT_NAME_MAP = {
 // ── Notion API ────────────────────────────────────────────
 
 async function notionQuery(token, cursor = null) {
-  const body = {
-    page_size: 100,
-    filter: {
-      and: [
-        {
-          or: [
-            { property: '管理', select: { does_not_equal: '除外' } },
-            { property: '管理', select: { is_empty: true } },
-          ],
-        },
-        {
-          or: [
-            { property: '分類', select: { does_not_equal: '除外' } },
-            { property: '分類', select: { is_empty: true } },
-          ],
-        },
-      ],
-    },
-  };
-  if (cursor) body.start_cursor = cursor;
-
-  const res = await fetch(`${NOTION_BASE}/databases/${NOTION_DB_ID}/query`, {
+  const res = await fetch(PROXY_URL, {
     method:  'POST',
     headers: {
-      'Authorization':  `Bearer ${token}`,
-      'Notion-Version': NOTION_VER,
       'Content-Type':   'application/json',
+      'x-notion-token': token,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ cursor }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `Notion API error ${res.status}`);
+    throw new Error(err.error || err.message || `proxy error ${res.status}`);
   }
   return res.json();
 }
