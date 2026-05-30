@@ -28,12 +28,50 @@ const TYPE_BG = {
 
 function fmt(n) { return Number(n).toLocaleString('ja-JP'); }
 
+function buildMetaHTML(tx, members) {
+  function resolveUser(userId) {
+    if (!userId) return null;
+    const m = members.find(m => m.user_id === userId);
+    return m?.full_name || m?.email?.split('@')[0] || null;
+  }
+  function fmtDate(iso) {
+    if (!iso) return null;
+    const d = new Date(iso);
+    return `${d.getFullYear()}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+
+  const creatorName = resolveUser(tx.created_by);
+  const updaterName = resolveUser(tx.updated_by);
+  const createdAt   = fmtDate(tx.created_at);
+  const updatedAt   = fmtDate(tx.updated_at);
+
+  // 作成者も更新者も不明なら非表示
+  if (!creatorName && !updaterName) return '';
+
+  const rows = [];
+  if (createdAt) rows.push(`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border);">
+      <span style="font-size:11px;color:var(--mid);">登録</span>
+      <span style="font-size:11px;color:var(--mid-lt);">${creatorName ? `<span style="color:var(--mid);font-weight:500;">${creatorName}</span>　` : ''}${createdAt}</span>
+    </div>`);
+  if (updatedAt && tx.updated_by && tx.updated_by !== tx.created_by) rows.push(`
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;">
+      <span style="font-size:11px;color:var(--mid);">最終更新</span>
+      <span style="font-size:11px;color:var(--mid-lt);">${updaterName ? `<span style="color:var(--mid);font-weight:500;">${updaterName}</span>　` : ''}${updatedAt}</span>
+    </div>`);
+
+  if (!rows.length) return '';
+  return `<div style="margin-top:20px;padding:0 2px 4px;">${rows.join('')}</div>`;
+}
+
 export async function openEditRecord(tx, onSave) {
   // 最新の口座・タグを取得
-  let accounts = [], tags = [], myRole = 'member';
+  let accounts = [], tags = [], myRole = 'member', members = [];
   try {
-    [accounts, tags, myRole] = await Promise.all([
-      DB.getAccounts(), DB.getTags(), DB.getMyRole()
+    const teamId = await DB.getTeamId();
+    [accounts, tags, myRole, members] = await Promise.all([
+      DB.getAccounts(), DB.getTags(), DB.getMyRole(),
+      DB.getTeamMemberProfilesForTeam(teamId).catch(() => [])
     ]);
   } catch (e) {
     showToast('データ取得エラー: ' + e.message);
@@ -247,6 +285,9 @@ export async function openEditRecord(tx, onSave) {
         </div>
 
         <!-- 保存・キャンセルはfixed save-barに移動 -->
+
+        <!-- 登録者・更新者メタ情報 -->
+        ${buildMetaHTML(tx, members)}
 
         <!-- 複製・削除（viewerには非表示） -->
         ${isViewer ? `
