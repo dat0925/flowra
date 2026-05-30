@@ -534,6 +534,7 @@ body.page-records #mobile-month-label {
   right: 0;
   height: max(env(safe-area-inset-bottom), 12px);
   background: var(--ink);
+  pointer-events: none;
 }
 .b-tab {
   display: flex;
