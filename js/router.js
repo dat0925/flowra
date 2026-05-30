@@ -256,7 +256,19 @@ export const Router = {
     }, { passive: false });
 
     carousel.addEventListener('touchend', () => {
-      if (!active || axis !== 'h') { active = false; axis = null; return; }
+      if (!active) { return; }
+      if (axis !== 'h') {
+        // 縦スクロールや未確定の場合もghostをリセット
+        active = false; axis = null;
+        const w = carousel.offsetWidth;
+        ghostPrev().style.transition = 'none';
+        ghostNext().style.transition = 'none';
+        ghostPrev().style.opacity = '0';
+        ghostNext().style.opacity = '0';
+        ghostPrev().style.transform = `translateX(-${w}px)`;
+        ghostNext().style.transform = `translateX(${w}px)`;
+        return;
+      }
       active = false;
       axis   = null;
 

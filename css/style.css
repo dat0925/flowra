@@ -40,8 +40,6 @@ body {
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
-  position: fixed;
-  width: 100%;
 }
 
 /* iOSタップハイライト全消し・テキスト選択禁止（PWA用） */
@@ -167,7 +165,11 @@ svg {
 ══════════════════════════════ */
 #app {
   display: flex;
-  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   height: 100dvh;
   overflow: hidden;
 }
