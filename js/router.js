@@ -134,21 +134,18 @@ export const Router = {
     const ghostNext = () => document.getElementById('ghost-next');
     const ease = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
 
-    // ドラッグ中：contentはゴム感あり(tx)、ghostは生dx(rawDx)で等速追従
+    // ドラッグ中：ghostはcontentの隣にぴったり並んで動く
     const trackDrag = (tx, rawDx, w) => {
       content.style.transition = 'none';
       content.style.transform  = `translateX(${tx}px)`;
 
-      // ghost は w*0.80 の位置からスタートし rawDx 分動く（早めに顔を出す）
-      const ghostStart = Math.round(w * 0.80);
       const label = document.getElementById('mobile-month-label');
 
       if (rawDx < 0) {
+        // 左スワイプ → next ghost はcontentの右隣
         ghostNext().style.transition = 'none';
-        ghostNext().style.transform  = `translateX(${ghostStart + rawDx}px)`;
+        ghostNext().style.transform  = `translateX(${tx + w}px)`;
         ghostNext().style.opacity    = '0.78';
-        ghostPrev().style.transition = 'none';
-        ghostPrev().style.transform  = `translateX(-${w}px)`;
         ghostPrev().style.opacity    = '0';
         if (label && !label.dataset.dragging) {
           label.dataset.dragging = '1';
@@ -157,11 +154,10 @@ export const Router = {
           label.textContent = `${month}月 → ${nm}月`;
         }
       } else if (rawDx > 0) {
+        // 右スワイプ → prev ghost はcontentの左隣
         ghostPrev().style.transition = 'none';
-        ghostPrev().style.transform  = `translateX(${rawDx - ghostStart}px)`;
+        ghostPrev().style.transform  = `translateX(${tx - w}px)`;
         ghostPrev().style.opacity    = '0.78';
-        ghostNext().style.transition = 'none';
-        ghostNext().style.transform  = `translateX(${w}px)`;
         ghostNext().style.opacity    = '0';
         if (label && !label.dataset.dragging) {
           label.dataset.dragging = '1';
