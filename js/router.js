@@ -139,6 +139,8 @@ export const Router = {
     const reset = (animate) => setTransform(0, animate);
 
     carousel.addEventListener('touchstart', (e) => {
+      // スワイプは記録一覧のみ有効
+      if (this.currentPage !== 'records') return;
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
       curX   = 0;
@@ -233,7 +235,8 @@ export const Router = {
   _slideMonth(dir) {
     const content = document.getElementById('page-content');
     const carousel = document.getElementById('content-carousel');
-    if (!content || !carousel) {
+    // 記録一覧以外はアニメーションなしで月変更のみ
+    if (!content || !carousel || this.currentPage !== 'records') {
       if (dir === 'next') MonthState.next(); else MonthState.prev();
       this._updateMonthLabels();
       return;
