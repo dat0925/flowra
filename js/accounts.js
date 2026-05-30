@@ -320,10 +320,14 @@ function initDragSort(listEl, accounts, onReorder) {
     const [movedItem]  = newItemOrder.splice(dragIdx, 1);
     newItemOrder.splice(finalIdx, 0, movedItem);
 
-    const parent = items[0].parentNode;
+    const parent  = items[0].parentNode;
+    const totalEl = parent.querySelector('.acct-total');
     items.forEach(el => { el.style.transition = 'none'; el.style.transform = ''; });
     dragging.classList.remove('is-dragging');
-    newItemOrder.forEach(el => parent.appendChild(el)); // DOM並び替え
+    // acct-totalの前に挿入（末尾appendだと合計残高が一瞬最上段に来る）
+    newItemOrder.forEach(el => {
+      totalEl ? parent.insertBefore(el, totalEl) : parent.appendChild(el);
+    });
 
     const savedDragging = dragging;
     dragging = null; newIdx = -1;
