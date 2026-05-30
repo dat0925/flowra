@@ -18,7 +18,7 @@ export async function renderSettings() {
     Auth.getUser(),
   ]);
   if (cachedTags.length > 0) {
-    renderSettingsContent(content, user, null, cachedTags, [], []);
+    renderSettingsContent(content, user, null, null, cachedTags, [], []);
   } else {
     content.innerHTML = '<div class="spinner"></div>';
   }
@@ -50,7 +50,7 @@ export async function renderSettings() {
       })
     );
 
-    renderSettingsContent(content, user, ownTeam, tags, ownMembers, joinedTeams);
+    renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ownMembers, joinedTeams);
   } catch (e) {
     if (cachedTags.length === 0) {
       content.innerHTML = `<div class="empty-state"><div class="empty-state-title">エラー: ${e.message}</div></div>`;
@@ -189,7 +189,7 @@ function openTagEditSheet(tag, allTags) {
   });
 }
 
-async function renderSettingsContent(content, user, ownTeam, tags, ownMembers = [], joinedTeams = []) {
+async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ownMembers = [], joinedTeams = []) {
   content.innerHTML = `
     <!-- プロフィール -->
     <div class="panel" style="margin-bottom:16px;">
