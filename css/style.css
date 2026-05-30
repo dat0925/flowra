@@ -30,15 +30,16 @@
    RESET & BASE
 ══════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; overflow: hidden; background: var(--ink); }
+html, body { height: 100%; }
 
 body {
   font-family: 'Noto Sans JP', sans-serif;
+  background: var(--stone);
   color: var(--ink);
   font-size: 14px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 /* iOSタップハイライト全消し・テキスト選択禁止（PWA用） */
@@ -164,11 +165,7 @@ svg {
 ══════════════════════════════ */
 #app {
   display: flex;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  height: 100vh;
   height: 100dvh;
   overflow: hidden;
 }
@@ -415,26 +412,17 @@ svg {
   font-weight: 600;
   color: rgba(255,255,255,0.88);
   white-space: nowrap;
-  width: 90px;
+  min-width: 72px;
   text-align: center;
   letter-spacing: 0.02em;
   transition: opacity 0.18s;
   overflow: hidden;
-  flex-shrink: 0;
 }
 /* records画面では月ラベルをさらに強調 */
 body.page-records #mobile-month-label {
   font-size: 15px;
   color: #fff;
   letter-spacing: 0.03em;
-  width: 100px;
-}
-/* ドラッグ中：方向ラベル */
-#mobile-month-label[data-dragging] {
-  font-size: 11px;
-  letter-spacing: 0.01em;
-  color: rgba(255,255,255,0.65);
-  width: 100px;
 }
 /* スライド中の月ラベルアニメーション */
 #mobile-month-label.slide-in-left {
@@ -450,6 +438,13 @@ body.page-records #mobile-month-label {
 @keyframes monthSlideInRight {
   from { opacity: 0; transform: translateX(-16px); }
   to   { opacity: 1; transform: translateX(0); }
+}
+/* ドラッグ中：方向ラベルをやや小さく・等幅で自然に収める */
+#mobile-month-label[data-dragging] {
+  font-size: 11px;
+  letter-spacing: 0.01em;
+  color: rgba(255,255,255,0.65);
+  min-width: 88px;
 }
 .ghost-month-header {
   font-size: 11px;
@@ -518,26 +513,15 @@ body.page-records #mobile-month-label {
 #bottom-nav {
   display: none;
   background: var(--ink);
-  height: calc(var(--nav-h) + max(env(safe-area-inset-bottom), 12px));
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom));
   border-top: 1px solid rgba(255,255,255,0.06);
   align-items: center;
   justify-content: space-around;
   padding: 0 4px;
-  padding-bottom: max(env(safe-area-inset-bottom), 12px);
+  padding-bottom: env(safe-area-inset-bottom);
   flex-shrink: 0;
   position: relative;
   z-index: 2;
-}
-/* ホームバー領域を確実に塗りつぶす */
-#bottom-nav::after {
-  content: '';
-  position: absolute;
-  bottom: calc(-1 * max(env(safe-area-inset-bottom), 12px));
-  left: 0;
-  right: 0;
-  height: max(env(safe-area-inset-bottom), 12px);
-  background: var(--ink);
-  pointer-events: none;
 }
 .b-tab {
   display: flex;
