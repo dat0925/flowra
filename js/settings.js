@@ -307,7 +307,7 @@ async function renderSettingsContent(content, user, ownTeam, tags, ownMembers = 
 
   // チーム名編集
   document.getElementById('btn-edit-team-name')?.addEventListener('click', () => {
-    if (ownTeam) openTeamNameSheet(ownTeam);
+    if (ownTeam) openTeamNameSheet(ownTeam, ownTeamId);
   });
 
   document.getElementById('btn-logout')?.addEventListener('click', () => {
@@ -669,7 +669,9 @@ function showLeaveTeamModal(teamId = null) {
 }
 
 // ── チーム名編集ボトムシート ──
-function openTeamNameSheet(team) {
+function openTeamNameSheet(team, teamId) {
+  // teamIdが明示されていない場合はteam.idを使う（後方互換）
+  const resolvedTeamId = teamId || (Array.isArray(team) ? team[0]?.id : team?.id);
   Sound.playOpen();
 
   const sheet = document.createElement('div');
@@ -698,7 +700,7 @@ function openTeamNameSheet(team) {
         <div class="form-row no-tap">
           <div class="row-body">
             <div class="row-label">チーム名</div>
-            <input class="text-input" id="edit-team-name" value="${team.name}"
+            <input class="text-input" id="edit-team-name" value="${Array.isArray(team) ? team[0]?.name : team?.name || ''}"
               style="font-size:16px;" placeholder="例：遠藤家">
           </div>
         </div>
@@ -730,7 +732,7 @@ function openTeamNameSheet(team) {
     }
 
     try {
-      await DB.updateTeam(team.id, { name });
+      await DB.updateTeam(resolvedTeamId, { name });
       Sound.playTap();
       closeSheet();
       showToast('✓ チーム名を変更しました');
