@@ -14,8 +14,6 @@ export const MonthState = {
     this._emit();
   },
   next() {
-    const now = new Date();
-    if (this.year === now.getFullYear() && this.month === now.getMonth() + 1) return;
     if (this.month === 12) { this.year++; this.month = 1; }
     else this.month++;
     this._emit();
