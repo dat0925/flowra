@@ -30,13 +30,16 @@ function fmt(n) { return Number(n).toLocaleString('ja-JP'); }
 
 export async function openEditRecord(tx, onSave) {
   // 最新の口座・タグを取得
-  let accounts = [], tags = [];
+  let accounts = [], tags = [], myRole = 'member';
   try {
-    [accounts, tags] = await Promise.all([DB.getAccounts(), DB.getTags()]);
+    [accounts, tags, myRole] = await Promise.all([
+      DB.getAccounts(), DB.getTags(), DB.getMyRole()
+    ]);
   } catch (e) {
     showToast('データ取得エラー: ' + e.message);
     return;
   }
+  const isViewer = myRole === 'viewer';
 
   // sort_orderで並べて主タグが先頭になるようにする
   const txTags = (tx.tags || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -110,7 +113,7 @@ export async function openEditRecord(tx, onSave) {
         <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 0;"></div>
 
         <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px 12px;">
-          <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">記録を編集</div>
+          <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">${isViewer ? '記録を表示' : '記録を編集'}</div>
           <button id="btn-close-edit-record"
             style="width:30px;height:30px;border-radius:50%;background:var(--mist);border:none;
             display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">
@@ -120,13 +123,13 @@ export async function openEditRecord(tx, onSave) {
 
         <!-- 種別 -->
         <div class="type-selector" style="margin-bottom:14px;">
-          <button class="type-btn ${state.type==='income'?'active-income':''}" id="btn-income">
+          <button class="type-btn ${state.type==='income'?'active-income':''}" id="btn-income" ${isViewer?'disabled style="pointer-events:none;opacity:0.6;"':''}>
             <svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>収入
           </button>
-          <button class="type-btn ${state.type==='expense'?'active-expense':''}" id="btn-expense">
+          <button class="type-btn ${state.type==='expense'?'active-expense':''}" id="btn-expense" ${isViewer?'disabled style="pointer-events:none;opacity:0.6;"':''}>
             <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>支出
           </button>
-          <button class="type-btn ${state.type==='transfer'?'active-transfer':''}" id="btn-transfer">
+          <button class="type-btn ${state.type==='transfer'?'active-transfer':''}" id="btn-transfer" ${isViewer?'disabled style="pointer-events:none;opacity:0.6;"':''}>
             <svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>移動
           </button>
         </div>
@@ -245,7 +248,12 @@ export async function openEditRecord(tx, onSave) {
 
         <!-- 保存・キャンセルはfixed save-barに移動 -->
 
-        <!-- 複製 -->
+        <!-- 複製・削除（viewerには非表示） -->
+        ${isViewer ? `
+        <div style="margin-top:24px;padding:14px;border-radius:12px;background:var(--mist);text-align:center;">
+          <div style="font-size:12px;color:var(--mid);">閲覧のみ権限のため編集・削除できません</div>
+        </div>
+        ` : `
         <button id="btn-duplicate-record"
           style="width:100%;padding:12px;border-radius:14px;margin-top:8px;
           border:1.5px solid var(--border);background:none;
@@ -271,6 +279,7 @@ export async function openEditRecord(tx, onSave) {
             この記録を削除する
           </button>
         </div>
+        `}
       </div>`;
 
     bindEvents();
@@ -466,28 +475,32 @@ export async function openEditRecord(tx, onSave) {
     });
 
     // 保存
-    // save-barを表示（キーボード上部固定）
+    // save-barを表示（キーボード上部固定）：viewerは非表示
     const saveBar = document.getElementById('save-bar');
     if (saveBar) {
-      saveBar.hidden = false;
-      // 保存ボタン
-      const saveBarBtn = document.getElementById('save-bar-btn');
-      if (saveBarBtn) {
-        const newSaveBtn = saveBarBtn.cloneNode(true);
-        saveBarBtn.parentNode.replaceChild(newSaveBtn, saveBarBtn);
-        newSaveBtn.addEventListener('click', () => {
-          doSave();
-        });
-      }
-      // キャンセルボタン
-      const saveBarCancel = document.getElementById('save-bar-cancel');
-      if (saveBarCancel) {
-        const newCancelBtn = saveBarCancel.cloneNode(true);
-        saveBarCancel.parentNode.replaceChild(newCancelBtn, saveBarCancel);
-        newCancelBtn.addEventListener('click', () => {
-          saveBar.hidden = true;
-          closeSheet();
-        });
+      if (isViewer) {
+        saveBar.hidden = true;
+      } else {
+        saveBar.hidden = false;
+        // 保存ボタン
+        const saveBarBtn = document.getElementById('save-bar-btn');
+        if (saveBarBtn) {
+          const newSaveBtn = saveBarBtn.cloneNode(true);
+          saveBarBtn.parentNode.replaceChild(newSaveBtn, saveBarBtn);
+          newSaveBtn.addEventListener('click', () => {
+            doSave();
+          });
+        }
+        // キャンセルボタン
+        const saveBarCancel = document.getElementById('save-bar-cancel');
+        if (saveBarCancel) {
+          const newCancelBtn = saveBarCancel.cloneNode(true);
+          saveBarCancel.parentNode.replaceChild(newCancelBtn, saveBarCancel);
+          newCancelBtn.addEventListener('click', () => {
+            saveBar.hidden = true;
+            closeSheet();
+          });
+        }
       }
     }
 

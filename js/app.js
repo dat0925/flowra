@@ -108,6 +108,9 @@ function showApp(user) {
   // チーム切り替えUIを初期化
   initTeamSwitcher();
 
+  // viewer制限を適用
+  applyViewerMode();
+
   // ログイン後の招待処理 or 通常オンボーディング
   const pendingToken = sessionStorage.getItem('pendingInviteToken');
   if (pendingToken) {
@@ -310,6 +313,20 @@ async function showInviteAcceptDialog(token) {
 }
 
 // ── チーム切り替えUI ──────────────────
+// ── viewer制限：+ボタンの表示制御 ────────────
+async function applyViewerMode() {
+  try {
+    const role = await DB.getMyRole();
+    const isViewer = role === 'viewer';
+    const addMobile  = document.getElementById('btn-add-mobile');
+    const addDesktop = document.getElementById('btn-add-desktop');
+    if (addMobile)  addMobile.style.display  = isViewer ? 'none' : '';
+    if (addDesktop) addDesktop.style.display = isViewer ? 'none' : '';
+  } catch (e) {
+    // エラー時は何もしない（デフォルト表示を維持）
+  }
+}
+
 async function initTeamSwitcher() {
   try {
     const teams = await DB.getAllTeams();
@@ -355,6 +372,7 @@ async function initTeamSwitcher() {
         const { clearAll: clearCache } = await import('./cache.js');
         await clearCache();
         await initTeamSwitcher();
+        applyViewerMode();
         Router.navigate(Router.currentPage);
         showToast('チームを切り替えました');
       });
