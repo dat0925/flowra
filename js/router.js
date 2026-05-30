@@ -164,39 +164,46 @@ export const Router = {
       ghostNext().style.transform  = 'translateX(100%)';
     };
 
-    // コミット：ghostがそのままスライドして実態になる
+    // コミット：ghostの上に新コンテンツをクロスフェード
     const commitSlide = (dir) => {
       const w = carousel.offsetWidth;
 
-      // Step1: content と ghost を同時にスライドアウト/イン
+      // Step1: contentをスライドアウト、ghostを中央へスライドイン
       content.style.transition = ease;
       content.style.transform  = dir === 'next' ? `translateX(-${w}px)` : `translateX(${w}px)`;
-
       const activeGhost = dir === 'next' ? ghostNext() : ghostPrev();
       activeGhost.style.transition = ease;
       activeGhost.style.transform  = 'translateX(0)';
 
-      // Step2: アニメーション完了後、ghost を消して新コンテンツを即表示
       setTimeout(() => {
-        // ghost・content を即座にリセット（アニメーションなし）
-        ghostPrev().style.transition = 'none';
-        ghostNext().style.transition = 'none';
-        ghostPrev().style.opacity    = '0';
-        ghostNext().style.opacity    = '0';
-        ghostPrev().style.transform  = 'translateX(-100%)';
-        ghostNext().style.transform  = 'translateX(100%)';
-        content.style.transition     = 'none';
-        content.style.transform      = 'translateX(0)';
-
-        // 月を更新（新コンテンツをロード）
+        // Step2: 月を更新し、新コンテンツをopacity:0でghost真上に配置
         if (dir === 'next') MonthState.next(); else MonthState.prev();
         this._updateMonthLabels(dir);
 
-        // ghost を静かに復活
-        requestAnimationFrame(() => {
-          ghostPrev().style.opacity = '';
-          ghostNext().style.opacity = '';
-        });
+        content.style.transition = 'none';
+        content.style.transform  = 'translateX(0)';
+        content.style.opacity    = '0';
+
+        // Step3: 1フレーム後にクロスフェード
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          const fadeDur = '0.2s ease';
+          content.style.transition     = `opacity ${fadeDur}`;
+          activeGhost.style.transition = `opacity ${fadeDur}, transform 0s`;
+          content.style.opacity        = '1';
+          activeGhost.style.opacity    = '0';
+
+          // Step4: フェード完了後にゴーストをリセット
+          setTimeout(() => {
+            content.style.transition     = 'none';
+            content.style.opacity        = '';
+            ghostPrev().style.transition = 'none';
+            ghostNext().style.transition = 'none';
+            ghostPrev().style.opacity    = '';
+            ghostNext().style.opacity    = '';
+            ghostPrev().style.transform  = 'translateX(-100%)';
+            ghostNext().style.transform  = 'translateX(100%)';
+          }, 220);
+        }));
       }, 290);
     };
 
