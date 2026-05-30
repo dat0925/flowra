@@ -358,8 +358,8 @@ async function initTeamSwitcher() {
       }
       return `
         <button class="team-switch-btn ${isActive ? 'active' : ''}" data-team-id="${teamId}"
-          style="font-size:11px;padding:4px 12px;border-radius:20px;border:1px solid ${isActive ? 'var(--sage)' : 'var(--border)'};background:${isActive ? 'var(--sage)' : 'transparent'};color:${isActive ? '#fff' : 'rgba(255,255,255,0.6)'};cursor:pointer;">
-          ${t.role === 'owner' ? '🏠 ' : '👥 '}${name}
+          style="font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid ${isActive ? 'var(--sage)' : 'rgba(255,255,255,0.25)'};background:${isActive ? 'var(--sage)' : 'transparent'};color:${isActive ? '#fff' : 'rgba(255,255,255,0.6)'};cursor:pointer;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">
+          ${t.role === 'owner' ? '🏠' : '👥'} ${name}
         </button>
       `;
     }).join('');

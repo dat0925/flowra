@@ -365,18 +365,22 @@ svg {
 .mh-right {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
+  overflow: hidden;
 }
 .mh-month-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
+  flex-shrink: 0;
 }
 #mobile-month-label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 500;
   color: rgba(255,255,255,0.75);
-  min-width: 52px;
+  white-space: nowrap;
+  min-width: 48px;
   text-align: center;
 }
 
