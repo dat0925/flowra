@@ -224,11 +224,10 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head"><div class="panel-title">参加中のチーム</div></div>
       <div id="joined-team-info" style="padding:0 0 4px;"></div>
-      <div style="padding:12px 16px 16px;">
-        <button class="btn-primary" id="btn-leave-team" style="background:var(--red);">
+      <div style="padding:8px 16px 16px;text-align:center;">
+        <button id="btn-leave-team" style="background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;text-decoration:underline;padding:8px;">
           このチームから脱退する
         </button>
-        <p style="font-size:12px;color:var(--mid);margin-top:8px;text-align:center;">脱退すると自分のデータに戻ります</p>
       </div>
     </div>
     `}
@@ -288,16 +287,8 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
   });
 
   // チーム脱退
-  document.getElementById('btn-leave-team')?.addEventListener('click', async () => {
-    if (!confirm('このチームから脱退しますか？\n自分のデータに切り替わります。')) return;
-    try {
-      const teamId = await DB.getTeamId();
-      await DB.leaveTeam(teamId);
-      showToast('チームから脱退しました');
-      window.location.reload();
-    } catch (e) {
-      showToast('エラー: ' + e.message);
-    }
+  document.getElementById('btn-leave-team')?.addEventListener('click', () => {
+    showLeaveTeamModal();
   });
 
   document.getElementById('btn-logout')?.addEventListener('click', () => {
@@ -460,6 +451,63 @@ function showInviteUrlDialog(url) {
   });
 
   document.getElementById('btn-invite-close')?.addEventListener('click', () => overlay.remove());
+}
+
+// ── チーム脱退確認モーダル ──
+function showLeaveTeamModal() {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(28,43,34,0.6);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 0.3s;';
+  overlay.innerHTML = `
+    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:28px 28px 0 0;padding:32px 24px 48px;">
+      <h3 style="font-family:'Noto Serif JP',serif;font-size:18px;font-weight:600;color:var(--ink);margin-bottom:12px;">チームから脱退しますか？</h3>
+      <p style="font-size:14px;color:var(--mid);line-height:1.7;margin-bottom:24px;">脱退するとこのチームのデータが<br>閲覧・編集できなくなります。<br>自分の個人データに切り替わります。</p>
+      <p style="font-size:13px;color:var(--mid);margin-bottom:8px;">確認のため「脱退する」と入力してください</p>
+      <input id="leave-confirm-input" type="text" placeholder="脱退する"
+        style="-webkit-user-select:text;user-select:text;width:100%;padding:12px 14px;border-radius:10px;border:1.5px solid var(--border);font-size:15px;background:var(--white);color:var(--ink);margin-bottom:16px;box-sizing:border-box;">
+      <button id="btn-leave-confirm" disabled
+        style="width:100%;padding:14px;border-radius:14px;border:none;background:var(--mid-lt);color:#fff;font-size:15px;font-weight:600;cursor:default;margin-bottom:10px;transition:background 0.15s;">
+        脱退する
+      </button>
+      <button id="btn-leave-cancel"
+        style="width:100%;padding:10px;background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;">
+        キャンセル
+      </button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.style.opacity = '1');
+
+  const input = overlay.querySelector('#leave-confirm-input');
+  const confirmBtn = overlay.querySelector('#btn-leave-confirm');
+
+  input.addEventListener('input', () => {
+    const ok = input.value === '脱退する';
+    confirmBtn.disabled = !ok;
+    confirmBtn.style.background = ok ? 'var(--red)' : 'var(--mid-lt)';
+    confirmBtn.style.cursor = ok ? 'pointer' : 'default';
+  });
+
+  confirmBtn.addEventListener('click', async () => {
+    if (confirmBtn.disabled) return;
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = '処理中…';
+    try {
+      const teamId = await DB.getTeamId();
+      await DB.leaveTeam(teamId);
+      overlay.remove();
+      showToast('チームから脱退しました');
+      window.location.reload();
+    } catch (e) {
+      showToast('エラー: ' + e.message);
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = '脱退する';
+    }
+  });
+
+  overlay.querySelector('#btn-leave-cancel')?.addEventListener('click', () => {
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.remove(), 300);
+  });
 }
 
 // ── タグ追加ボトムシート ──
