@@ -399,12 +399,99 @@ svg {
   flex-shrink: 0;
 }
 #mobile-month-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.88);
+  white-space: nowrap;
+  min-width: 72px;
+  text-align: center;
+  letter-spacing: 0.02em;
+  transition: opacity 0.18s;
+  overflow: hidden;
+}
+/* records画面では月ラベルをさらに強調 */
+body.page-records #mobile-month-label {
+  font-size: 15px;
+  color: #fff;
+  letter-spacing: 0.03em;
+}
+/* スライド中の月ラベルアニメーション */
+#mobile-month-label.slide-in-left {
+  animation: monthSlideInLeft 0.22s cubic-bezier(0.25,0.46,0.45,0.94) both;
+}
+#mobile-month-label.slide-in-right {
+  animation: monthSlideInRight 0.22s cubic-bezier(0.25,0.46,0.45,0.94) both;
+}
+@keyframes monthSlideInLeft {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes monthSlideInRight {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+/* ghost panel のコンテンツ */
+.ghost-month-header {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mid);
+  letter-spacing: 0.04em;
+  padding: 0 4px 8px;
+  text-transform: uppercase;
+}
+.ghost-tx-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+.ghost-tx-icon {
+  width: 32px; height: 32px;
+  border-radius: 10px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+.ghost-tx-icon svg { width: 14px; height: 14px; }
+.ghost-tx-body { flex: 1; min-width: 0; }
+.ghost-tx-name {
   font-size: 12px;
   font-weight: 500;
-  color: rgba(255,255,255,0.75);
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  min-width: 48px;
-  text-align: center;
+}
+.ghost-tx-meta {
+  font-size: 10px;
+  color: var(--mid);
+  margin-top: 1px;
+}
+.ghost-tx-amount {
+  font-size: 12px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.ghost-tx-amount.income  { color: var(--sage); }
+.ghost-tx-amount.expense { color: var(--red); }
+.ghost-summary {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+  background: var(--white);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.ghost-summary-item { flex: 1; text-align: center; }
+.ghost-summary-label { font-size: 10px; color: var(--mid); }
+.ghost-summary-amount { font-size: 13px; font-weight: 600; margin-top: 2px; }
+.ghost-summary-amount.income  { color: var(--sage); }
+.ghost-summary-amount.expense { color: var(--red); }
+.ghost-date-label {
+  font-size: 10px;
+  color: var(--mid);
+  font-weight: 500;
+  padding: 8px 0 4px;
 }
 
 /* BOTTOM NAV */
