@@ -8,6 +8,7 @@ import { showToast, openModal, closeModal } from './utils.js';
 import { getCachedTags, putTags } from './cache.js';
 import { warmupAddRecord } from './add-record.js';
 import { showOnboardingForReplay } from './onboarding.js';
+import { showImportNotion } from './import-notion.js';
 
 export async function renderSettings() {
   const content = document.getElementById('page-content');
@@ -218,6 +219,12 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
         </svg>
         オンボーディングをもう一度見る
       </div>
+      <div class="form-row" id="btn-import-notion" style="color:var(--sage);">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="8 17 12 21 16 17"/><line x1="12" y1="3" x2="12" y2="21"/>
+        </svg>
+        Notionからインポート
+      </div>
       <div class="form-row" id="btn-logout" style="color:var(--red);">
         <svg viewBox="0 0 24 24" width="16" height="16" style="color:var(--red)">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -306,6 +313,10 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
 
   document.getElementById('btn-replay-onboarding')?.addEventListener('click', () => {
     showOnboardingForReplay();
+  });
+
+  document.getElementById('btn-import-notion')?.addEventListener('click', () => {
+    showImportNotion();
   });
 
   // チーム名編集

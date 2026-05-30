@@ -101,6 +101,7 @@ function showApp(user) {
   Router.register('records', renderRecords);
 
   Router.init();
+  window._flowraRouter = Router; // インポート画面等から参照できるように公開
 
   // データを事前ウォームアップ（次回のaddが同期的に開けるようにする）
   warmupAddRecord();

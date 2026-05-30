@@ -335,9 +335,9 @@ export const DB = {
     const importErrors = [];
     let done = 0;
 
-    // 行を CHUNK_SIZE 単位に分割
     for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
       const chunk = rows.slice(i, i + CHUNK_SIZE).map(r => ({
+        ...(r.id ? { id: r.id } : {}),   // 事前生成IDがあれば使用
         team_id:       teamId,
         created_by:    user.id,
         type:          r.type,
@@ -351,15 +351,23 @@ export const DB = {
       }));
 
       const { error } = await supabase.from('transactions').insert(chunk);
-      if (error) {
-        importErrors.push({ chunk: i, error: error.message });
-      }
+      if (error) importErrors.push({ chunk: i, error: error.message });
 
       done = Math.min(i + CHUNK_SIZE, rows.length);
       if (progressCallback) progressCallback(done, rows.length);
     }
 
     return { total: rows.length, errors: importErrors };
+  },
+
+  async bulkInsertTransactionTags(tagRows, progressCallback) {
+    const CHUNK_SIZE = 500;
+    for (let i = 0; i < tagRows.length; i += CHUNK_SIZE) {
+      const chunk = tagRows.slice(i, i + CHUNK_SIZE);
+      const { error } = await supabase.from('transaction_tags').insert(chunk);
+      if (error) console.warn('tag insert error:', error.message);
+      if (progressCallback) progressCallback(Math.min(i + CHUNK_SIZE, tagRows.length), tagRows.length);
+    }
   },
 
   // ── コメント ────────────────────────
