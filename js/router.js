@@ -134,6 +134,7 @@ export const Router = {
 
     // ドラッグ中：スワイプ方向のghostだけ追従、逆側は完全に隠す
     const trackDrag = (dx) => {
+      const w = carousel.offsetWidth;
       content.style.transition = 'none';
       content.style.transform  = `translateX(${dx}px)`;
 
@@ -142,32 +143,30 @@ export const Router = {
       if (dx < 0) {
         // 左スワイプ → next ghost を右から引き込む
         ghostNext().style.transition = 'none';
-        ghostNext().style.transform  = `translateX(calc(100% + ${dx}px))`;
+        ghostNext().style.transform  = `translateX(${w + dx}px)`;
         ghostNext().style.opacity    = '1';
         ghostPrev().style.transition = 'none';
-        ghostPrev().style.transform  = 'translateX(-100%)';
+        ghostPrev().style.transform  = `translateX(-${w}px)`;
         ghostPrev().style.opacity    = '0';
         // ヘッダー: 5月 → 6月
         if (label && !label.dataset.dragging) {
           label.dataset.dragging = '1';
           const { year, month } = MonthState;
-          const ny = month === 12 ? year + 1 : year;
           const nm = month === 12 ? 1 : month + 1;
           label.textContent = `${month}月 → ${nm}月`;
         }
       } else if (dx > 0) {
         // 右スワイプ → prev ghost を左から引き込む
         ghostPrev().style.transition = 'none';
-        ghostPrev().style.transform  = `translateX(calc(-100% + ${dx}px))`;
+        ghostPrev().style.transform  = `translateX(${dx - w}px)`;
         ghostPrev().style.opacity    = '1';
         ghostNext().style.transition = 'none';
-        ghostNext().style.transform  = 'translateX(100%)';
+        ghostNext().style.transform  = `translateX(${w}px)`;
         ghostNext().style.opacity    = '0';
         // ヘッダー: 4月 ← 5月
         if (label && !label.dataset.dragging) {
           label.dataset.dragging = '1';
           const { year, month } = MonthState;
-          const py = month === 1 ? year - 1 : year;
           const pm = month === 1 ? 12 : month - 1;
           label.textContent = `${pm}月 ← ${month}月`;
         }
