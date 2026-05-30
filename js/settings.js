@@ -30,13 +30,14 @@ export async function renderSettings() {
     ]);
     await putTags(tags);
 
-    // 招待されたチームがあるかどうかでroleを判定
-    // （アクティブチームではなく、自分がmemberとして参加しているチームがあるか）
-    const joinedTeam = allTeams.find(t => t.role !== 'owner');
+    // アクティブチームにおける自分のroleを判定
+    const activeTeamId = await DB.getTeamId();
+    const activeEntry  = allTeams.find(t => t.team_id === activeTeamId);
+    const myRole       = activeEntry?.role || 'member';
 
-    if (joinedTeam) {
+    if (myRole !== 'owner') {
       // 招待された側：そのチームのメンバー情報を取得
-      const joinedMembers = await DB.getTeamMemberProfilesForTeam(joinedTeam.team_id);
+      const joinedMembers = await DB.getTeamMemberProfilesForTeam(activeTeamId);
       renderSettingsContent(content, user, team, tags, 'member', joinedMembers);
     } else {
       // オーナー：自分のチームのメンバー一覧
