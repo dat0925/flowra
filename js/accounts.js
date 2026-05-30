@@ -303,23 +303,36 @@ function initDragSort(listEl, accounts, onReorder) {
     if (!dragging) return;
     const finalIdx = newIdx >= 0 ? newIdx : dragIdx;
 
-    items.forEach(el => {
-      el.style.transition = 'none';
-      el.style.transform  = '';
-    });
-    dragging.classList.remove('is-dragging');
-    dragging = null;
-    newIdx   = -1;
-
     document.removeEventListener('touchmove', onMove);
     document.removeEventListener('touchend',  onEnd);
 
-    if (finalIdx !== dragIdx) {
-      const newOrder = [...accounts];
-      const [moved]  = newOrder.splice(dragIdx, 1);
-      newOrder.splice(finalIdx, 0, moved);
-      onReorder(newOrder);
+    if (finalIdx === dragIdx) {
+      // 移動なし：リセットのみ
+      items.forEach(el => { el.style.transition = 'none'; el.style.transform = ''; });
+      dragging.classList.remove('is-dragging');
+      dragging = null; newIdx = -1;
+      return;
     }
+
+    // DOM並び替えとtransformリセットを同一フレームで実行
+    // → ブラウザが1回のペイントで処理するため「戻り」フラッシュが消える
+    const newItemOrder = [...items];
+    const [movedItem]  = newItemOrder.splice(dragIdx, 1);
+    newItemOrder.splice(finalIdx, 0, movedItem);
+
+    const parent = items[0].parentNode;
+    items.forEach(el => { el.style.transition = 'none'; el.style.transform = ''; });
+    dragging.classList.remove('is-dragging');
+    newItemOrder.forEach(el => parent.appendChild(el)); // DOM並び替え
+
+    const savedDragging = dragging;
+    dragging = null; newIdx = -1;
+
+    // accounts配列も新順序で構築
+    const newOrder = [...accounts];
+    const [moved] = newOrder.splice(dragIdx, 1);
+    newOrder.splice(finalIdx, 0, moved);
+    onReorder(newOrder);
   };
 
   listEl.querySelectorAll('.drag-handle').forEach(handle => {
