@@ -210,13 +210,15 @@ export const Router = {
       activeGhost.style.transform  = 'translateX(0)';
 
       setTimeout(() => {
-        // Step2: ghostを即非表示にし、新コンテンツをその場に配置して表示
+        // Step2: transition を切ってから ghost を即座に非表示
         ghostPrev().style.transition = 'none';
         ghostNext().style.transition = 'none';
-        ghostPrev().style.opacity    = '0';
-        ghostNext().style.opacity    = '0';
-        ghostPrev().style.transform  = `translateX(-${w}px)`;
-        ghostNext().style.transform  = `translateX(${w}px)`;
+        // force reflow して transition が確実に切れてから opacity を設定
+        void ghostPrev().offsetWidth;
+        ghostPrev().style.opacity   = '0';
+        ghostNext().style.opacity   = '0';
+        ghostPrev().style.transform = `translateX(-${w}px)`;
+        ghostNext().style.transform = `translateX(${w}px)`;
 
         content.style.transition = 'none';
         content.style.transform  = 'translateX(0)';
@@ -224,12 +226,6 @@ export const Router = {
         // 月更新（renderRecordsが走る）
         if (dir === 'next') MonthState.next(); else MonthState.prev();
         this._updateMonthLabels(dir);
-
-        // Step3: レンダリング完了後にghostをリセット（位置だけ戻す、opacityは0のまま）
-        setTimeout(() => {
-          ghostPrev().style.opacity = '0';
-          ghostNext().style.opacity = '0';
-        }, 400);
       }, 290);
     };
 
@@ -434,7 +430,7 @@ export const Router = {
 
     const gp = document.getElementById('ghost-prev');
     const gn = document.getElementById('ghost-next');
-    if (gp) gp.innerHTML = buildGhostHTML(prevTxs, prevY, prevM);
-    if (gn) gn.innerHTML = buildGhostHTML(nextTxs, nextY, nextM);
+    if (gp) { gp.innerHTML = buildGhostHTML(prevTxs, prevY, prevM); gp.style.opacity = '0'; }
+    if (gn) { gn.innerHTML = buildGhostHTML(nextTxs, nextY, nextM); gn.style.opacity = '0'; }
   },
 };
