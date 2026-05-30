@@ -25,11 +25,24 @@ export async function renderSettings() {
 
   // バックグラウンドで最新取得
   try {
-    const [team, tags, myRole, members] = await Promise.all([
-      DB.getTeam(), DB.getTags(), DB.getMyRole(), DB.getTeamMembers()
+    const [team, tags, allTeams] = await Promise.all([
+      DB.getTeam(), DB.getTags(), DB.getAllTeams()
     ]);
     await putTags(tags);
-    renderSettingsContent(content, user, team, tags, myRole, members);
+
+    // 招待されたチームがあるかどうかでroleを判定
+    // （アクティブチームではなく、自分がmemberとして参加しているチームがあるか）
+    const joinedTeam = allTeams.find(t => t.role !== 'owner');
+
+    if (joinedTeam) {
+      // 招待された側：そのチームのメンバー情報を取得
+      const joinedMembers = await DB.getTeamMemberProfilesForTeam(joinedTeam.team_id);
+      renderSettingsContent(content, user, team, tags, 'member', joinedMembers);
+    } else {
+      // オーナー：自分のチームのメンバー一覧
+      const ownMembers = await DB.getTeamMembers();
+      renderSettingsContent(content, user, team, tags, 'owner', ownMembers);
+    }
   } catch (e) {
     if (cachedTags.length === 0) {
       content.innerHTML = `<div class="empty-state"><div class="empty-state-title">エラー: ${e.message}</div></div>`;

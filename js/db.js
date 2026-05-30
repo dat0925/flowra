@@ -372,6 +372,14 @@ export const DB = {
     return data;
   },
 
+  // 指定チームのメンバープロフィールを取得
+  async getTeamMemberProfilesForTeam(teamId) {
+    const { data, error } = await supabase
+      .rpc('get_team_member_profiles', { p_team_id: teamId });
+    if (error) throw error;
+    return data;
+  },
+
   // 複数チームのオーナー情報を一括取得（チーム切り替えUI用）
   async getTeamMemberProfiles(teamIds) {
     const results = [];
