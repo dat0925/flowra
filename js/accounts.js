@@ -96,7 +96,7 @@ async function renderAccountsContent(content, accounts) {
 
     const itemsHTML = accounts.map((a, i) => `
       ${i > 0 ? '<div class="acct-divider"></div>' : ''}
-      <div class="acct-item">
+      <div class="acct-item" data-id="${a.id}">
         <div class="acct-left">
           ${acctIconHTML(a)}
           <div>
@@ -104,7 +104,17 @@ async function renderAccountsContent(content, accounts) {
             <div class="acct-type-label">${typeLabel(a.type)}</div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <div style="display:flex;flex-direction:column;gap:2px;">
+            <button class="btn-acct-up" data-id="${a.id}" ${i === 0 ? 'disabled' : ''}
+              style="width:26px;height:22px;border-radius:6px;border:1px solid var(--border);background:var(--warm);cursor:pointer;display:flex;align-items:center;justify-content:center;color:${i === 0 ? 'var(--mid-lt)' : 'var(--mid)'};padding:0;">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="18 15 12 9 6 15"/></svg>
+            </button>
+            <button class="btn-acct-down" data-id="${a.id}" ${i === accounts.length - 1 ? 'disabled' : ''}
+              style="width:26px;height:22px;border-radius:6px;border:1px solid var(--border);background:var(--warm);cursor:pointer;display:flex;align-items:center;justify-content:center;color:${i === accounts.length - 1 ? 'var(--mid-lt)' : 'var(--mid)'};padding:0;">
+              <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+          </div>
           <div class="acct-balance" style="color:${a.balance<0?'var(--red)':'var(--ink)'}">
             ${a.balance < 0 ? '<span class="acct-balance-cur">−¥</span>' : '<span class="acct-balance-cur">¥</span>'}${fmt(Math.abs(a.balance))}
           </div>
@@ -205,6 +215,36 @@ async function renderAccountsContent(content, accounts) {
         const acct = accounts.find(a => a.id === btn.dataset.id);
         if (acct) openEditModal(acct);
       });
+    });
+
+    // ↑↓ 並び替えボタン
+    const reorder = async (id, dir) => {
+      const idx = accounts.findIndex(a => a.id === id);
+      const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
+      if (swapIdx < 0 || swapIdx >= accounts.length) return;
+
+      const a = accounts[idx];
+      const b = accounts[swapIdx];
+      const newOrderA = b.sort_order ?? swapIdx;
+      const newOrderB = a.sort_order ?? idx;
+
+      try {
+        await Promise.all([
+          DB.updateAccount(a.id, { sort_order: newOrderA }),
+          DB.updateAccount(b.id, { sort_order: newOrderB }),
+        ]);
+        // キャッシュ更新して再描画
+        const updated = await DB.getAccounts();
+        await import('./cache.js').then(({ putAccounts }) => putAccounts(updated));
+        renderAccounts();
+      } catch (e) { showToast('エラー: ' + e.message); }
+    };
+
+    document.querySelectorAll('.btn-acct-up').forEach(btn => {
+      btn.addEventListener('click', () => reorder(btn.dataset.id, 'up'));
+    });
+    document.querySelectorAll('.btn-acct-down').forEach(btn => {
+      btn.addEventListener('click', () => reorder(btn.dataset.id, 'down'));
     });
 }
 
