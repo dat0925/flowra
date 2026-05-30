@@ -30,10 +30,11 @@
    RESET & BASE
 ══════════════════════════════ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; overflow: hidden; background: var(--ink); }
+html, body { height: 100%; overflow: hidden; }
 
 body {
   font-family: 'Noto Sans JP', sans-serif;
+  background: var(--stone);
   color: var(--ink);
   font-size: 14px;
   line-height: 1.5;
@@ -171,6 +172,17 @@ svg {
   bottom: 0;
   height: 100dvh;
   overflow: hidden;
+}
+/* ホームバー下の隙間をボトムナビと同色で塗る */
+#app::after {
+  content: '';
+  position: fixed;
+  bottom: calc(-1 * env(safe-area-inset-bottom, 0px));
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-bottom, 0px);
+  background: var(--ink);
+  pointer-events: none;
 }
 
 /* SIDEBAR */
