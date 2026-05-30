@@ -15,14 +15,6 @@ import { DB }                from './db.js';
 
 export { fmt, showToast, openModal, closeModal };
 
-// ── iOS PWA ビューポート高さ修正 ──────
-function fixViewportHeight() {
-  const app = document.getElementById('app');
-  if (!app) return;
-  // window.innerHeight は PWA でホームバーを除いた実際の高さを返す
-  app.style.height = window.innerHeight + 'px';
-}
-
 // ── スプラッシュ非表示 ──────────────
 function hideSplash() {
   const splash = document.getElementById('splash');
@@ -48,9 +40,6 @@ function showLogin() {
 
 // ── 初期化 ──────────────────────────
 async function init() {
-  // iOS PWA のビューポート高さを修正
-  fixViewportHeight();
-  window.addEventListener('resize', fixViewportHeight);
   // 招待トークンをURLから取得して保存
   const urlParams = new URLSearchParams(window.location.search);
   const inviteToken = urlParams.get('invite');

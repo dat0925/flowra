@@ -165,11 +165,8 @@ svg {
 ══════════════════════════════ */
 #app {
   display: flex;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -518,17 +515,16 @@ body.page-records #mobile-month-label {
 #bottom-nav {
   display: none;
   background: var(--ink);
+  height: calc(var(--nav-h) + max(env(safe-area-inset-bottom), 12px));
   border-top: 1px solid rgba(255,255,255,0.06);
   align-items: center;
   justify-content: space-around;
   padding: 0 4px;
-  padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: calc(var(--nav-h) + max(env(safe-area-inset-bottom, 0px), 8px));
-  z-index: 100;
+  padding-bottom: max(env(safe-area-inset-bottom), 12px);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  box-shadow: 0 max(env(safe-area-inset-bottom), 12px) 0 var(--ink);
 }
 .b-tab {
   display: flex;
@@ -1045,7 +1041,8 @@ body.page-records #mobile-month-label {
   #mobile-header { display: block; }
   #bottom-nav    { display: flex; }
   #app           { flex-direction: column; }
-  #page-content  { padding: 14px 14px calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 16px); }
+  #main          { height: 100dvh; }
+  #page-content  { padding: 14px 14px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); }
 
   .summary-row { grid-template-columns: 1fr; gap: 10px; }
   .s-number { font-size: 26px; }
