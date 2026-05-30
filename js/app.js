@@ -125,13 +125,10 @@ function showApp(user) {
 
   // ボタンのクリックハンドラ
   const openAdd = () => {
-    // dummy.focusはサジェスト画面をスキップして直接入力画面を開く時のみ行う
-    // （サジェスト画面ではキーボードを出さない）
     renderAddRecord(
       (savedTx) => {
-        closeModal();
         showToast('✓ 記録を保存しました');
-        warmupAddRecord(); // 保存後にキャッシュ更新
+        warmupAddRecord();
         if (savedTx) {
           patchAfterSave(savedTx);
         } else {
