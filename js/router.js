@@ -120,6 +120,8 @@ export const Router = {
       const g = document.createElement('div');
       g.id = `ghost-${side}`;
       g.className = 'ghost-panel';
+      g.style.opacity   = '0';
+      g.style.transform = side === 'prev' ? 'translateX(-100%)' : 'translateX(100%)';
       carousel.appendChild(g);
     });
 
@@ -175,12 +177,15 @@ export const Router = {
 
     // リセット（キャンセル時）
     const cancelDrag = () => {
+      const w = carousel.offsetWidth;
       content.style.transition     = ease;
       content.style.transform      = 'translateX(0)';
       ghostPrev().style.transition = ease;
       ghostNext().style.transition = ease;
-      ghostPrev().style.transform  = 'translateX(-100%)';
-      ghostNext().style.transform  = 'translateX(100%)';
+      ghostPrev().style.transform  = `translateX(-${w}px)`;
+      ghostNext().style.transform  = `translateX(${w}px)`;
+      ghostPrev().style.opacity    = '0';
+      ghostNext().style.opacity    = '0';
       // ヘッダーラベルを元に戻す
       const label = document.getElementById('mobile-month-label');
       if (label) {

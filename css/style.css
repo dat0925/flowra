@@ -362,14 +362,11 @@ svg {
   opacity: 0.78;
   background: var(--stone);
 }
-/* 静止時は完全に隠れている */
 #ghost-prev {
-  transform: translateX(-100%);
   border-right: 2px solid var(--border);
   box-shadow: 4px 0 16px rgba(28,43,34,0.08);
 }
 #ghost-next {
-  transform: translateX(100%);
   border-left: 2px solid var(--border);
   box-shadow: -4px 0 16px rgba(28,43,34,0.08);
 }
