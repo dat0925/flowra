@@ -135,8 +135,9 @@ export const Router = {
       ghostPrev().style.transition      = animate ? ease : 'none';
       ghostNext().style.transition      = animate ? ease : 'none';
       content.style.transform           = `translateX(${dx}px)`;
-      ghostPrev().style.transform       = `translateX(calc(-100% + ${dx}px))`;
-      ghostNext().style.transform       = `translateX(calc(100% + ${dx}px))`;
+      // 初期位置 -68% / +68%、ドラッグに追従
+      ghostPrev().style.transform       = `translateX(calc(-68% + ${dx}px))`;
+      ghostNext().style.transform       = `translateX(calc(68% + ${dx}px))`;
     };
 
     const ghostPrev = () => document.getElementById('ghost-prev');
@@ -202,8 +203,8 @@ export const Router = {
           // 右側から滑り込む準備
           content.style.transition = 'none';
           content.style.transform  = `translateX(${w}px)`;
-          ghostPrev().style.transform = 'translateX(-100%)';
-          ghostNext().style.transform = 'translateX(100%)';
+          ghostPrev().style.transform = 'translateX(-68%)';
+          ghostNext().style.transform = 'translateX(68%)';
           MonthState.next();
           this._updateMonthLabels('next');
           // 2フレーム待ってからスライドイン
@@ -222,8 +223,8 @@ export const Router = {
           // 左側から滑り込む準備
           content.style.transition = 'none';
           content.style.transform  = `translateX(-${w}px)`;
-          ghostPrev().style.transform = 'translateX(-100%)';
-          ghostNext().style.transform = 'translateX(100%)';
+          ghostPrev().style.transform = 'translateX(-68%)';
+          ghostNext().style.transform = 'translateX(68%)';
           MonthState.prev();
           this._updateMonthLabels('prev');
           requestAnimationFrame(() => requestAnimationFrame(() => {

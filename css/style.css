@@ -357,13 +357,22 @@ svg {
   pointer-events: none;
   display: flex;
   align-items: flex-start;
-  justify-content: center;
-  padding-top: 60px;
-  opacity: 0.45;
-  background: var(--bg, #F5F3EF);
+  justify-content: flex-start;
+  padding-top: 0;
+  opacity: 0.78;
+  background: var(--stone);
 }
-#ghost-prev  { transform: translateX(-100%); }
-#ghost-next  { transform: translateX(100%); }
+/* ドラッグ前は32%見せる、境界線で現在月と分離 */
+#ghost-prev {
+  transform: translateX(-68%);
+  border-right: 2px solid var(--border);
+  box-shadow: 4px 0 16px rgba(28,43,34,0.06);
+}
+#ghost-next {
+  transform: translateX(68%);
+  border-left: 2px solid var(--border);
+  box-shadow: -4px 0 16px rgba(28,43,34,0.06);
+}
 
 /* MOBILE HEADER */
 #mobile-header {
