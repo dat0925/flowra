@@ -115,14 +115,14 @@ export const Router = {
     const content  = document.getElementById('page-content');
     if (!carousel || !content) return;
 
-    // ghost パネルを追加
+    // ghost パネルを追加（page-contentの前に挿入してDOM順でcontentが前面）
     ['prev','next'].forEach(side => {
       const g = document.createElement('div');
       g.id = `ghost-${side}`;
       g.className = 'ghost-panel';
       g.style.opacity   = '0';
-      g.style.transform = side === 'prev' ? 'translateX(-100%)' : 'translateX(100%)';
-      carousel.appendChild(g);
+      g.style.transform = side === 'prev' ? `translateX(-${carousel.offsetWidth || 400}px)` : `translateX(${carousel.offsetWidth || 400}px)`;
+      carousel.insertBefore(g, content);
     });
 
     let startX = 0, startY = 0;
