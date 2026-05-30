@@ -539,11 +539,13 @@ function renderJoinedTeamsList(joinedTeams, currentUser) {
     const me    = members.find(m => m.user_id === currentUser?.id);
     if (!owner) return '';
 
-    const name      = owner.full_name || owner.email?.split('@')[0] || 'オーナー';
-    const initial   = name.charAt(0).toUpperCase();
-    const roleLabel = me?.role === 'viewer' ? '閲覧のみ' : '編集・削除可';
-    const roleBg    = me?.role === 'viewer' ? 'var(--stone)' : 'var(--sage-bg)';
-    const roleColor = me?.role === 'viewer' ? 'var(--mid)' : 'var(--sage-dk)';
+    const ownerName  = owner.full_name || owner.email?.split('@')[0] || 'オーナー';
+    const teamData   = Array.isArray(entry.teams) ? entry.teams[0] : entry.teams;
+    const teamName   = teamData?.name || `${ownerName}のチーム`;
+    const initial    = teamName.charAt(0).toUpperCase();
+    const roleLabel  = me?.role === 'viewer' ? '閲覧のみ' : '編集・削除可';
+    const roleBg     = me?.role === 'viewer' ? 'var(--stone)' : 'var(--sage-bg)';
+    const roleColor  = me?.role === 'viewer' ? 'var(--mid)' : 'var(--sage-dk)';
 
     return `
       <div style="padding:0 0 4px;">
@@ -551,8 +553,8 @@ function renderJoinedTeamsList(joinedTeams, currentUser) {
           <div style="display:flex;align-items:center;gap:10px;min-width:0;">
             <div style="width:36px;height:36px;border-radius:50%;background:var(--sage);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;">${initial}</div>
             <div>
-              <div style="font-size:14px;font-weight:500;">${name}のチーム</div>
-              <div style="font-size:11px;color:var(--mid);">${owner.email || ''}</div>
+              <div style="font-size:14px;font-weight:500;">${teamName}</div>
+              <div style="font-size:11px;color:var(--mid);">${ownerName}</div>
             </div>
           </div>
           <span style="font-size:11px;padding:3px 8px;border-radius:20px;white-space:nowrap;background:${roleBg};color:${roleColor};flex-shrink:0;">${roleLabel}</span>

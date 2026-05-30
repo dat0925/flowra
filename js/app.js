@@ -349,9 +349,12 @@ async function initTeamSwitcher() {
       if (t.role === 'owner') {
         name = '個人';
       } else {
-        // オーナーの名前を表示
+        // チーム名があればそれを優先、なければオーナー名
+        const teamData = Array.isArray(t.teams) ? t.teams[0] : t.teams;
+        const teamName = teamData?.name;
         const ownerProfile = profiles.find(p => p.team_id === teamId && p.role === 'owner');
-        name = ownerProfile?.full_name || ownerProfile?.email?.split('@')[0] || '共有';
+        const ownerName = ownerProfile?.full_name || ownerProfile?.email?.split('@')[0] || '共有';
+        name = teamName || ownerName;
       }
       return `
         <button class="team-switch-btn ${isActive ? 'active' : ''}" data-team-id="${teamId}"
