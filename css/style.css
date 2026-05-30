@@ -524,7 +524,16 @@ body.page-records #mobile-month-label {
   flex-shrink: 0;
   position: relative;
   z-index: 2;
-  box-shadow: 0 max(env(safe-area-inset-bottom), 12px) 0 var(--ink);
+}
+/* ホームバー領域を確実に塗りつぶす */
+#bottom-nav::after {
+  content: '';
+  position: absolute;
+  bottom: calc(-1 * max(env(safe-area-inset-bottom), 12px));
+  left: 0;
+  right: 0;
+  height: max(env(safe-area-inset-bottom), 12px);
+  background: var(--ink);
 }
 .b-tab {
   display: flex;
