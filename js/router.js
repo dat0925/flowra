@@ -115,45 +115,98 @@ export const Router = {
     const content  = document.getElementById('page-content');
     if (!carousel || !content) return;
 
-    // ghost パネルを追加（前月・次月のぞき見用）
+    // ghost パネルを追加
     ['prev','next'].forEach(side => {
       const g = document.createElement('div');
       g.id = `ghost-${side}`;
       g.className = 'ghost-panel';
-      g.innerHTML = '<div class="spinner"></div>';
       carousel.appendChild(g);
     });
 
     let startX = 0, startY = 0;
     let curX   = 0;
     let active = false;
-    let axis   = null; // 'h' | 'v' | null
-
-    const setTransform = (dx, animate) => {
-      const ease = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
-      content.style.transition          = animate ? ease : 'none';
-      ghostPrev().style.transition      = animate ? ease : 'none';
-      ghostNext().style.transition      = animate ? ease : 'none';
-      content.style.transform           = `translateX(${dx}px)`;
-      // 静止時は-100%/+100%、ドラッグに追従して近づいてくる
-      ghostPrev().style.transform       = `translateX(calc(-100% + ${dx}px))`;
-      ghostNext().style.transform       = `translateX(calc(100% + ${dx}px))`;
-    };
+    let axis   = null;
 
     const ghostPrev = () => document.getElementById('ghost-prev');
     const ghostNext = () => document.getElementById('ghost-next');
+    const ease = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
 
-    const reset = (animate) => setTransform(0, animate);
+    // ドラッグ中：スワイプ方向のghostだけ追従、逆側は完全に隠す
+    const trackDrag = (dx) => {
+      content.style.transition = 'none';
+      content.style.transform  = `translateX(${dx}px)`;
+
+      if (dx < 0) {
+        // 左スワイプ → next ghost を右から引き込む
+        ghostNext().style.transition = 'none';
+        ghostNext().style.transform  = `translateX(calc(100% + ${dx}px))`;
+        ghostNext().style.opacity    = '1';
+        ghostPrev().style.transform  = 'translateX(-100%)';
+        ghostPrev().style.opacity    = '0';
+      } else if (dx > 0) {
+        // 右スワイプ → prev ghost を左から引き込む
+        ghostPrev().style.transition = 'none';
+        ghostPrev().style.transform  = `translateX(calc(-100% + ${dx}px))`;
+        ghostPrev().style.opacity    = '1';
+        ghostNext().style.transform  = 'translateX(100%)';
+        ghostNext().style.opacity    = '0';
+      }
+    };
+
+    // リセット（キャンセル時）
+    const cancelDrag = () => {
+      content.style.transition     = ease;
+      content.style.transform      = 'translateX(0)';
+      ghostPrev().style.transition = ease;
+      ghostNext().style.transition = ease;
+      ghostPrev().style.transform  = 'translateX(-100%)';
+      ghostNext().style.transform  = 'translateX(100%)';
+    };
+
+    // コミット：ghostがそのままスライドして実態になる
+    const commitSlide = (dir) => {
+      const w = carousel.offsetWidth;
+
+      // Step1: content と ghost を同時にスライドアウト/イン
+      content.style.transition = ease;
+      content.style.transform  = dir === 'next' ? `translateX(-${w}px)` : `translateX(${w}px)`;
+
+      const activeGhost = dir === 'next' ? ghostNext() : ghostPrev();
+      activeGhost.style.transition = ease;
+      activeGhost.style.transform  = 'translateX(0)';
+
+      // Step2: アニメーション完了後、ghost を消して新コンテンツを即表示
+      setTimeout(() => {
+        // ghost・content を即座にリセット（アニメーションなし）
+        ghostPrev().style.transition = 'none';
+        ghostNext().style.transition = 'none';
+        ghostPrev().style.opacity    = '0';
+        ghostNext().style.opacity    = '0';
+        ghostPrev().style.transform  = 'translateX(-100%)';
+        ghostNext().style.transform  = 'translateX(100%)';
+        content.style.transition     = 'none';
+        content.style.transform      = 'translateX(0)';
+
+        // 月を更新（新コンテンツをロード）
+        if (dir === 'next') MonthState.next(); else MonthState.prev();
+        this._updateMonthLabels(dir);
+
+        // ghost を静かに復活
+        requestAnimationFrame(() => {
+          ghostPrev().style.opacity = '';
+          ghostNext().style.opacity = '';
+        });
+      }, 290);
+    };
 
     carousel.addEventListener('touchstart', (e) => {
-      // スワイプは記録一覧のみ有効
       if (this.currentPage !== 'records') return;
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
       curX   = 0;
       active = true;
       axis   = null;
-      content.style.transition = 'none';
     }, { passive: true });
 
     carousel.addEventListener('touchmove', (e) => {
@@ -161,31 +214,25 @@ export const Router = {
       const dx = e.touches[0].clientX - startX;
       const dy = e.touches[0].clientY - startY;
 
-      // 軸が決まっていなければ判定（5px 動いたら確定）
       if (!axis) {
         if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
         axis = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
       }
-
-      // 縦スクロールと判定したら一切介入しない
       if (axis === 'v') return;
 
-      // 横スワイプ確定 → 縦スクロールを完全にロック
       e.preventDefault();
-
       curX = dx;
 
-      // 端の抵抗感（ゴム感）
+      // ゴム感
       const w = carousel.offsetWidth;
       let tx = curX;
       if (Math.abs(tx) > w * 0.5) {
         tx = Math.sign(tx) * (w * 0.5 + (Math.abs(tx) - w * 0.5) * 0.2);
       }
+      trackDrag(tx);
+    }, { passive: false });
 
-      setTransform(tx, false);
-    }, { passive: false }); // preventDefault のために passive: false
-
-    carousel.addEventListener('touchend', (e) => {
+    carousel.addEventListener('touchend', () => {
       if (!active || axis !== 'h') { active = false; axis = null; return; }
       active = false;
       axis   = null;
@@ -194,63 +241,11 @@ export const Router = {
       const threshold = w * 0.28;
 
       if (curX < -threshold) {
-        // → 次月へスライドアウト（左へ）
-        content.style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
-        ghostNext().style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
-        content.style.transform     = `translateX(-${w}px)`;
-        ghostNext().style.transform = `translateX(0)`;
-        setTimeout(() => {
-          // ghost を即座に非表示にしてからコンテンツをジャンプ
-          ghostPrev().style.transition = 'none';
-          ghostNext().style.transition = 'none';
-          ghostPrev().style.opacity = '0';
-          ghostNext().style.opacity = '0';
-          ghostPrev().style.transform = 'translateX(-100%)';
-          ghostNext().style.transform = 'translateX(100%)';
-          content.style.transition = 'none';
-          content.style.transform  = `translateX(${w}px)`;
-          MonthState.next();
-          this._updateMonthLabels('next');
-          requestAnimationFrame(() => requestAnimationFrame(() => {
-            content.style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
-            content.style.transform  = 'translateX(0)';
-            // スライドイン完了後に ghost を復活
-            setTimeout(() => {
-              ghostPrev().style.opacity = '';
-              ghostNext().style.opacity = '';
-            }, 300);
-          }));
-        }, 280);
+        commitSlide('next');
       } else if (curX > threshold) {
-        // → 前月へスライドアウト（右へ）
-        content.style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
-        ghostPrev().style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
-        content.style.transform     = `translateX(${w}px)`;
-        ghostPrev().style.transform = `translateX(0)`;
-        setTimeout(() => {
-          // ghost を即座に非表示にしてからコンテンツをジャンプ
-          ghostPrev().style.transition = 'none';
-          ghostNext().style.transition = 'none';
-          ghostPrev().style.opacity = '0';
-          ghostNext().style.opacity = '0';
-          ghostPrev().style.transform = 'translateX(-100%)';
-          ghostNext().style.transform = 'translateX(100%)';
-          content.style.transition = 'none';
-          content.style.transform  = `translateX(-${w}px)`;
-          MonthState.prev();
-          this._updateMonthLabels('prev');
-          requestAnimationFrame(() => requestAnimationFrame(() => {
-            content.style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
-            content.style.transform  = 'translateX(0)';
-            // スライドイン完了後に ghost を復活
-            setTimeout(() => {
-              ghostPrev().style.opacity = '';
-              ghostNext().style.opacity = '';
-            }, 300);
-          }));
-        }, 280);
+        commitSlide('prev');
       } else {
-        reset(true);
+        cancelDrag();
       }
       curX = 0;
     }, { passive: true });
