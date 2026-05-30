@@ -513,19 +513,16 @@ body.page-records #mobile-month-label {
 #bottom-nav {
   display: none;
   background: var(--ink);
-  height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+  height: calc(var(--nav-h) + max(env(safe-area-inset-bottom), 20px));
   border-top: 1px solid rgba(255,255,255,0.06);
   align-items: center;
   justify-content: space-around;
   padding: 0 4px;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: max(env(safe-area-inset-bottom), 20px);
   flex-shrink: 0;
   position: relative;
   z-index: 2;
-  /* PWA: ホームバー領域まで背景色を伸ばす */
-  margin-bottom: calc(-1 * env(safe-area-inset-bottom));
-  padding-bottom: calc(env(safe-area-inset-bottom) + 0px);
-  box-shadow: 0 env(safe-area-inset-bottom) 0 var(--ink);
+  box-shadow: 0 max(env(safe-area-inset-bottom), 20px) 0 var(--ink);
 }
 .b-tab {
   display: flex;
