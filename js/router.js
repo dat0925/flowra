@@ -139,15 +139,17 @@ export const Router = {
       content.style.transition = 'none';
       content.style.transform  = `translateX(${tx}px)`;
 
+      // ghostのオフセット：w より小さくすることで早めに顔を出す
+      const ghostOffset = Math.round(w * 0.80);
       const label = document.getElementById('mobile-month-label');
 
       if (rawDx < 0) {
         // 左スワイプ → next ghost を右から引き込む
         ghostNext().style.transition = 'none';
-        ghostNext().style.transform  = `translateX(${w + rawDx}px)`;
+        ghostNext().style.transform  = `translateX(${ghostOffset + rawDx}px)`;
         ghostNext().style.opacity    = '0.78';
         ghostPrev().style.transition = 'none';
-        ghostPrev().style.transform  = `translateX(-${w}px)`;
+        ghostPrev().style.transform  = `translateX(-${ghostOffset}px)`;
         ghostPrev().style.opacity    = '0';
         if (label && !label.dataset.dragging) {
           label.dataset.dragging = '1';
@@ -158,10 +160,10 @@ export const Router = {
       } else if (rawDx > 0) {
         // 右スワイプ → prev ghost を左から引き込む
         ghostPrev().style.transition = 'none';
-        ghostPrev().style.transform  = `translateX(${rawDx - w}px)`;
+        ghostPrev().style.transform  = `translateX(${rawDx - ghostOffset}px)`;
         ghostPrev().style.opacity    = '0.78';
         ghostNext().style.transition = 'none';
-        ghostNext().style.transform  = `translateX(${w}px)`;
+        ghostNext().style.transform  = `translateX(${ghostOffset}px)`;
         ghostNext().style.opacity    = '0';
         if (label && !label.dataset.dragging) {
           label.dataset.dragging = '1';
@@ -175,12 +177,13 @@ export const Router = {
     // リセット（キャンセル時）
     const cancelDrag = () => {
       const w = carousel.offsetWidth;
+      const ghostOffset = Math.round(w * 0.80);
       content.style.transition     = ease;
       content.style.transform      = 'translateX(0)';
       ghostPrev().style.transition = ease;
       ghostNext().style.transition = ease;
-      ghostPrev().style.transform  = `translateX(-${w}px)`;
-      ghostNext().style.transform  = `translateX(${w}px)`;
+      ghostPrev().style.transform  = `translateX(-${ghostOffset}px)`;
+      ghostNext().style.transform  = `translateX(${ghostOffset}px)`;
       ghostPrev().style.opacity    = '0';
       ghostNext().style.opacity    = '0';
       // ヘッダーラベルを元に戻す
@@ -194,6 +197,7 @@ export const Router = {
     // コミット：ghostの上に新コンテンツをクロスフェード
     const commitSlide = (dir) => {
       const w = carousel.offsetWidth;
+      const ghostOffset = Math.round(w * 0.80);
       // ヘッダーラベルのdraggingフラグを解除（_updateMonthLabelsが新ラベルをセット）
       const label = document.getElementById('mobile-month-label');
       if (label) delete label.dataset.dragging;
@@ -210,12 +214,11 @@ export const Router = {
         // Step2: transition を切ってから ghost を即座に非表示
         ghostPrev().style.transition = 'none';
         ghostNext().style.transition = 'none';
-        // force reflow して transition が確実に切れてから opacity を設定
         void ghostPrev().offsetWidth;
         ghostPrev().style.opacity   = '0';
         ghostNext().style.opacity   = '0';
-        ghostPrev().style.transform = `translateX(-${w}px)`;
-        ghostNext().style.transform = `translateX(${w}px)`;
+        ghostPrev().style.transform = `translateX(-${ghostOffset}px)`;
+        ghostNext().style.transform = `translateX(${ghostOffset}px)`;
 
         content.style.transition = 'none';
         content.style.transform  = 'translateX(0)';
