@@ -134,38 +134,35 @@ export const Router = {
     const ghostNext = () => document.getElementById('ghost-next');
     const ease = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
 
-    // ドラッグ中：スワイプ方向のghostだけ追従、逆側は完全に隠す
-    const trackDrag = (dx) => {
-      const w = carousel.offsetWidth;
+    // ドラッグ中：contentはゴム感あり(tx)、ghostは生dx(rawDx)で等速追従
+    const trackDrag = (tx, rawDx, w) => {
       content.style.transition = 'none';
-      content.style.transform  = `translateX(${dx}px)`;
+      content.style.transform  = `translateX(${tx}px)`;
 
       const label = document.getElementById('mobile-month-label');
 
-      if (dx < 0) {
+      if (rawDx < 0) {
         // 左スワイプ → next ghost を右から引き込む
         ghostNext().style.transition = 'none';
-        ghostNext().style.transform  = `translateX(${w + dx}px)`;
+        ghostNext().style.transform  = `translateX(${w + rawDx}px)`;
         ghostNext().style.opacity    = '0.78';
         ghostPrev().style.transition = 'none';
         ghostPrev().style.transform  = `translateX(-${w}px)`;
         ghostPrev().style.opacity    = '0';
-        // ヘッダー: 5月 → 6月
         if (label && !label.dataset.dragging) {
           label.dataset.dragging = '1';
           const { year, month } = MonthState;
           const nm = month === 12 ? 1 : month + 1;
           label.textContent = `${month}月 → ${nm}月`;
         }
-      } else if (dx > 0) {
+      } else if (rawDx > 0) {
         // 右スワイプ → prev ghost を左から引き込む
         ghostPrev().style.transition = 'none';
-        ghostPrev().style.transform  = `translateX(${dx - w}px)`;
+        ghostPrev().style.transform  = `translateX(${rawDx - w}px)`;
         ghostPrev().style.opacity    = '0.78';
         ghostNext().style.transition = 'none';
         ghostNext().style.transform  = `translateX(${w}px)`;
         ghostNext().style.opacity    = '0';
-        // ヘッダー: 4月 ← 5月
         if (label && !label.dataset.dragging) {
           label.dataset.dragging = '1';
           const { year, month } = MonthState;
@@ -222,6 +219,7 @@ export const Router = {
 
         content.style.transition = 'none';
         content.style.transform  = 'translateX(0)';
+        content.style.opacity    = '1';
 
         // 月更新（renderRecordsが走る）
         if (dir === 'next') MonthState.next(); else MonthState.prev();
@@ -252,13 +250,14 @@ export const Router = {
       e.preventDefault();
       curX = dx;
 
-      // ゴム感
+      // ゴム感（contentのみ）
       const w = carousel.offsetWidth;
       let tx = curX;
       if (Math.abs(tx) > w * 0.5) {
         tx = Math.sign(tx) * (w * 0.5 + (Math.abs(tx) - w * 0.5) * 0.2);
       }
-      trackDrag(tx);
+      // ghostは生のdxを使う（ゴム感なしで等速追従）
+      trackDrag(tx, dx, w);
     }, { passive: false });
 
     carousel.addEventListener('touchend', () => {
