@@ -152,12 +152,17 @@ export const Router = {
       const dx = e.touches[0].clientX - startX;
       const dy = e.touches[0].clientY - startY;
 
-      // 軸が決まっていなければ判定
+      // 軸が決まっていなければ判定（5px 動いたら確定）
       if (!axis) {
         if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
         axis = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
       }
-      if (axis !== 'h') return;
+
+      // 縦スクロールと判定したら一切介入しない
+      if (axis === 'v') return;
+
+      // 横スワイプ確定 → 縦スクロールを完全にロック
+      e.preventDefault();
 
       curX = dx;
 
@@ -169,7 +174,7 @@ export const Router = {
       }
 
       setTransform(tx, false);
-    }, { passive: true });
+    }, { passive: false }); // preventDefault のために passive: false
 
     carousel.addEventListener('touchend', (e) => {
       if (!active || axis !== 'h') { active = false; axis = null; return; }
