@@ -232,8 +232,13 @@ export const Router = {
       const dy = e.touches[0].clientY - startY;
 
       if (!axis) {
-        if (Math.abs(dx) < 5 && Math.abs(dy) < 5) return;
-        axis = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v';
+        if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return;
+        // 横スワイプは横移動が縦移動の2倍以上の場合のみ確定（タップの微ブレを除外）
+        if (Math.abs(dx) > Math.abs(dy) * 2) {
+          axis = 'h';
+        } else {
+          axis = 'v';
+        }
       }
       if (axis === 'v') return;
 
