@@ -18,32 +18,39 @@ export async function renderSettings() {
     Auth.getUser(),
   ]);
   if (cachedTags.length > 0) {
-    renderSettingsContent(content, user, null, cachedTags, 'owner', []);
+    renderSettingsContent(content, user, null, cachedTags, [], []);
   } else {
     content.innerHTML = '<div class="spinner"></div>';
   }
 
   // バックグラウンドで最新取得
   try {
-    const [team, tags, allTeams] = await Promise.all([
-      DB.getTeam(), DB.getTags(), DB.getAllTeams()
+    const [tags, allTeams] = await Promise.all([
+      DB.getTags(), DB.getAllTeams()
     ]);
     await putTags(tags);
 
-    // アクティブチームにおける自分のroleを判定
-    const activeTeamId = await DB.getTeamId();
-    const activeEntry  = allTeams.find(t => t.team_id === activeTeamId);
-    const myRole       = activeEntry?.role || 'member';
+    // 自分のチーム（owner）は常に取得
+    const ownEntry  = allTeams.find(t => t.role === 'owner');
+    const ownTeamId = ownEntry?.team_id;
+    const ownTeam   = ownEntry?.teams || null;
 
-    if (myRole !== 'owner') {
-      // 招待された側：そのチームのメンバー情報を取得
-      const joinedMembers = await DB.getTeamMemberProfilesForTeam(activeTeamId);
-      renderSettingsContent(content, user, team, tags, 'member', joinedMembers);
-    } else {
-      // オーナー：自分のチームのメンバー一覧
-      const ownMembers = await DB.getTeamMembers();
-      renderSettingsContent(content, user, team, tags, 'owner', ownMembers);
-    }
+    // 自分のチームのメンバー一覧
+    const ownMembers = ownTeamId
+      ? await DB.getTeamMemberProfilesForTeam(ownTeamId)
+      : [];
+
+    // 他チームに参加している場合（role !== 'owner'）
+    const joinedEntries = allTeams.filter(t => t.role !== 'owner');
+    // 各参加チームのメンバー情報（オーナー名表示用）
+    const joinedTeams = await Promise.all(
+      joinedEntries.map(async e => {
+        const members = await DB.getTeamMemberProfilesForTeam(e.team_id);
+        return { entry: e, members };
+      })
+    );
+
+    renderSettingsContent(content, user, ownTeam, tags, ownMembers, joinedTeams);
   } catch (e) {
     if (cachedTags.length === 0) {
       content.innerHTML = `<div class="empty-state"><div class="empty-state-title">エラー: ${e.message}</div></div>`;
@@ -182,7 +189,7 @@ function openTagEditSheet(tag, allTags) {
   });
 }
 
-async function renderSettingsContent(content, user, team, tags, myRole = 'owner', members = []) {
+async function renderSettingsContent(content, user, ownTeam, tags, ownMembers = [], joinedTeams = []) {
   content.innerHTML = `
     <!-- プロフィール -->
     <div class="panel" style="margin-bottom:16px;">
@@ -194,11 +201,11 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
           <div class="row-label">${user?.email || ''}</div>
         </div>
       </div>
-      <div class="form-row ${myRole === 'owner' ? '' : 'no-tap'}" id="${myRole === 'owner' ? 'btn-edit-team-name' : ''}" style="justify-content:space-between;">
+      <div class="form-row" id="btn-edit-team-name" style="justify-content:space-between;">
         <span style="font-size:14px;font-weight:500;">チーム名</span>
         <div style="display:flex;align-items:center;gap:6px;">
-          <span style="color:var(--mid);">${team?.name || '—'}</span>
-          ${myRole === 'owner' ? `<svg viewBox="0 0 24 24" width="13" height="13" style="color:var(--mid-lt);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>` : ''}
+          <span style="color:var(--mid);">${ownTeam?.name || '—'}</span>
+          <svg viewBox="0 0 24 24" width="13" height="13" style="color:var(--mid-lt);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
         </div>
       </div>
       <div class="form-row" id="btn-replay-onboarding" style="color:var(--sage);">
@@ -218,9 +225,7 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
       </div>
     </div>
 
-    <!-- メンバー共有 -->
-    ${myRole === 'owner' ? `
-    <!-- オーナー：招待したパートナー一覧 -->
+    <!-- 自分のチーム（常に表示） -->
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head"><div class="panel-title">パートナー共有</div></div>
       <div id="members-list" style="padding:0 0 4px;"></div>
@@ -236,18 +241,14 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
         </button>
       </div>
     </div>
-    ` : `
-    <!-- 招待された側：参加中のチーム -->
+
+    <!-- 参加中のチーム（他チームに招待されている場合のみ） -->
+    ${joinedTeams.length > 0 ? `
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head"><div class="panel-title">参加中のチーム</div></div>
-      <div id="joined-team-info" style="padding:0 0 4px;"></div>
-      <div style="padding:8px 16px 16px;text-align:center;">
-        <button id="btn-leave-team" style="background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;text-decoration:underline;padding:8px;">
-          このチームから脱退する
-        </button>
-      </div>
+      <div id="joined-teams-list"></div>
     </div>
-    `}
+    ` : ''}
 
     <!-- タグ管理 -->
     <div class="panel" style="margin-bottom:16px;">
@@ -290,11 +291,12 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
   // タグリスト描画
   renderTagList(tags);
 
-  // メンバーリスト描画（オーナー用）/ 参加チーム表示（招待側用）
-  if (myRole === 'owner') {
-    renderMembersList(members, myRole, user);
-  } else {
-    renderJoinedTeamInfo(members, user);
+  // 自分のチームのメンバーリスト
+  renderMembersList(ownMembers, user);
+
+  // 参加中チームリスト
+  if (joinedTeams.length > 0) {
+    renderJoinedTeamsList(joinedTeams, user);
   }
 
   // ── イベント ──
@@ -303,40 +305,28 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
     showOnboardingForReplay();
   });
 
-  // チーム名編集（オーナーのみ）
+  // チーム名編集
   document.getElementById('btn-edit-team-name')?.addEventListener('click', () => {
-    if (team) openTeamNameSheet(team);
-  });
-
-  // チーム脱退
-  document.getElementById('btn-leave-team')?.addEventListener('click', () => {
-    showLeaveTeamModal();
+    if (ownTeam) openTeamNameSheet(ownTeam);
   });
 
   document.getElementById('btn-logout')?.addEventListener('click', () => {
     if (confirm('ログアウトしますか？')) Auth.signOut();
   });
 
-  // 招待リンク発行
+  // 招待リンク発行（常に自分のチームへ）
   document.getElementById('btn-create-invite')?.addEventListener('click', async () => {
     const btn = document.getElementById('btn-create-invite');
     btn.disabled = true;
     btn.textContent = '生成中…';
     try {
-      const invite = await DB.createInvite('member');
+      const invite = await DB.createInviteForOwnTeam('member');
       const url = `${window.location.origin}?invite=${invite.token}`;
-
-      // iOSではclipboard APIが失敗することがあるのでフォールバック付き
       let copied = false;
-      try {
-        await navigator.clipboard.writeText(url);
-        copied = true;
-      } catch (_) {}
-
+      try { await navigator.clipboard.writeText(url); copied = true; } catch (_) {}
       if (copied) {
         showToast('招待リンクをコピーしました（7日間有効）');
       } else {
-        // コピー失敗時はURLを表示して手動コピーさせる
         showInviteUrlDialog(url);
       }
     } catch (e) {
@@ -354,14 +344,13 @@ async function renderSettingsContent(content, user, team, tags, myRole = 'owner'
     if (newVal) Sound.playTap();
   });
 
-  // ＋追加 → タグ追加シート
   document.getElementById('btn-add-tag-open')?.addEventListener('click', () => {
     openTagAddSheet(tags);
   });
 }
 
-// ── メンバーリスト描画（オーナー用：自分以外のメンバー一覧）──
-function renderMembersList(members, myRole, currentUser) {
+// ── メンバーリスト描画（自分のチーム用）──
+function renderMembersList(members, currentUser) {
   const wrap = document.getElementById('members-list');
   if (!wrap) return;
 
@@ -421,33 +410,49 @@ function renderMembersList(members, myRole, currentUser) {
   });
 }
 
-// ── 参加中チーム表示（招待された側用）──
-function renderJoinedTeamInfo(members, currentUser) {
-  const wrap = document.getElementById('joined-team-info');
+// ── 参加中チームリスト（複数チーム対応・各チームに脱退ボタン）──
+function renderJoinedTeamsList(joinedTeams, currentUser) {
+  const wrap = document.getElementById('joined-teams-list');
   if (!wrap) return;
 
-  const owner = members.find(m => m.role === 'owner');
-  const me = members.find(m => m.user_id === currentUser?.id);
-  if (!owner) return;
+  wrap.innerHTML = joinedTeams.map(({ entry, members }) => {
+    const owner = members.find(m => m.role === 'owner');
+    const me    = members.find(m => m.user_id === currentUser?.id);
+    if (!owner) return '';
 
-  const name = owner.full_name || owner.email?.split('@')[0] || 'オーナー';
-  const initial = name.charAt(0).toUpperCase();
-  const roleLabel = me?.role === 'viewer' ? '閲覧のみ' : '編集・削除可';
-  const roleBg = me?.role === 'viewer' ? 'var(--stone)' : 'var(--sage-bg)';
-  const roleColor = me?.role === 'viewer' ? 'var(--mid)' : 'var(--sage-dk)';
+    const name      = owner.full_name || owner.email?.split('@')[0] || 'オーナー';
+    const initial   = name.charAt(0).toUpperCase();
+    const roleLabel = me?.role === 'viewer' ? '閲覧のみ' : '編集・削除可';
+    const roleBg    = me?.role === 'viewer' ? 'var(--stone)' : 'var(--sage-bg)';
+    const roleColor = me?.role === 'viewer' ? 'var(--mid)' : 'var(--sage-dk)';
 
-  wrap.innerHTML = `
-    <div class="form-row" style="gap:10px;justify-content:space-between;">
-      <div style="display:flex;align-items:center;gap:10px;min-width:0;">
-        <div style="width:36px;height:36px;border-radius:50%;background:var(--sage);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;">${initial}</div>
-        <div>
-          <div style="font-size:14px;font-weight:500;">${name}のチーム</div>
-          <div style="font-size:11px;color:var(--mid);">${owner.email || ''}</div>
+    return `
+      <div style="padding:0 0 4px;">
+        <div class="form-row" style="gap:10px;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:10px;min-width:0;">
+            <div style="width:36px;height:36px;border-radius:50%;background:var(--sage);color:#fff;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;flex-shrink:0;">${initial}</div>
+            <div>
+              <div style="font-size:14px;font-weight:500;">${name}のチーム</div>
+              <div style="font-size:11px;color:var(--mid);">${owner.email || ''}</div>
+            </div>
+          </div>
+          <span style="font-size:11px;padding:3px 8px;border-radius:20px;white-space:nowrap;background:${roleBg};color:${roleColor};flex-shrink:0;">${roleLabel}</span>
+        </div>
+        <div style="padding:4px 16px 12px;text-align:center;">
+          <button class="btn-leave-joined" data-team-id="${entry.team_id}"
+            style="background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;text-decoration:underline;padding:8px;">
+            このチームから脱退する
+          </button>
         </div>
       </div>
-      <span style="font-size:11px;padding:3px 8px;border-radius:20px;white-space:nowrap;background:${roleBg};color:${roleColor};flex-shrink:0;">${roleLabel}</span>
-    </div>
-  `;
+    `;
+  }).join('');
+
+  wrap.querySelectorAll('.btn-leave-joined').forEach(btn => {
+    btn.addEventListener('click', () => {
+      showLeaveTeamModal(btn.dataset.teamId);
+    });
+  });
 }
 
 // ── 招待URL表示ダイアログ（クリップボードAPI失敗時のフォールバック）──
@@ -483,7 +488,7 @@ function showInviteUrlDialog(url) {
 }
 
 // ── チーム脱退確認モーダル ──
-function showLeaveTeamModal() {
+function showLeaveTeamModal(teamId = null) {
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(28,43,34,0.6);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 0.3s;';
   overlay.innerHTML = `
@@ -521,8 +526,8 @@ function showLeaveTeamModal() {
     confirmBtn.disabled = true;
     confirmBtn.textContent = '処理中…';
     try {
-      const teamId = await DB.getTeamId();
-      await DB.leaveTeam(teamId);
+      const targetTeamId = teamId || await DB.getTeamId();
+      await DB.leaveTeam(targetTeamId);
       overlay.remove();
       showToast('チームから脱退しました');
       window.location.reload();

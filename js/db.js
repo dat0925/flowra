@@ -429,6 +429,19 @@ export const DB = {
     return data;
   },
 
+  // 自分のチームへの招待を明示的に発行（アクティブチームに関わらず）
+  async createInviteForOwnTeam(role = 'member') {
+    const ownTeamId = await this.getOwnTeamId();
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from('team_invites')
+      .insert({ team_id: ownTeamId, role, created_by: user.id })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
   async getInviteByToken(token) {
     const { data, error } = await supabase
       .from('team_invites')
