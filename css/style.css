@@ -518,10 +518,9 @@ body.page-records #mobile-month-label {
   background: var(--ink);
   height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
   border-top: 1px solid rgba(255,255,255,0.06);
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-around;
   padding: 0 4px;
-  padding-bottom: env(safe-area-inset-bottom, 0px);
   flex-shrink: 0;
   position: relative;
   z-index: 2;
