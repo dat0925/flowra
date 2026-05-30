@@ -167,7 +167,8 @@ function openTagEditSheet(tag, allTags) {
       Sound.playTap();
       closeSheet();
       showToast('✓ タグを更新しました');
-      renderSettings();
+      document.getElementById('page-content').innerHTML = '<div class="spinner"></div>';
+      await renderSettings();
     } catch (e) {
       errorEl.textContent = '更新に失敗しました。';
       errorEl.style.display = 'block';
@@ -183,7 +184,8 @@ function openTagEditSheet(tag, allTags) {
       Sound.playClose();
       closeSheet();
       showToast('タグを削除しました');
-      renderSettings();
+      document.getElementById('page-content').innerHTML = '<div class="spinner"></div>';
+      await renderSettings();
     } catch (e) {
       showToast('削除に失敗しました: ' + e.message);
     }
@@ -729,7 +731,8 @@ function openTeamNameSheet(team, teamId) {
       Sound.playTap();
       closeSheet();
       showToast('✓ チーム名を変更しました');
-      renderSettings();
+      document.getElementById('page-content').innerHTML = '<div class="spinner"></div>';
+      await renderSettings();
     } catch (e) {
       errorEl.textContent = '更新に失敗しました: ' + e.message;
       errorEl.style.display = 'block';
@@ -815,7 +818,8 @@ function openTagAddSheet(tags) {
       Sound.playSave();
       closeSheet();
       showToast('✓ タグを追加しました');
-      renderSettings();
+      document.getElementById('page-content').innerHTML = '<div class="spinner"></div>';
+      await renderSettings();
     } catch (e) {
       errorEl.textContent = '追加に失敗しました。';
       errorEl.style.display = 'block';
