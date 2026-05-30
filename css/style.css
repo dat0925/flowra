@@ -346,15 +346,14 @@ svg {
 #mobile-header {
   display: none;
   background: var(--ink);
-  padding: 14px 18px 12px;
-  padding-top: max(14px, env(safe-area-inset-top));
+  padding: 12px 18px;
+  padding-top: max(12px, env(safe-area-inset-top));
   flex-shrink: 0;
 }
 .mh-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
 }
 .mobile-logo {
   font-family: 'Noto Serif JP', serif;
@@ -363,15 +362,22 @@ svg {
   color: #fff;
 }
 .mobile-logo span { color: var(--sage-lt); }
-.mh-month-row {
+.mh-right {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+.mh-month-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 #mobile-month-label {
   font-size: 13px;
   font-weight: 500;
   color: rgba(255,255,255,0.75);
+  min-width: 52px;
+  text-align: center;
 }
 
 /* BOTTOM NAV */
