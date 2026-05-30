@@ -200,17 +200,25 @@ export const Router = {
         content.style.transform     = `translateX(-${w}px)`;
         ghostNext().style.transform = `translateX(0)`;
         setTimeout(() => {
-          // 右側から滑り込む準備
-          content.style.transition = 'none';
-          content.style.transform  = `translateX(${w}px)`;
+          // ghost を即座に非表示にしてからコンテンツをジャンプ
+          ghostPrev().style.transition = 'none';
+          ghostNext().style.transition = 'none';
+          ghostPrev().style.opacity = '0';
+          ghostNext().style.opacity = '0';
           ghostPrev().style.transform = 'translateX(-100%)';
           ghostNext().style.transform = 'translateX(100%)';
+          content.style.transition = 'none';
+          content.style.transform  = `translateX(${w}px)`;
           MonthState.next();
           this._updateMonthLabels('next');
-          // 2フレーム待ってからスライドイン
           requestAnimationFrame(() => requestAnimationFrame(() => {
             content.style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
             content.style.transform  = 'translateX(0)';
+            // スライドイン完了後に ghost を復活
+            setTimeout(() => {
+              ghostPrev().style.opacity = '';
+              ghostNext().style.opacity = '';
+            }, 300);
           }));
         }, 280);
       } else if (curX > threshold) {
@@ -220,16 +228,25 @@ export const Router = {
         content.style.transform     = `translateX(${w}px)`;
         ghostPrev().style.transform = `translateX(0)`;
         setTimeout(() => {
-          // 左側から滑り込む準備
-          content.style.transition = 'none';
-          content.style.transform  = `translateX(-${w}px)`;
+          // ghost を即座に非表示にしてからコンテンツをジャンプ
+          ghostPrev().style.transition = 'none';
+          ghostNext().style.transition = 'none';
+          ghostPrev().style.opacity = '0';
+          ghostNext().style.opacity = '0';
           ghostPrev().style.transform = 'translateX(-100%)';
           ghostNext().style.transform = 'translateX(100%)';
+          content.style.transition = 'none';
+          content.style.transform  = `translateX(-${w}px)`;
           MonthState.prev();
           this._updateMonthLabels('prev');
           requestAnimationFrame(() => requestAnimationFrame(() => {
             content.style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
             content.style.transform  = 'translateX(0)';
+            // スライドイン完了後に ghost を復活
+            setTimeout(() => {
+              ghostPrev().style.opacity = '';
+              ghostNext().style.opacity = '';
+            }, 300);
           }));
         }, 280);
       } else {
