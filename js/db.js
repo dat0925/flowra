@@ -94,12 +94,11 @@ export const DB = {
       .from('teams')
       .update(payload)
       .eq('id', teamId)
-      .select()
-      .single();
+      .select();
     if (error) throw error;
     // キャッシュをリセット
     _allTeams = null;
-    return data;
+    return data?.[0] ?? null;
   },
 
   // ── 口座 ────────────────────────────
