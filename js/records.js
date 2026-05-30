@@ -237,6 +237,13 @@ export function patchAddRecord(tx) {
   const listEl = document.getElementById('records-list');
   if (!listEl) return;
 
+  // パネルがなければ再描画
+  const panel = listEl.querySelector('.panel');
+  if (!panel) {
+    renderRecords();
+    return;
+  }
+
   const today = new Date(tx.date + 'T00:00:00');
   const w = ['日','月','火','水','木','金','土'];
   const dateLabel = `${today.getMonth()+1}月${today.getDate()}日（${w[today.getDay()]}）`;
@@ -247,43 +254,58 @@ export function patchAddRecord(tx) {
     transfer: { bg:'#FBF5E6', stroke:'#B8973E', path:'<polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>' },
   };
   const ic = TX_ICON[tx.type] || TX_ICON.expense;
+  const acctName = tx.type === 'transfer'
+    ? `${tx.account?.name || tx._acctName || ''} → ${tx.to_account?.name || ''}`
+    : tx.account?.name || tx._acctName || '';
 
-  // 既存パネルの先頭に挿入
-  const panel = listEl.querySelector('.panel');
-  if (panel) {
-    const newRow = document.createElement('div');
-    newRow.innerHTML = `
-      <div class="tx-date-label">${dateLabel}</div>
-      <div class="tx-item" data-tx-id="${tx.id}" style="cursor:pointer;">
-        <div class="tx-icon" style="background:${ic.bg};">
-          <svg viewBox="0 0 24 24" style="stroke:${ic.stroke}">${ic.path}</svg>
+  // タグ表示（renderListと同じロジック）
+  const validTags = (tx.tags || []).filter(t => t);
+  const metaHTML = validTags.length > 0
+    ? `<span class="tx-tag tx-tag-primary">${validTags[0].name}</span><span class="tx-acct" style="color:var(--mid-lt);">${acctName}</span>`
+    : `<span class="tx-acct">${acctName}</span>`;
+
+  const newRow = document.createElement('div');
+  newRow.innerHTML = `
+    <div class="tx-date-label">${dateLabel}</div>
+    <div class="tx-item" data-tx-id="${tx.id}" style="cursor:pointer;">
+      <div class="tx-icon" style="background:${ic.bg};">
+        <svg viewBox="0 0 24 24" style="stroke:${ic.stroke};fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;">${ic.path}</svg>
+      </div>
+      <div class="tx-body">
+        <div class="tx-name">${tx.memo || '（メモなし）'}</div>
+        <div class="tx-meta">${metaHTML}</div>
+      </div>
+      <div class="tx-right">
+        <div class="tx-amount ${tx.type}">
+          <span class="tx-currency">${sign}</span>${Number(tx.amount).toLocaleString('ja-JP')}
         </div>
-        <div class="tx-body">
-          <div class="tx-name">${tx.memo || '（メモなし）'}</div>
-          <div class="tx-meta">
-            <span class="tx-acct">${tx._acctName || ''}</span>
-          </div>
-        </div>
-        <div class="tx-right">
-          <div class="tx-amount ${tx.type}">
-            <span class="tx-currency">${sign}</span>${Number(tx.amount).toLocaleString('ja-JP')}
-          </div>
-        </div>
-      </div>`;
-    panel.prepend(newRow);
-  } else {
-    // リストが空だった場合は再描画
-    renderRecords();
-    return;
+      </div>
+    </div>`;
+
+  panel.prepend(newRow);
+
+  // クリックイベントを付与
+  const txItem = newRow.querySelector('.tx-item[data-tx-id]');
+  if (txItem) {
+    txItem.addEventListener('click', () => {
+      import('./edit-record.js').then(({ openEditRecord }) => {
+        openEditRecord(tx, () => {
+          import('./db.js').then(({ DB }) => {
+            const { MonthState } = import('./router.js');
+            renderRecords();
+          });
+        });
+      });
+    });
   }
 
-  // サマリーバーの数字を差分更新
+  // サマリーバーの差分更新
   if (tx.type === 'income') {
     const el = document.querySelector('.rsb-amount.income');
-    if (el) el.textContent = '¥' + (parseInt(el.textContent.replace(/[¥,]/g,''),10)||0 + tx.amount).toLocaleString('ja-JP');
+    if (el) el.textContent = '¥' + ((parseInt(el.textContent.replace(/[¥,]/g,''),10)||0) + tx.amount).toLocaleString('ja-JP');
   }
   if (tx.type === 'expense') {
     const el = document.querySelector('.rsb-amount.expense');
-    if (el) el.textContent = '¥' + (parseInt(el.textContent.replace(/[¥,]/g,''),10)||0 + tx.amount).toLocaleString('ja-JP');
+    if (el) el.textContent = '¥' + ((parseInt(el.textContent.replace(/[¥,]/g,''),10)||0) + tx.amount).toLocaleString('ja-JP');
   }
 }
