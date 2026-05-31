@@ -73,19 +73,80 @@ async function notionQuery(token, cursor = null) {
   return res.json();
 }
 
-async function fetchAllNotionRecords(token, onProgress) {
-  const pages = [];
+// ── 軽量スキャン ──────────────────────────────────────────
+// 全レコードを1パスで走査し、「変換済み最小レコード」だけを蓄積する。
+//
+// 【旧実装の問題】
+//   fetchAllNotionRecords でフルの Notion ページ JSON（1件あたり数KB）を
+//   全件メモリに保持 → 3万件で数十〜150MB → モバイルでクラッシュ
+//
+// 【新実装の方針】
+//   Notion ページは取得後すぐに変換して最小レコード（~100B/件）に変換し
+//   フル JSON は捨てる。3万件で 3MB 程度になりモバイルでも安全。
+//
+// 返り値:
+//   collected      : [{id, type, amount, date, account_id, memo, tagName}]
+//   tagNames       : ユニークなタグ名の配列（syncTags 用）
+//   unknownAccounts: マッピング未定義の口座名の配列（プレビュー表示用）
+async function scanAndCollect(token, flowraAccounts, onProgress) {
+  const collected = [];
+  const tagNamesSet      = new Set();
+  const unknownAccounts  = new Set();
   let cursor  = null;
   let hasMore = true;
 
   while (hasMore) {
     const resp = await notionQuery(token, cursor);
-    pages.push(...resp.results);
     hasMore = resp.has_more;
     cursor  = resp.next_cursor;
-    if (onProgress) onProgress(pages.length);
+
+    for (const page of resp.results) {
+      const props  = page.properties;
+      const 管理   = props['管理']?.select?.name;
+      const 分類   = props['分類']?.select?.name;
+
+      // 除外フィルタ
+      if (管理 === '除外' || 分類 === '除外') continue;
+
+      const 日付   = props['日付']?.date?.start;
+      const 金額   = props['金額']?.number;
+      if (!日付 || 金額 == null) continue;
+
+      // タグ名収集（フル JSON の代わりに文字列だけ保持）
+      if (分類) tagNamesSet.add(分類);
+
+      // 口座解決
+      const acctLabel = props['アカウント']?.select?.name || '';
+      const { id: account_id, original } = resolveAccountId(acctLabel, flowraAccounts);
+      if (acctLabel && !ACCOUNT_NAME_MAP[acctLabel]) unknownAccounts.add(acctLabel);
+
+      // メモ組み立て
+      const 内容   = getText(props['内容']);
+      const 支払先 = getText(props['支払先']);
+      const メモ   = getText(props['メモ']);
+      const memoParts = [内容, 支払先, メモ].map(s => s.trim()).filter(Boolean);
+      if (original) memoParts.push(`(元口座: ${original})`);
+
+      // 最小レコードのみ保持（Notion ページ JSON は捨てる）
+      collected.push({
+        id:         crypto.randomUUID(),
+        type:       金額 > 0 ? 'income' : 'expense',
+        amount:     Math.abs(金額),
+        date:       日付,
+        account_id,
+        memo:       memoParts.join(' ').trim() || null,
+        tagName:    分類 || null,   // タグ ID は syncTags 後に付与
+      });
+    }
+
+    if (onProgress) onProgress(collected.length);
   }
-  return pages;
+
+  return {
+    collected,
+    tagNames:        [...tagNamesSet],
+    unknownAccounts: [...unknownAccounts],
+  };
 }
 
 // ── レコード変換 ───────────────────────────────────────────
@@ -109,48 +170,6 @@ function resolveAccountId(notionName, flowraAccounts) {
   return { id: cash?.id || flowraAccounts[0]?.id, original: notionName };
 }
 
-function processPage(page, flowraAccounts, tagNameToId) {
-  const props = page.properties;
-
-  const 日付     = props['日付']?.date?.start;
-  const 金額     = props['金額']?.number;
-  const 分類     = props['分類']?.select?.name || null;
-  const 管理     = props['管理']?.select?.name || null;
-  const account  = props['アカウント']?.select?.name || '';
-  const 内容     = getText(props['内容']);
-  const 支払先   = getText(props['支払先']);
-  const メモ     = getText(props['メモ']);
-
-  // 除外フィルタ（JS側で判定）
-  if (管理 === '除外' || 分類 === '除外') return null;
-
-  // 必須フィールドチェック
-  if (!日付 || 金額 == null) return null;
-
-  // メモを連結（内容 支払先 メモ）
-  const memoParts = [内容, 支払先, メモ].map(s => s.trim()).filter(Boolean);
-
-  // 口座解決
-  const { id: accountId, original } = resolveAccountId(account, flowraAccounts);
-  if (original) memoParts.push(`(元口座: ${original})`);
-
-  const memo   = memoParts.join(' ').trim() || null;
-  const type   = 金額 > 0 ? 'income' : 'expense';
-  const amount = Math.abs(金額);
-
-  // タグ解決（分類）
-  const tagId = 分類 ? (tagNameToId[分類] || null) : null;
-
-  return {
-    id:         crypto.randomUUID(),
-    type,
-    amount,
-    date:       日付,
-    account_id: accountId,
-    memo,
-    tagId,
-  };
-}
 
 // ── タグの同期（なければ作成）─────────────────────────────
 
@@ -278,69 +297,61 @@ export async function showImportNotion() {
     });
   }
 
-  // ── Step 2: データ取得中 ──
+  // ── Step 2: データ取得中（軽量スキャン）──
+  // Notion から全件を1パスで走査し、変換済み最小レコードを蓄積する。
+  // フルの Notion ページ JSON は保持しないのでメモリは O(件数 × ~100B) に収まる。
   async function showStep2(token) {
+    // Flowra 口座を事前取得（口座解決に必要）
+    let flowraAccounts;
+    try {
+      flowraAccounts = await DB.getAccounts();
+    } catch (e) {
+      showError(`口座の取得に失敗しました: ${e.message}`, showStep1);
+      return;
+    }
+
     setContent(`
       <div style="text-align:center;padding:40px 20px;">
         <div class="spinner" style="margin:0 auto 20px;"></div>
-        <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;margin-bottom:8px;">データを取得中</div>
-        <div id="fetch-count" style="font-size:13px;color:var(--mid);">0 件取得済み…</div>
+        <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;margin-bottom:8px;">Notionからデータを取得中</div>
+        <div id="fetch-count" style="font-size:13px;color:var(--mid);">0 件スキャン済み…</div>
+        <div style="font-size:11px;color:var(--mid-lt);margin-top:8px;">件数が多い場合は数分かかります</div>
       </div>
     `);
 
     try {
-      const pages = await fetchAllNotionRecords(token, count => {
+      const result = await scanAndCollect(token, flowraAccounts, count => {
         const el = document.getElementById('fetch-count');
-        if (el) el.textContent = `${count.toLocaleString()} 件取得済み…`;
+        if (el) el.textContent = `${count.toLocaleString()} 件スキャン済み…`;
       });
-      showStep3(token, pages);
+      showStep3(token, flowraAccounts, result);
     } catch (e) {
-      setContent(`
-        <div style="text-align:center;padding:40px 20px;">
-          <div style="font-size:15px;color:var(--red);margin-bottom:12px;">取得エラー</div>
-          <div style="font-size:13px;color:var(--mid);">${e.message}</div>
-          <button class="btn-primary" id="btn-retry" style="margin-top:20px;">戻る</button>
-        </div>
-      `);
-      document.getElementById('btn-retry')?.addEventListener('click', showStep1);
+      showError(`取得エラー: ${e.message}`, showStep1);
     }
   }
 
   // ── Step 3: プレビュー ──
-  async function showStep3(token, pages) {
-    // Flowra口座を取得
-    const flowraAccounts = await DB.getAccounts();
-    const existingTags   = await DB.getTags();
+  async function showStep3(token, flowraAccounts, { collected, tagNames, unknownAccounts }) {
+    const existingTags = await DB.getTags();
 
-    // 件数確認（既存データ警告用）
+    // 既存データ件数（重複警告用）
     const existingCount = await DB.getTransactions({ page: 0, pageSize: 1 })
       .then(r => r.count).catch(() => 0);
 
-    // ユニークタグ名を収集
-    const tagNamesSet = new Set();
-    pages.forEach(p => {
-      const t = p.properties['分類']?.select?.name;
-      if (t && t !== '除外') tagNamesSet.add(t);
-    });
-    const newTagCount = [...tagNamesSet].filter(n => !existingTags.find(t => t.name === n)).length;
-
-    // 口座マッピング集計（不明口座）
-    const unknownAccounts = new Set();
-    pages.forEach(p => {
-      const a = p.properties['アカウント']?.select?.name || '';
-      if (a && !ACCOUNT_NAME_MAP[a]) unknownAccounts.add(a);
-    });
+    const newTagCount = tagNames.filter(n => !existingTags.find(t => t.name === n)).length;
 
     const warnHtml = existingCount > 0
-      ? `<div style="background:var(--gold-bg);border:1px solid var(--gold);border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--ink);line-height:1.6;">
-           ⚠️ 既に <strong>${existingCount.toLocaleString()} 件</strong>のデータがあります。<br>重複インポートに注意してください。
+      ? `<div style="background:var(--gold-bg);border:1px solid var(--gold);border-radius:12px;
+           padding:12px 14px;margin-bottom:16px;font-size:12px;color:var(--ink);line-height:1.6;">
+           ⚠️ 既に <strong>${existingCount.toLocaleString()} 件</strong>のデータがあります。<br>
+           重複インポートに注意してください。
          </div>`
       : '';
 
-    const unknownHtml = unknownAccounts.size > 0
+    const unknownHtml = unknownAccounts.length > 0
       ? `<div style="font-size:12px;color:var(--mid);margin-top:8px;line-height:1.7;">
-           現金口座に割り当てる口座（${unknownAccounts.size}種）:<br>
-           <span style="font-size:11px;">${[...unknownAccounts].slice(0,10).join('、')}${unknownAccounts.size > 10 ? `… 他${unknownAccounts.size-10}種` : ''}</span>
+           現金口座に割り当てる口座（${unknownAccounts.length}種）:<br>
+           <span style="font-size:11px;">${unknownAccounts.slice(0,10).join('、')}${unknownAccounts.length > 10 ? ` … 他${unknownAccounts.length - 10}種` : ''}</span>
          </div>`
       : '';
 
@@ -351,7 +362,7 @@ export async function showImportNotion() {
         <div style="padding:4px 0;">
           <div class="form-row no-tap">
             <span style="font-size:14px;">取得件数</span>
-            <span style="font-weight:600;font-size:15px;">${pages.length.toLocaleString()} 件</span>
+            <span style="font-weight:600;font-size:15px;">${collected.length.toLocaleString()} 件</span>
           </div>
           <div class="form-row no-tap">
             <span style="font-size:14px;">新規タグ</span>
@@ -367,7 +378,7 @@ export async function showImportNotion() {
         <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5">
           <polyline points="8 17 12 21 16 17"/><line x1="12" y1="3" x2="12" y2="21"/>
         </svg>
-        ${pages.length.toLocaleString()} 件をインポート
+        ${collected.length.toLocaleString()} 件をインポート
       </button>
       <button id="btn-cancel-import"
         style="width:100%;padding:12px;background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;">
@@ -380,12 +391,14 @@ export async function showImportNotion() {
     });
 
     document.getElementById('btn-start-import')?.addEventListener('click', () => {
-      showStep4(token, pages, flowraAccounts, existingTags);
+      showStep4(collected, existingTags);
     });
   }
 
   // ── Step 4: インポート実行 ──
-  async function showStep4(token, pages, flowraAccounts, existingTags) {
+  // collected: [{id, type, amount, date, account_id, memo, tagName}]
+  // tagName は仮置き。syncTags でIDに変換してから挿入する。
+  async function showStep4(collected, existingTags) {
     setContent(`
       <div style="text-align:center;padding:40px 20px;">
         <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;margin-bottom:20px;">インポート中…</div>
@@ -404,36 +417,29 @@ export async function showImportNotion() {
     };
 
     try {
-      // Step 4-1: タグ同期
+      // Step 4-1: タグ同期（collected から tagName を収集してまとめて作成）
       setStatus('タグを同期中…', 5);
-      const tagNamesSet = new Set();
-      pages.forEach(p => {
-        const t = p.properties['分類']?.select?.name;
-        if (t && t !== '除外') tagNamesSet.add(t);
-      });
+      const tagNamesSet = new Set(collected.map(r => r.tagName).filter(Boolean));
       const tagNameToId = await syncTags([...tagNamesSet], existingTags);
 
-      // Step 4-2: レコード変換
-      setStatus('データを変換中…', 15);
+      // Step 4-2: tagName → tagId に変換してレコードを分離
+      setStatus('データを変換中…', 12);
       const txRows  = [];
       const tagRows = [];
-
-      for (const page of pages) {
-        const row = processPage(page, flowraAccounts, tagNameToId);
-        if (!row) continue;
-        const { tagId, ...txData } = row;
+      for (const { tagName, ...txData } of collected) {
         txRows.push(txData);
+        const tagId = tagName ? (tagNameToId[tagName] || null) : null;
         if (tagId) tagRows.push({ transaction_id: txData.id, tag_id: tagId });
       }
 
-      // Step 4-3: トランザクション挿入
+      // Step 4-3: トランザクション挿入（200件/バッチ）
       setStatus(`記録を挿入中… (0 / ${txRows.length.toLocaleString()})`, 20);
       await DB.importTransactions(txRows, (done, total) => {
         const pct = 20 + Math.round((done / total) * 60);
         setStatus(`記録を挿入中… (${done.toLocaleString()} / ${total.toLocaleString()})`, pct);
       });
 
-      // Step 4-4: タグ関連挿入
+      // Step 4-4: タグ紐付け挿入（500件/バッチ）
       setStatus(`タグを関連付け中… (0 / ${tagRows.length.toLocaleString()})`, 80);
       await DB.bulkInsertTransactionTags(tagRows, (done, total) => {
         const pct = 80 + Math.round((done / total) * 18);
@@ -444,17 +450,23 @@ export async function showImportNotion() {
       setTimeout(() => showStep5(txRows.length, tagRows.length), 500);
 
     } catch (e) {
-      setContent(`
-        <div style="text-align:center;padding:40px 20px;">
-          <div style="font-size:15px;color:var(--red);margin-bottom:12px;">インポートエラー</div>
-          <div style="font-size:13px;color:var(--mid);margin-bottom:20px;">${e.message}</div>
-          <button class="btn-primary" id="btn-err-close">閉じる</button>
-        </div>
-      `);
-      document.getElementById('btn-err-close')?.addEventListener('click', () => {
-        Sound.playClose(); overlay.remove();
-      });
+      showError(`インポートエラー: ${e.message}`, () => overlay.remove());
     }
+  }
+
+  // ── エラー表示（共通） ──
+  function showError(message, onClose) {
+    setContent(`
+      <div style="text-align:center;padding:40px 20px;">
+        <div style="font-size:15px;color:var(--red);margin-bottom:12px;">エラー</div>
+        <div style="font-size:13px;color:var(--mid);margin-bottom:20px;">${message}</div>
+        <button class="btn-primary" id="btn-err-close">戻る</button>
+      </div>
+    `);
+    document.getElementById('btn-err-close')?.addEventListener('click', () => {
+      Sound.playClose();
+      onClose();
+    });
   }
 
   // ── Step 5: 完了 ──
