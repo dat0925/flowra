@@ -1,6 +1,6 @@
 # Flowra 引き継ぎドキュメント
 
-最終更新: 2026-05-30
+最終更新: 2026-05-31
 
 ---
 
@@ -292,9 +292,10 @@ body { background: var(--ink); overflow: hidden; }
    - 設定画面のタグ管理に↑↓ボタンを追加
    - 追加画面のカテゴリ選択にも反映
 
-2. **Excelインポート**
+2. **Excelインポート（次フェーズ最優先）**
    - オーナーが過去データ（約3万件）をExcelから一括インポートしたい
-   - 列構成は未確認。実装前に列構成の確認が必要
+   - **ブロッカー（解決済み）**: GitHub Pages / Supabase の1リクエスト上限によりそのまま3万件を一括送信できない。**解決策は分割バッチ送信**（詳細は下記セクション参照）
+   - 列構成は未確認。実装前にオーナーからExcelファイルを共有してもらい列構成を確認すること
 
 3. **MIRRAテーブルの削除**
    - Supabaseに別アプリ（MIRRA）のテーブルが混在
@@ -369,6 +370,15 @@ body { background: var(--ink); overflow: hidden; }
 - `renderSettings()` 再呼び出し後も古い名前が表示される
 - 調査ポイント: `getAllTeams()` の `teams:team_id(id,name)` JOINがSupabaseのスキーマキャッシュにより古い値を返している可能性。`?select=` クエリをブラウザのNetworkタブで確認すること
 
+### 2026-05-31（セッション5）
+- **fix**: 追加ボタンがタップしても機能しない問題を修正（`utils.js` / `closeModal`）
+  - 原因: `closeModal()` が `animationend` イベントの発火に依存していた。モバイルブラウザ（特にiOS Safari）で `animationend` が発火しないとオーバーレイ（`position:fixed; inset:0; z-index:500`）が残り続け、画面全体をブロックしていた
+  - 修正: 400msのフォールバックタイマーを追加。`animationend` が来れば即座に、来なくても400ms後に強制 `overlay.hidden = true`
+  - 合わせて: `openModal()` でスワイプリスナー（touchstart/touchend）が毎回追加されて蓄積するバグも修正（ハンドラを変数で保持し `_swipeHandlers` に格納）
+- **fix**: 記録画面スワイプ時の月ラベルアニメーションを削除（`router.js` / `style.css`）
+  - 理由: コンテンツ自体がスライドするようになったため、月ラベルも同時にアニメーションすると視覚的ノイズになっていた
+  - 変更: `_updateMonthLabels()` を `m.textContent = label` の1行に簡略化。CSS の `slide-in-left` / `slide-in-right` / `@keyframes` も削除（28行 → 1行）
+
 ### 2026-05-30（セッション4）
 - **fix**: チーム名変更後のUI反映（3層構造のバグを解消）
   - 第1層: `renderSettings`の再描画でcatchが握り潰していた → DOM直接更新に変更
@@ -379,6 +389,67 @@ body { background: var(--ink); overflow: hidden; }
 - **feat**: チーム名をヘッダー切り替えボタン・参加中チームに反映（オーナー名はサブテキストへ）
 - **fix**: コンテンツ少ない時のiOSバウンス問題（`overscroll-behavior-y: contain` + 境界`preventDefault`）
 - **fix**: 月ラベル固定幅化で揺れ解消（`min-width`→`width: 96px`）+ 全画面フォントサイズ15pxに統一
+
+---
+
+## 一括インポート設計（次フェーズ最優先タスク）
+
+### 背景
+オーナーがExcel管理していた過去データ約3万件をFlowraに移行したい。
+
+### ブロッカーと解決方針
+
+**なぜ一括で送れないか**
+Supabaseへのinsertは1リクエストあたりのペイロードサイズ制限（デフォルト約10MB）と、行数によるタイムアウト制限がある。3万件をそのまま1回で送ると確実に失敗する。
+
+**解決策: クライアント側でチャンク分割して順次送信**
+
+```js
+// 疑似コード（import-excel.js に実装予定）
+const CHUNK_SIZE = 500; // 1回あたり500件
+
+async function importInChunks(rows) {
+  const total = rows.length;
+  for (let i = 0; i < total; i += CHUNK_SIZE) {
+    const chunk = rows.slice(i, i + CHUNK_SIZE);
+    await supabase.from('transactions').insert(chunk);
+    // プログレスバー更新: (i + chunk.length) / total * 100
+  }
+}
+```
+
+- `CHUNK_SIZE` は 500 を推奨（余裕を持たせる）
+- 各チャンク後に 100ms 程度のウェイトを入れるとSupabase側が安定する
+- UIにプログレスバーを出す（「12,000 / 30,000件 完了」表示）
+- エラー時は失敗チャンクの開始行番号をユーザーに表示して再開できるようにする
+
+### 実装ステップ
+
+1. **列構成の確認（要オーナー対応）**
+   - Excelファイルを共有してもらい列名・フォーマットを確認
+   - 最低限必要: 日付、金額、支出/収入区分、カテゴリ（タグ）、メモ、口座名
+
+2. **CSVパーサー実装**
+   - ExcelをCSV書き出ししてもらう（xlsx直読みは依存ライブラリが重くなるため避ける）
+   - ブラウザの `FileReader` API でCSVを読む（サーバー不要）
+   - 文字コードはShift-JISに注意（`TextDecoder('shift-jis')` で対応）
+
+3. **マッピング画面**
+   - Excelの列名 → Flowraのフィールドをユーザーが確認・修正できる画面
+   - タグ・口座はExcelの文字列をFlowraのIDに変換（未マッチはスキップ or 新規作成）
+
+4. **分割バッチ送信 + プログレスUI**
+   - 上記疑似コードを実装
+   - 「インポート中: 12,500 / 30,000件」+ キャンセルボタン
+
+5. **完了後の処理**
+   - キャッシュクリア → 再描画
+   - 「30,000件をインポートしました」トースト
+
+### 注意事項
+- インポート画面は `settings.js` に「データのインポート」セクションとして追加する（新規ファイルより既存の設定画面に収めた方がシンプル）
+- `import-notion.js` が既存にある。Notionからのインポートロジックが参考になるかもしれないが、3万件には対応していない可能性があるため確認すること
+- インポートは **必ずownerのみ実行可能** にすること（viewerからのインポートは禁止）
 
 ---
 
