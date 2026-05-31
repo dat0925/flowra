@@ -70,21 +70,73 @@ function renderTagList(tags) {
     return;
   }
 
-  wrap.innerHTML = tags.map(t => `
-    <div class="form-row" data-tag-id="${t.id}" style="justify-content:space-between;">
-      <div style="display:flex;align-items:center;gap:10px;">
+  wrap.innerHTML = tags.map((t, i) => `
+    <div class="form-row" data-tag-id="${t.id}" style="justify-content:space-between;gap:4px;">
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
         <div style="width:10px;height:10px;border-radius:50%;background:${t.color || 'var(--sage)'};flex-shrink:0;"></div>
         <span style="font-size:14px;font-weight:500;">${t.name}</span>
       </div>
-      <svg viewBox="0 0 24 24" width="14" height="14" style="color:var(--mid-lt);flex-shrink:0;">
-        <polyline points="9 18 15 12 9 6"/>
-      </svg>
+      <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
+        <button class="tag-order-btn" data-tag-id="${t.id}" data-dir="up"
+          style="width:28px;height:28px;border-radius:8px;border:none;background:${i === 0 ? 'transparent' : 'var(--mist)'};
+          color:${i === 0 ? 'transparent' : 'var(--mid)'};cursor:${i === 0 ? 'default' : 'pointer'};
+          display:flex;align-items:center;justify-content:center;"
+          ${i === 0 ? 'disabled' : ''}>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+        </button>
+        <button class="tag-order-btn" data-tag-id="${t.id}" data-dir="down"
+          style="width:28px;height:28px;border-radius:8px;border:none;background:${i === tags.length - 1 ? 'transparent' : 'var(--mist)'};
+          color:${i === tags.length - 1 ? 'transparent' : 'var(--mid)'};cursor:${i === tags.length - 1 ? 'default' : 'pointer'};
+          display:flex;align-items:center;justify-content:center;"
+          ${i === tags.length - 1 ? 'disabled' : ''}>
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="6 9 12 15 18 9"/>
+          </svg>
+        </button>
+        <div class="tag-edit-chevron" data-tag-id="${t.id}"
+          style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+          <svg viewBox="0 0 24 24" width="14" height="14" style="color:var(--mid-lt);">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
+      </div>
     </div>`).join('');
 
-  // 各タグ行タップ → 編集シート
-  wrap.querySelectorAll('.form-row[data-tag-id]').forEach(row => {
-    row.addEventListener('click', () => {
-      const tag = tags.find(t => t.id === row.dataset.tagId);
+  // ↑↓ボタン
+  wrap.querySelectorAll('.tag-order-btn').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (btn.disabled) return;
+      const tagId = btn.dataset.tagId;
+      const dir   = btn.dataset.dir;
+      const idx   = tags.findIndex(t => t.id === tagId);
+      if (idx < 0) return;
+
+      const newTags = [...tags];
+      const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
+      [newTags[idx], newTags[swapIdx]] = [newTags[swapIdx], newTags[idx]];
+
+      try {
+        await DB.reorderTags(newTags);
+        const { putTags } = await import('./cache.js');
+        const updated = await DB.getTags();
+        await putTags(updated);
+        const { warmupAddRecord } = await import('./add-record.js');
+        await warmupAddRecord();
+        renderTagList(updated);
+      } catch (err) {
+        showToast('エラー: ' + err.message);
+      }
+    });
+  });
+
+  // 編集（シェブロン部分のみタップ → 編集シート）
+  wrap.querySelectorAll('.tag-edit-chevron').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const tag = tags.find(t => t.id === el.dataset.tagId);
       if (tag) openTagEditSheet(tag, tags);
     });
   });
