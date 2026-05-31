@@ -1,6 +1,6 @@
 # Flowra 引き継ぎドキュメント
 
-最終更新: 2026-05-31
+最終更新: 2026-06-01
 
 ---
 
@@ -292,10 +292,9 @@ body { background: var(--ink); overflow: hidden; }
    - 設定画面のタグ管理に↑↓ボタンを追加
    - 追加画面のカテゴリ選択にも反映
 
-2. **Notionインポート（次フェーズ最優先）**
-   - オーナーが Notion で管理していた過去データ（約3万件）を Notion API 経由で一括インポートしたい
-   - `js/import-notion.js` にUI・変換ロジック・バッチ挿入まで実装済み
-   - **ブロッカー（未解決）**: 全件フェッチをメモリに溜めてから処理する設計のため、3万件でクラッシュまたはタイムアウトする（詳細は下記セクション参照）
+2. **Notionインポート** ✅ **完了（2026-06-01）**
+   - 3万件超のインポートに成功
+   - 詳細は「Notionインポート設計」セクション参照
 
 3. **MIRRAテーブルの削除**
    - Supabaseに別アプリ（MIRRA）のテーブルが混在
@@ -369,6 +368,25 @@ body { background: var(--ink); overflow: hidden; }
 - `_allTeams` キャッシュは `null` リセット済み
 - `renderSettings()` 再呼び出し後も古い名前が表示される
 - 調査ポイント: `getAllTeams()` の `teams:team_id(id,name)` JOINがSupabaseのスキーマキャッシュにより古い値を返している可能性。`?select=` クエリをブラウザのNetworkタブで確認すること
+
+### 2026-06-01（セッション6）
+- **fix**: 追加ボタンが月スライド後に効かなくなる問題を根本解決
+  - 真犯人: `showSuggest()` 内で `tx.tags[0].name` を null チェックなしで参照していた。スライド後に `renderRecords()` がキャッシュを更新し、削除済みタグ（null）を持つ記録が混入するとクラッシュして追加ボタンが無反応になっていた
+  - 修正: `tx.tags[0]` → `tx.tags.find(t => t)` で null を読み飛ばす
+- **fix**: `will-change: transform` を `#page-content` から削除
+  - iOS Safari でコンポジットレイヤーが残留し overflow:hidden を突き破るヒットテスト問題の根本対策
+  - `goIdle()` に `void content.offsetWidth`（強制リフロー）を追加
+- **fix**: `sw.js` の Google Fonts キャッシュで `res.clone()` を非同期 then 内で呼んでいたため「Response body is already used」エラーが大量発生 → 同期的にクローンするよう修正
+- **fix**: `mobile-web-app-capable` meta タグを追加（deprecated 警告を解消）
+- **feat**: Notionインポート完走（3万件超）
+  - 旧実装: 全件 Notion JSON をメモリに蓄積 → 150MB → クラッシュ
+  - 新実装: `scanAndCollect()` で変換済み最小レコードのみ保持（3MB）
+  - Notion API 10,000件打ち切り問題: 年ごとフィルタ分割クエリで回避（2010〜現在まで1年ずつ）
+  - Supabase プロキシに `filter` パラメータ転送を追加してデプロイ済み
+- **refactor**: カルーセル（スワイプ月切替）を状態機械で再実装
+  - `active/axis/curX` のバラバラ変数 → `sw.phase / sw.axis / sw.curX` オブジェクトに集約
+  - `setTimeout(290ms)` → `afterTransition()` （transitionend + フォールバックタイマー）に置換
+  - `goIdle()` という唯一の出口を通じて必ず cssText をクリアする構造
 
 ### 2026-05-31（セッション5）
 - **fix**: 追加ボタンがタップしても機能しない問題を修正（`utils.js` / `closeModal`）
