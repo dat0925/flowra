@@ -21,10 +21,11 @@ function txIconSVG(type) {
   </div>`;
 }
 
-function formatDate(dateStr) {
+function formatDate(dateStr, showYear = false) {
   const d = new Date(dateStr + 'T00:00:00');
   const w = ['日','月','火','水','木','金','土'];
-  return `${d.getMonth()+1}月${d.getDate()}日（${w[d.getDay()]}）`;
+  const y = showYear ? `${d.getFullYear()}年` : '';
+  return `${y}${d.getMonth()+1}月${d.getDate()}日（${w[d.getDay()]}）`;
 }
 
 function tagsHTML(tags) {
@@ -33,16 +34,19 @@ function tagsHTML(tags) {
 }
 
 // ── 状態（画面遷移後もリセット）──
-let currentFilter = 'all';
-let searchQuery   = '';
-let _allTx        = [];  // 全件キャッシュ（フィルター用）
+let currentFilter  = 'all';
+let searchQuery    = '';
+let _allTx         = [];   // 当月トランザクション
+let _searchDebounce = null; // デバウンスタイマー
+let _searchGen     = 0;    // 競合防止カウンター（古い非同期結果を破棄）
 
 export async function renderRecords() {
   const content = document.getElementById('page-content');
   const { year, month } = MonthState;
 
-  currentFilter = 'all';
-  searchQuery   = '';
+  currentFilter  = 'all';
+  searchQuery    = '';
+  _searchGen++;          // 月切替時に進行中の検索を無効化
 
   // ── STEP 1: キャッシュから即表示 ──
   const cachedTxs = await getCachedTransactions({ year, month });
@@ -120,7 +124,7 @@ function renderShell(transactions, year, month) {
       </div>
       <div class="search-wrap">
         <svg viewBox="0 0 24 24" class="search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" class="search-input" placeholder="メモ・口座で検索" id="records-search">
+        <input type="text" class="search-input" placeholder="メモ・口座・タグで検索（全期間）" id="records-search">
       </div>
     </div>
 
@@ -139,7 +143,14 @@ function renderShell(transactions, year, month) {
 
   document.getElementById('records-search')?.addEventListener('input', e => {
     searchQuery = e.target.value;
-    requestAnimationFrame(() => renderList());
+    clearTimeout(_searchDebounce);
+    if (searchQuery.trim()) {
+      // 全期間検索は IndexedDB アクセスを伴うので 300ms デバウンス
+      _searchDebounce = setTimeout(() => renderList(), 300);
+    } else {
+      // クリア時は即座に当月表示へ戻す
+      renderList();
+    }
   });
 }
 
@@ -151,30 +162,70 @@ function updateSummaryBar(summary) {
 }
 
 // リスト部分だけ更新（フィルター・検索変更時）
-function renderList() {
+// 検索語がある場合は全期間モード（IndexedDB 全件）に切り替わる
+async function renderList() {
   const listEl = document.getElementById('records-list');
   if (!listEl) return;
 
-  const q = searchQuery.toLowerCase();
-  const filtered = _allTx.filter(tx => {
+  const q          = searchQuery.trim().toLowerCase();
+  const isGlobal   = q.length > 0;           // 全期間モードか
+  const myGen      = ++_searchGen;             // この呼び出しの世代番号
+
+  // ── データ取得 ──────────────────────────
+  let txData = _allTx; // デフォルトは当月
+
+  if (isGlobal) {
+    // 全期間: IndexedDB から全件取得（検索語入力時のみ）
+    listEl.innerHTML = '<div class="spinner"></div>';
+    const allCached = await getCachedTransactions(); // 年月フィルタなし
+    if (myGen !== _searchGen) return; // 新しい検索が始まっていたら破棄
+    txData = allCached;
+  }
+
+  // ── フィルタリング ──────────────────────
+  const filtered = txData.filter(tx => {
     if (currentFilter !== 'all' && tx.type !== currentFilter) return false;
-    if (q) {
-      if (!(tx.memo || '').toLowerCase().includes(q) &&
-          !(tx.account?.name || '').toLowerCase().includes(q)) return false;
-    }
-    return true;
+    if (!q) return true;
+    const validTags = (tx.tags || []).filter(t => t);
+    return (tx.memo         || '').toLowerCase().includes(q) ||
+           (tx.account?.name|| '').toLowerCase().includes(q) ||
+           validTags.some(t => t.name.toLowerCase().includes(q));
   });
 
+  // ── サマリーバー更新 ────────────────────
+  if (isGlobal) {
+    const income  = filtered.filter(t=>t.type==='income' ).reduce((s,t)=>s+t.amount,0);
+    const expense = filtered.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+    const summaryEl = document.getElementById('records-summary');
+    if (summaryEl) {
+      summaryEl.innerHTML = `
+        <div class="rsb-item">
+          <div class="rsb-label">全期間 ${filtered.length.toLocaleString()}件</div>
+        </div>
+        <div class="rsb-divider"></div>
+        <div class="rsb-item">
+          <div class="rsb-label">収入計</div>
+          <div class="rsb-amount income">¥${fmt(income)}</div>
+        </div>
+        <div class="rsb-divider"></div>
+        <div class="rsb-item">
+          <div class="rsb-label">支出計</div>
+          <div class="rsb-amount expense">¥${fmt(expense)}</div>
+        </div>`;
+    }
+  }
+
+  // ── 空状態 ──────────────────────────────
   if (filtered.length === 0) {
     listEl.innerHTML = `<div class="empty-state">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-      <div class="empty-state-title">記録がありません</div>
-      <div class="empty-state-sub">＋ボタンから記録を追加してください</div>
+      <div class="empty-state-title">${isGlobal ? '見つかりませんでした' : '記録がありません'}</div>
+      <div class="empty-state-sub">${isGlobal ? 'メモ・口座・タグ名で検索できます' : '＋ボタンから記録を追加してください'}</div>
     </div>`;
     return;
   }
 
-  // 日付グループ化
+  // ── 日付グループ化 ──────────────────────
   const grouped = {};
   filtered.forEach(tx => {
     if (!grouped[tx.date]) grouped[tx.date] = [];
@@ -184,20 +235,21 @@ function renderList() {
   listEl.innerHTML = `
     <div class="panel">
       ${Object.entries(grouped).map(([date, txs]) => `
-        <div class="tx-date-label">${formatDate(date)}</div>
+        <div class="tx-date-label">${formatDate(date, isGlobal)}</div>
         ${txs.map(tx => {
           const sign = tx.type==='income' ? '+¥' : tx.type==='expense' ? '−¥' : '¥';
           const acctName = tx.type==='transfer'
             ? `${tx.account?.name||''} → ${tx.to_account?.name||''}`
             : tx.account?.name || '';
+          const validTags = (tx.tags || []).filter(t => t);
           return `
             <div class="tx-item" data-tx-id="${tx.id}" style="cursor:pointer;">
               ${txIconSVG(tx.type)}
               <div class="tx-body">
                 <div class="tx-name">${tx.memo || '（メモなし）'}</div>
                 <div class="tx-meta">
-                  ${tx.tags && tx.tags.filter(t => t).length > 0
-                    ? `<span class="tx-tag tx-tag-primary">${tx.tags.find(t => t)?.name || ''}</span><span class="tx-acct" style="color:var(--mid-lt);">${acctName}</span>`
+                  ${validTags.length > 0
+                    ? `<span class="tx-tag tx-tag-primary">${validTags[0].name}</span><span class="tx-acct" style="color:var(--mid-lt);">${acctName}</span>`
                     : `<span class="tx-acct">${acctName}</span>`
                   }
                   ${tx.is_unsettled ? '<span class="unsettled-dot"></span><span style="font-size:11px;color:var(--gold);font-weight:500;">未精算</span>' : ''}
@@ -207,19 +259,17 @@ function renderList() {
                 <div class="tx-amount ${tx.type}">
                   <span class="tx-currency">${sign}</span>${fmt(tx.amount)}
                 </div>
-
               </div>
             </div>`;
         }).join('')}
       `).join('')}
     </div>`;
 
-  // 記録行タップ → 編集シート
+  // ── 記録行タップ → 編集シート ───────────
   listEl.querySelectorAll('.tx-item[data-tx-id]').forEach(el => {
     el.addEventListener('click', () => {
       const tx = filtered.find(t => t.id === el.dataset.txId);
       if (tx) openEditRecord(tx, () => {
-        // 保存・削除後にリストを更新
         import('./router.js').then(({ MonthState: ms }) => {
           DB.getTransactions({ year: ms.year, month: ms.month, pageSize: 500 })
             .then(r => { _allTx = r.data; renderList(); })
