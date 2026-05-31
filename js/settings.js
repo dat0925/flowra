@@ -70,75 +70,130 @@ function renderTagList(tags) {
     return;
   }
 
-  wrap.innerHTML = tags.map((t, i) => `
-    <div class="form-row" data-tag-id="${t.id}" style="justify-content:space-between;gap:4px;">
+  wrap.innerHTML = tags.map(t => `
+    <div class="tag-item" data-tag-id="${t.id}">
+      <div class="drag-handle" style="width:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--mid-lt);touch-action:none;cursor:grab;padding:8px 4px;">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8">
+          <line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="18" x2="16" y2="18"/>
+        </svg>
+      </div>
       <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
         <div style="width:10px;height:10px;border-radius:50%;background:${t.color || 'var(--sage)'};flex-shrink:0;"></div>
         <span style="font-size:14px;font-weight:500;">${t.name}</span>
       </div>
-      <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;">
-        <button class="tag-order-btn" data-tag-id="${t.id}" data-dir="up"
-          style="width:28px;height:28px;border-radius:8px;border:none;background:${i === 0 ? 'transparent' : 'var(--mist)'};
-          color:${i === 0 ? 'transparent' : 'var(--mid)'};cursor:${i === 0 ? 'default' : 'pointer'};
-          display:flex;align-items:center;justify-content:center;"
-          ${i === 0 ? 'disabled' : ''}>
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5">
-            <polyline points="18 15 12 9 6 15"/>
-          </svg>
-        </button>
-        <button class="tag-order-btn" data-tag-id="${t.id}" data-dir="down"
-          style="width:28px;height:28px;border-radius:8px;border:none;background:${i === tags.length - 1 ? 'transparent' : 'var(--mist)'};
-          color:${i === tags.length - 1 ? 'transparent' : 'var(--mid)'};cursor:${i === tags.length - 1 ? 'default' : 'pointer'};
-          display:flex;align-items:center;justify-content:center;"
-          ${i === tags.length - 1 ? 'disabled' : ''}>
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5">
-            <polyline points="6 9 12 15 18 9"/>
-          </svg>
-        </button>
-        <div class="tag-edit-chevron" data-tag-id="${t.id}"
-          style="width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
-          <svg viewBox="0 0 24 24" width="14" height="14" style="color:var(--mid-lt);">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
-        </div>
-      </div>
+      <svg viewBox="0 0 24 24" width="14" height="14" style="color:var(--mid-lt);flex-shrink:0;cursor:pointer;" class="tag-edit-chevron">
+        <polyline points="9 18 15 12 9 6"/>
+      </svg>
     </div>`).join('');
 
-  // ↑↓ボタン
-  wrap.querySelectorAll('.tag-order-btn').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
+  // シェブロンタップ → 編集シート
+  wrap.querySelectorAll('.tag-item').forEach(row => {
+    row.querySelector('.tag-edit-chevron')?.addEventListener('click', e => {
       e.stopPropagation();
-      if (btn.disabled) return;
-      const tagId = btn.dataset.tagId;
-      const dir   = btn.dataset.dir;
-      const idx   = tags.findIndex(t => t.id === tagId);
-      if (idx < 0) return;
-
-      const newTags = [...tags];
-      const swapIdx = dir === 'up' ? idx - 1 : idx + 1;
-      [newTags[idx], newTags[swapIdx]] = [newTags[swapIdx], newTags[idx]];
-
-      try {
-        await DB.reorderTags(newTags);
-        const { putTags } = await import('./cache.js');
-        const updated = await DB.getTags();
-        await putTags(updated);
-        const { warmupAddRecord } = await import('./add-record.js');
-        await warmupAddRecord();
-        renderTagList(updated);
-      } catch (err) {
-        showToast('エラー: ' + err.message);
-      }
+      const tag = tags.find(t => t.id === row.dataset.tagId);
+      if (tag) openTagEditSheet(tag, tags);
     });
   });
 
-  // 編集（シェブロン部分のみタップ → 編集シート）
-  wrap.querySelectorAll('.tag-edit-chevron').forEach(el => {
-    el.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const tag = tags.find(t => t.id === el.dataset.tagId);
-      if (tag) openTagEditSheet(tag, tags);
+  // ドラッグ並び替え
+  initTagDragSort(wrap, tags, async (newOrder) => {
+    try {
+      await DB.reorderTags(newOrder);
+      const updated = await DB.getTags();
+      const { putTags } = await import('./cache.js');
+      await putTags(updated);
+      const { warmupAddRecord } = await import('./add-record.js');
+      await warmupAddRecord();
+      renderTagList(updated);
+    } catch (e) {
+      showToast('エラー: ' + e.message);
+    }
+  });
+}
+
+// ── タグ用ドラッグソート（口座と同じ実装）──
+function initTagDragSort(listEl, tags, onReorder) {
+  const items = Array.from(listEl.querySelectorAll('.tag-item'));
+  if (items.length <= 1) return;
+
+  let dragging = null, dragIdx = -1, newIdx = -1;
+  let startY = 0, dragH = 0, origCenters = [];
+
+  const onMove = e => {
+    if (!dragging) return;
+    e.preventDefault();
+    const dy = e.touches[0].clientY - startY;
+    dragging.style.transform = `translateY(${dy}px)`;
+
+    const fingerY = e.touches[0].clientY;
+    let best = dragIdx, bestDist = Infinity;
+    origCenters.forEach((cy, i) => {
+      const d = Math.abs(fingerY - cy);
+      if (d < bestDist) { bestDist = d; best = i; }
     });
+    newIdx = best;
+
+    items.forEach((el, i) => {
+      if (el === dragging) return;
+      el.style.transition = 'transform 0.15s ease';
+      let shift = 0;
+      if (newIdx > dragIdx && i > dragIdx && i <= newIdx) shift = -dragH;
+      else if (newIdx < dragIdx && i >= newIdx && i < dragIdx) shift = dragH;
+      el.style.transform = `translateY(${shift}px)`;
+    });
+  };
+
+  const onEnd = () => {
+    if (!dragging) return;
+    const finalIdx = newIdx >= 0 ? newIdx : dragIdx;
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend',  onEnd);
+
+    if (finalIdx === dragIdx) {
+      items.forEach(el => { el.style.transition = 'none'; el.style.transform = ''; });
+      dragging.classList.remove('is-dragging');
+      dragging = null; newIdx = -1;
+      return;
+    }
+
+    const newItemOrder = [...items];
+    const [movedItem] = newItemOrder.splice(dragIdx, 1);
+    newItemOrder.splice(finalIdx, 0, movedItem);
+
+    const parent = items[0].parentNode;
+    items.forEach(el => { el.style.transition = 'none'; el.style.transform = ''; });
+    dragging.classList.remove('is-dragging');
+    newItemOrder.forEach(el => parent.appendChild(el));
+
+    dragging = null; newIdx = -1;
+
+    const newOrder = [...tags];
+    const [moved] = newOrder.splice(dragIdx, 1);
+    newOrder.splice(finalIdx, 0, moved);
+    onReorder(newOrder);
+  };
+
+  listEl.querySelectorAll('.drag-handle').forEach(handle => {
+    handle.addEventListener('touchstart', e => {
+      const item = handle.closest('.tag-item');
+      const idx  = items.indexOf(item);
+      if (idx < 0) return;
+
+      dragging    = item;
+      dragIdx     = idx;
+      newIdx      = idx;
+      dragH       = item.offsetHeight + 1;
+      startY      = e.touches[0].clientY;
+      origCenters = items.map(el => {
+        const r = el.getBoundingClientRect();
+        return r.top + r.height / 2;
+      });
+
+      item.classList.add('is-dragging');
+      document.addEventListener('touchmove', onMove, { passive: false });
+      document.addEventListener('touchend',  onEnd,  { passive: true });
+      e.stopPropagation();
+    }, { passive: true });
   });
 }
 
