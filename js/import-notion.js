@@ -56,9 +56,10 @@ const ACCOUNT_NAME_MAP = {
 
 // ── Notion API ────────────────────────────────────────────
 
-async function notionQuery(token, cursor = null) {
+// filter を渡すことで年ごとの分割クエリに対応（10,000件ハードリミット回避）
+async function notionQuery(token, cursor = null, filter = null) {
   const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 30000); // 30秒でタイムアウト
+  const timer = setTimeout(() => controller.abort(), 30000);
 
   try {
     const res = await fetch(PROXY_URL, {
@@ -67,7 +68,7 @@ async function notionQuery(token, cursor = null) {
         'Content-Type':   'application/json',
         'x-notion-token': token,
       },
-      body:   JSON.stringify({ cursor }),
+      body:   JSON.stringify({ cursor, filter }),
       signal: controller.signal,
     });
     clearTimeout(timer);
@@ -80,7 +81,7 @@ async function notionQuery(token, cursor = null) {
   } catch (e) {
     clearTimeout(timer);
     if (e.name === 'AbortError') {
-      throw new Error(`タイムアウト（cursor: ${cursor ? cursor.slice(0,8) : 'null'}）`);
+      throw new Error(`タイムアウト（${filter ? '年フィルタ中' : 'cursor: ' + (cursor?.slice(0,8) ?? 'null')}）`);
     }
     throw e;
   }
@@ -105,15 +106,30 @@ async function scanAndCollect(token, flowraAccounts, onProgress) {
   const collected = [];
   const tagNamesSet      = new Set();
   const unknownAccounts  = new Set();
-  let cursor  = null;
-  let hasMore = true;
 
-  while (hasMore) {
-    const resp = await notionQuery(token, cursor);
-    hasMore = resp.has_more;
-    cursor  = resp.next_cursor;
+  // Notion API は10,000件でページネーションが打ち切られる既知の制限がある。
+  // 年ごとにフィルタを分けてクエリすることで全件取得する。
+  const START_YEAR  = 2010;
+  const END_YEAR    = new Date().getFullYear() + 1; // 未来日付の記録も対象
+  const years = Array.from({ length: END_YEAR - START_YEAR + 1 }, (_, i) => START_YEAR + i);
 
-    for (const page of resp.results) {
+  for (const year of years) {
+    const filter = {
+      and: [
+        { property: '日付', date: { on_or_after: `${year}-01-01` } },
+        { property: '日付', date: { before:       `${year + 1}-01-01` } },
+      ],
+    };
+
+    let cursor  = null;
+    let hasMore = true;
+
+    while (hasMore) {
+      const resp = await notionQuery(token, cursor, filter);
+      hasMore = resp.has_more;
+      cursor  = resp.next_cursor;
+
+      for (const page of resp.results) {
       const props  = page.properties;
       const 管理   = props['管理']?.select?.name;
       const 分類   = props['分類']?.select?.name;
@@ -150,10 +166,11 @@ async function scanAndCollect(token, flowraAccounts, onProgress) {
         memo:       memoParts.join(' ').trim() || null,
         tagName:    分類 || null,   // タグ ID は syncTags 後に付与
       });
-    }
+      }  // end for (page)
 
-    if (onProgress) onProgress(collected.length);
-  }
+      if (onProgress) onProgress(collected.length);
+    }  // end while (hasMore)
+  }    // end for (year)
 
   return {
     collected,
