@@ -192,6 +192,12 @@ export const DB = {
     if (error) throw error;
   },
 
+  async reorderTags(tags) {
+    // sort_order を 0,1,2... に正規化してから一括更新（口座と同じパターン）
+    const updates = tags.map((t, i) => this.updateTag(t.id, { sort_order: i }));
+    await Promise.all(updates);
+  },
+
   // ── 記録（ページネーション対応）─────────────────
   //
   // ポイント：
