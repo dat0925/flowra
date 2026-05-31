@@ -292,10 +292,10 @@ body { background: var(--ink); overflow: hidden; }
    - 設定画面のタグ管理に↑↓ボタンを追加
    - 追加画面のカテゴリ選択にも反映
 
-2. **Excelインポート（次フェーズ最優先）**
-   - オーナーが過去データ（約3万件）をExcelから一括インポートしたい
-   - **ブロッカー（解決済み）**: GitHub Pages / Supabase の1リクエスト上限によりそのまま3万件を一括送信できない。**解決策は分割バッチ送信**（詳細は下記セクション参照）
-   - 列構成は未確認。実装前にオーナーからExcelファイルを共有してもらい列構成を確認すること
+2. **Notionインポート（次フェーズ最優先）**
+   - オーナーが Notion で管理していた過去データ（約3万件）を Notion API 経由で一括インポートしたい
+   - `js/import-notion.js` にUI・変換ロジック・バッチ挿入まで実装済み
+   - **ブロッカー（未解決）**: 全件フェッチをメモリに溜めてから処理する設計のため、3万件でクラッシュまたはタイムアウトする（詳細は下記セクション参照）
 
 3. **MIRRAテーブルの削除**
    - Supabaseに別アプリ（MIRRA）のテーブルが混在
@@ -392,64 +392,114 @@ body { background: var(--ink); overflow: hidden; }
 
 ---
 
-## 一括インポート設計（次フェーズ最優先タスク）
+## Notionインポート設計（次フェーズ最優先タスク）
 
-### 背景
-オーナーがExcel管理していた過去データ約3万件をFlowraに移行したい。
+### 現状
 
-### ブロッカーと解決方針
+`js/import-notion.js` にほぼ実装済み。構成：
 
-**なぜ一括で送れないか**
-Supabaseへのinsertは1リクエストあたりのペイロードサイズ制限（デフォルト約10MB）と、行数によるタイムアウト制限がある。3万件をそのまま1回で送ると確実に失敗する。
+| 機能 | 状態 |
+|------|------|
+| Notion API トークン入力UI（Step1） | ✅ 完成 |
+| レコード取得（Step2: fetchAllNotionRecords） | ⚠️ 問題あり（後述） |
+| データ変換（processPage） | ✅ 完成 |
+| 口座名マッピング（ACCOUNT_NAME_MAP） | ✅ 完成 |
+| タグ同期（syncTags） | ✅ 完成 |
+| Supabaseへのバッチ挿入（importTransactions: 200件/回） | ✅ 完成 |
+| タグ紐付けバッチ挿入（bulkInsertTransactionTags: 500件/回） | ✅ 完成 |
+| 完了画面（Step5） | ✅ 完成 |
 
-**解決策: クライアント側でチャンク分割して順次送信**
+### ブロッカー：全件メモリ蓄積問題
+
+**現在の処理フロー（問題あり）**
+```
+fetchAllNotionRecords() → 全件をメモリに溜める
+    ↓ 3万件 × 数KB/件 = 数十〜150MB
+processPage() → 変換
+    ↓
+importTransactions() → 200件ずつ Supabase に挿入
+```
+
+Notion APIは100件/リクエスト。3万件 = 300回のAPIコールを繰り返しながら
+全件を `pages` 配列に蓄積する。モバイルブラウザはこのメモリ量で
+クラッシュまたはタイムアウトする。
+
+**解決策：ストリーミングパイプライン**
+
+フェッチと挿入を並行して進める。メモリには常に数百件しか持たない。
 
 ```js
-// 疑似コード（import-excel.js に実装予定）
-const CHUNK_SIZE = 500; // 1回あたり500件
+// fetchAllNotionRecords を以下に置き換える
+async function importStreaming(token, flowraAccounts, tagNameToId, onProgress) {
+  const BATCH = 500; // 何件溜まったらSupabaseに送るか
+  let cursor = null;
+  let hasMore = true;
+  let txBuffer = [], tagBuffer = [];
+  let totalFetched = 0, totalInserted = 0;
 
-async function importInChunks(rows) {
-  const total = rows.length;
-  for (let i = 0; i < total; i += CHUNK_SIZE) {
-    const chunk = rows.slice(i, i + CHUNK_SIZE);
-    await supabase.from('transactions').insert(chunk);
-    // プログレスバー更新: (i + chunk.length) / total * 100
+  while (hasMore) {
+    // Notionから100件取得
+    const resp = await notionQuery(token, cursor);
+    hasMore = resp.has_more;
+    cursor  = resp.next_cursor;
+    totalFetched += resp.results.length;
+
+    // 変換してバッファに積む
+    for (const page of resp.results) {
+      const row = processPage(page, flowraAccounts, tagNameToId);
+      if (!row) continue;
+      const { tagId, ...txData } = row;
+      txBuffer.push(txData);
+      if (tagId) tagBuffer.push({ transaction_id: txData.id, tag_id: tagId });
+    }
+
+    // バッファが BATCH 件に達したら挿入してクリア
+    if (txBuffer.length >= BATCH || (!hasMore && txBuffer.length > 0)) {
+      await DB.importTransactions(txBuffer, () => {});
+      await DB.bulkInsertTransactionTags(tagBuffer, () => {});
+      totalInserted += txBuffer.length;
+      txBuffer = []; tagBuffer = [];
+    }
+
+    onProgress(totalFetched, totalInserted);
   }
+  return totalInserted;
 }
 ```
 
-- `CHUNK_SIZE` は 500 を推奨（余裕を持たせる）
-- 各チャンク後に 100ms 程度のウェイトを入れるとSupabase側が安定する
-- UIにプログレスバーを出す（「12,000 / 30,000件 完了」表示）
-- エラー時は失敗チャンクの開始行番号をユーザーに表示して再開できるようにする
+### 実装手順
 
-### 実装ステップ
+1. **`fetchAllNotionRecords` を上記 `importStreaming` に置き換える**
+   - Step3（フェッチ中）と Step4（挿入中）を統合して1つのフェーズにする
+   - プログレスバーに「取得: X件 / 挿入済: Y件」を表示
 
-1. **列構成の確認（要オーナー対応）**
-   - Excelファイルを共有してもらい列名・フォーマットを確認
-   - 最低限必要: 日付、金額、支出/収入区分、カテゴリ（タグ）、メモ、口座名
+2. **プログレスUIの更新**
+   - 現状は「全件取得完了後に挿入」の2段階表示
+   - ストリーミング化により「取得しながら挿入」の1段階表示に変更
 
-2. **CSVパーサー実装**
-   - ExcelをCSV書き出ししてもらう（xlsx直読みは依存ライブラリが重くなるため避ける）
-   - ブラウザの `FileReader` API でCSVを読む（サーバー不要）
-   - 文字コードはShift-JISに注意（`TextDecoder('shift-jis')` で対応）
+3. **エラー時の再開対応（余裕があれば）**
+   - 失敗した cursor 値を localStorage に保存
+   - 再実行時に続きから再開できるように
 
-3. **マッピング画面**
-   - Excelの列名 → Flowraのフィールドをユーザーが確認・修正できる画面
-   - タグ・口座はExcelの文字列をFlowraのIDに変換（未マッチはスキップ or 新規作成）
+### アーキテクチャ
 
-4. **分割バッチ送信 + プログレスUI**
-   - 上記疑似コードを実装
-   - 「インポート中: 12,500 / 30,000件」+ キャンセルボタン
+```
+ブラウザ (import-notion.js)
+    ↓ POST {cursor} + x-notion-token ヘッダー
+Supabase Edge Function (notion-proxy)   ← CORS プロキシ
+    ↓ Bearer token
+Notion API  (100件/リクエスト)
+```
 
-5. **完了後の処理**
-   - キャッシュクリア → 再描画
-   - 「30,000件をインポートしました」トースト
+- Notion DB ID: `1dd85cf70c4c8055949bf3ad4ecf7ef0`
+- プロキシURL: `https://copyzpsyagscqrvkrwjo.supabase.co/functions/v1/notion-proxy`
+- Notionのプロパティ列: `日付`, `金額`, `分類`(select), `管理`(select), `アカウント`(select), `内容`(rich_text), `支払先`(rich_text), `メモ`(rich_text)
+- `管理 === '除外'` または `分類 === '除外'` の行はスキップ
 
 ### 注意事項
-- インポート画面は `settings.js` に「データのインポート」セクションとして追加する（新規ファイルより既存の設定画面に収めた方がシンプル）
-- `import-notion.js` が既存にある。Notionからのインポートロジックが参考になるかもしれないが、3万件には対応していない可能性があるため確認すること
-- インポートは **必ずownerのみ実行可能** にすること（viewerからのインポートは禁止）
+- インポートは **ownerのみ実行可能**（`settings.js` の「データのインポート」セクションから呼び出し）
+- `DB.importTransactions` はエラーを握り潰して `importErrors` に蓄積する設計。インポート後にエラー件数を表示すること
+- Supabase の `transactions` テーブルに RLS がかかっているため、インポートは認証済みユーザーとして実行される（問題なし）
 
 ---
 
