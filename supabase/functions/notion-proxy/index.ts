@@ -29,6 +29,8 @@ Deno.serve(async (req: Request) => {
 
     const queryBody: Record<string, unknown> = {
       page_size: 100,
+      // ソート指定必須: 未指定だと Notion API が10,000件で打ち切ることがある
+      sorts: [{ property: '日付', direction: 'ascending' }],
     };
     if (cursor) queryBody.start_cursor = cursor;
 
