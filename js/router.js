@@ -34,6 +34,18 @@ const PAGE_TITLES = {
   settings:  '設定',
 };
 
+// ── ユーティリティ ────────────────────────────────────
+// transitionend + フォールバックタイマーで確実にコールバックを呼ぶ
+// ・transitionend が発火しないモバイルブラウザへの対策
+// ・done フラグで二重呼び出しを防止
+function afterTransition(el, ms, fn) {
+  let done = false;
+  const run = () => { if (done) return; done = true; fn(); };
+  const timer = setTimeout(run, ms + 60);
+  el.addEventListener('transitionend', () => { clearTimeout(timer); run(); }, { once: true });
+}
+
+// ─────────────────────────────────────────────────────
 export const Router = {
   currentPage: 'dashboard',
   _pageHandlers: {},
@@ -46,7 +58,7 @@ export const Router = {
   // 画面遷移
   navigate(page) {
     this.currentPage = page;
-    Sound.playTap(); // 画面遷移音
+    Sound.playTap();
     // ページ遷移時にsave-barを確実に非表示
     const saveBar = document.getElementById('save-bar');
     if (saveBar) saveBar.hidden = true;
@@ -110,75 +122,68 @@ export const Router = {
     this._initCarousel();
   },
 
+  // ══════════════════════════════════════════════════
+  //  カルーセル（スワイプ月切替）
+  //
+  //  状態機械:
+  //    idle  ─touchstart→  dragging
+  //    dragging ─閾値超─→  animating（commitSlide）
+  //    dragging ─閾値未満→  animating（cancelDrag）
+  //    dragging ─cancel─→  idle（goIdle）
+  //    animating ─終了─→  idle（goIdle）
+  //
+  //  【設計の鉄則】
+  //  ・idle へ戻るとき必ず content の全インラインスタイルをクリアする
+  //    → iOS Safari で transform 残留がコンポジットレイヤーの
+  //       hit-test 範囲を overflow:hidden 外まで広げるバグを防ぐ
+  //  ・アニメーション完了は setTimeout ではなく afterTransition() で待つ
+  //    → transitionend が発火しないケースでもフォールバックで確実に処理
+  //  ・ゴーストパネルは CSS にホーム位置を持たないため、
+  //    常にインラインで translateX(±w) を明示する
+  // ══════════════════════════════════════════════════
   _initCarousel() {
     const carousel = document.getElementById('content-carousel');
     const content  = document.getElementById('page-content');
     if (!carousel || !content) return;
 
-    // ghost パネルを追加（page-contentの前に挿入してDOM順でcontentが前面）
-    ['prev','next'].forEach(side => {
+    const EASE = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
+
+    // ゴーストパネルを生成（page-content より前に挿入 → DOM順で content が前面）
+    ['prev', 'next'].forEach(side => {
       const g = document.createElement('div');
-      g.id = `ghost-${side}`;
+      g.id        = `ghost-${side}`;
       g.className = 'ghost-panel';
-      g.style.opacity   = '0';
-      g.style.transform = side === 'prev' ? `translateX(-${carousel.offsetWidth || 400}px)` : `translateX(${carousel.offsetWidth || 400}px)`;
+      const w = carousel.offsetWidth || 400;
+      g.style.cssText = `opacity:0;transform:translateX(${side === 'prev' ? -w : w}px);transition:none`;
       carousel.insertBefore(g, content);
     });
 
-    let startX = 0, startY = 0;
-    let curX   = 0;
-    let active = false;
-    let axis   = null;
+    // ── ゴーストへの参照 ──────────────────
+    const gp = () => document.getElementById('ghost-prev');
+    const gn = () => document.getElementById('ghost-next');
 
-    const ghostPrev = () => document.getElementById('ghost-prev');
-    const ghostNext = () => document.getElementById('ghost-next');
-    const ease = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
-
-    // ドラッグ中：ghostはcontentの隣にぴったり並んで動く
-    const trackDrag = (tx, rawDx, w) => {
-      content.style.transition = 'none';
-      content.style.transform  = `translateX(${tx}px)`;
-
-      const label = document.getElementById('mobile-month-label');
-
-      if (rawDx < 0) {
-        // 左スワイプ → next ghost はcontentの右隣
-        ghostNext().style.transition = 'none';
-        ghostNext().style.transform  = `translateX(${tx + w}px)`;
-        ghostNext().style.opacity    = '0.78';
-        ghostPrev().style.opacity    = '0';
-        if (label && !label.dataset.dragging) {
-          label.dataset.dragging = '1';
-          const { year, month } = MonthState;
-          const nm = month === 12 ? 1 : month + 1;
-          label.textContent = `${month}月 → ${nm}月`;
-        }
-      } else if (rawDx > 0) {
-        // 右スワイプ → prev ghost はcontentの左隣
-        ghostPrev().style.transition = 'none';
-        ghostPrev().style.transform  = `translateX(${tx - w}px)`;
-        ghostPrev().style.opacity    = '0.78';
-        ghostNext().style.opacity    = '0';
-        if (label && !label.dataset.dragging) {
-          label.dataset.dragging = '1';
-          const { year, month } = MonthState;
-          const pm = month === 1 ? 12 : month - 1;
-          label.textContent = `${pm}月 ← ${month}月`;
-        }
-      }
+    // ── ゴーストをホームポジションへ ──────
+    // ゴーストは CSS にデフォルト位置がないため常にインラインで指定する
+    const resetGhosts = () => {
+      const w = carousel.offsetWidth;
+      const p = gp(), n = gn();
+      if (p) p.style.cssText = `opacity:0;transform:translateX(-${w}px);transition:none`;
+      if (n) n.style.cssText = `opacity:0;transform:translateX(${w}px);transition:none`;
     };
 
-    // リセット（キャンセル時）
-    const cancelDrag = () => {
-      const w = carousel.offsetWidth;
-      content.style.transition     = ease;
-      content.style.transform      = 'translateX(0)';
-      ghostPrev().style.transition = ease;
-      ghostNext().style.transition = ease;
-      ghostPrev().style.transform  = `translateX(-${w}px)`;
-      ghostNext().style.transform  = `translateX(${w}px)`;
-      ghostPrev().style.opacity    = '0';
-      ghostNext().style.opacity    = '0';
+    // ── 状態オブジェクト ──────────────────
+    // phase: 'idle' | 'dragging' | 'animating'
+    const sw = { phase: 'idle', startX: 0, startY: 0, curX: 0, axis: null };
+
+    // ── idle へ戻る（必ずここを通る） ───────
+    const goIdle = () => {
+      sw.phase = 'idle';
+      sw.curX  = 0;
+      sw.axis  = null;
+      // content の全インラインスタイルをクリア
+      // ↑ iOS Safari の compositing layer hit-test バグ対策
+      content.style.cssText = '';
+      resetGhosts();
       const label = document.getElementById('mobile-month-label');
       if (label) {
         delete label.dataset.dragging;
@@ -186,175 +191,203 @@ export const Router = {
       }
     };
 
-    // コミット
+    // ── ドラッグ中リアルタイム追従 ────────
+    const trackDrag = (tx, rawDx, w) => {
+      content.style.cssText = `transition:none;transform:translateX(${tx}px)`;
+      const label = document.getElementById('mobile-month-label');
+
+      if (rawDx < 0) {
+        // 左スワイプ → next ghost が右隣から追従
+        const n = gn();
+        if (n) n.style.cssText = `opacity:0.78;transform:translateX(${tx + w}px);transition:none`;
+        const p = gp(); if (p) p.style.opacity = '0';
+        if (label && !label.dataset.dragging) {
+          label.dataset.dragging = '1';
+          const { month } = MonthState;
+          label.textContent = `${month}月 → ${month === 12 ? 1 : month + 1}月`;
+        }
+      } else if (rawDx > 0) {
+        // 右スワイプ → prev ghost が左隣から追従
+        const p = gp();
+        if (p) p.style.cssText = `opacity:0.78;transform:translateX(${tx - w}px);transition:none`;
+        const n = gn(); if (n) n.style.opacity = '0';
+        if (label && !label.dataset.dragging) {
+          label.dataset.dragging = '1';
+          const { month } = MonthState;
+          label.textContent = `${month === 1 ? 12 : month - 1}月 ← ${month}月`;
+        }
+      }
+    };
+
+    // ── キャンセル（閾値未満で指を離した） ──
+    const cancelDrag = () => {
+      sw.phase = 'animating';
+      const w = carousel.offsetWidth;
+      // ゴーストをホームへアニメーション
+      const p = gp(), n = gn();
+      if (p) p.style.cssText = `opacity:0;transform:translateX(-${w}px);transition:${EASE}`;
+      if (n) n.style.cssText = `opacity:0;transform:translateX(${w}px);transition:${EASE}`;
+      // content を中央へ戻すアニメーション → 完了で goIdle
+      content.style.cssText = `transition:${EASE};transform:translateX(0)`;
+      afterTransition(content, 280, goIdle);
+    };
+
+    // ── コミット（閾値超えで指を離した） ───
     const commitSlide = (dir) => {
+      sw.phase = 'animating';
       const w = carousel.offsetWidth;
       const label = document.getElementById('mobile-month-label');
       if (label) delete label.dataset.dragging;
 
-      content.style.transition = ease;
-      content.style.transform  = dir === 'next' ? `translateX(-${w}px)` : `translateX(${w}px)`;
-      const activeGhost = dir === 'next' ? ghostNext() : ghostPrev();
-      activeGhost.style.opacity    = '0.78';
-      activeGhost.style.transition = ease;
-      activeGhost.style.transform  = 'translateX(0)';
+      const activeG = dir === 'next' ? gn() : gp();
+      const inactG  = dir === 'next' ? gp() : gn();
 
-      setTimeout(() => {
-        ghostPrev().style.transition = 'none';
-        ghostNext().style.transition = 'none';
-        void ghostPrev().offsetWidth;
-        ghostPrev().style.opacity   = '0';
-        ghostNext().style.opacity   = '0';
-        ghostPrev().style.transform = `translateX(-${w}px)`;
-        ghostNext().style.transform = `translateX(${w}px)`;
+      // content を画面外へ退場
+      const outX = dir === 'next' ? -w : w;
+      content.style.cssText = `transition:${EASE};transform:translateX(${outX}px)`;
 
-        // インラインスタイルを完全にクリア
-        // transform: translateX(0) を残すと iOS Safari でコンポジットレイヤーの
-        // ヒットテスト範囲が overflow:hidden を突き破り、ボトムナビを覆ってしまう
-        content.style.transition = '';
-        content.style.transform  = '';
-        content.style.opacity    = '';
+      // ghost を中央へ入場
+      if (activeG) activeG.style.cssText = `opacity:0.78;transform:translateX(0);transition:${EASE}`;
+      if (inactG)  inactG.style.opacity = '0';
 
+      // content の退場アニメーション完了後に月更新 → goIdle
+      afterTransition(content, 280, () => {
+        // ① インラインスタイルをクリア（iOS Safari 対策）→ content が中央に瞬間復帰
+        // ② 月状態を更新して再描画
+        // ③ ghost をホームポジションへリセット
+        // ①②③ はすべて同期的に実行されるため、ブラウザは1フレームでまとめて描画する
+        goIdle();
         if (dir === 'next') MonthState.next(); else MonthState.prev();
         this._updateMonthLabels(dir);
-      }, 290);
+      });
     };
+
+    // ── タッチイベント ────────────────────
 
     carousel.addEventListener('touchstart', (e) => {
       if (this.currentPage !== 'records') return;
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
-      curX   = 0;
-      active = true;
-      axis   = null;
+      if (sw.phase !== 'idle') return; // アニメーション中の新規タッチは無視
+      sw.startX = e.touches[0].clientX;
+      sw.startY = e.touches[0].clientY;
+      sw.curX   = 0;
+      sw.axis   = null;
+      sw.phase  = 'dragging';
     }, { passive: true });
 
     carousel.addEventListener('touchmove', (e) => {
-      if (!active) return;
-      const dx = e.touches[0].clientX - startX;
-      const dy = e.touches[0].clientY - startY;
+      if (sw.phase !== 'dragging') return;
+      const dx = e.touches[0].clientX - sw.startX;
+      const dy = e.touches[0].clientY - sw.startY;
 
-      if (!axis) {
+      // 12px 動くまでは軸を確定しない
+      if (!sw.axis) {
         if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return;
-        // 横スワイプは横移動が縦移動の2倍以上の場合のみ確定（タップの微ブレを除外）
-        if (Math.abs(dx) > Math.abs(dy) * 2) {
-          axis = 'h';
-        } else {
-          axis = 'v';
-        }
+        // 横移動が縦の2倍以上のときのみ横スワイプと確定（タップの微ブレ除外）
+        sw.axis = Math.abs(dx) > Math.abs(dy) * 2 ? 'h' : 'v';
       }
-      if (axis === 'v') {
-        // iOSバウンス防止: スクロール端での上下スワイプはpreventDefault
-        const pageEl = document.getElementById('page-content');
-        if (pageEl) {
-          const atTop    = pageEl.scrollTop <= 0;
-          const atBottom = pageEl.scrollTop + pageEl.clientHeight >= pageEl.scrollHeight - 1;
-          if ((dy > 0 && atTop) || (dy < 0 && atBottom)) {
-            e.preventDefault();
-          }
+
+      if (sw.axis === 'v') {
+        // 縦スクロール：スクロール端での iOS バウンスのみ抑制
+        const el = document.getElementById('page-content');
+        if (el) {
+          const atTop    = el.scrollTop <= 0;
+          const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 1;
+          if ((dy > 0 && atTop) || (dy < 0 && atBottom)) e.preventDefault();
         }
         return;
       }
 
+      // 横スワイプ確定
       e.preventDefault();
-      curX = dx;
+      sw.curX = dx;
 
-      // ゴム感（contentのみ）
+      // ゴム感（端に近づくほど動きが鈍くなる）
       const w = carousel.offsetWidth;
-      let tx = curX;
+      let tx = sw.curX;
       if (Math.abs(tx) > w * 0.5) {
         tx = Math.sign(tx) * (w * 0.5 + (Math.abs(tx) - w * 0.5) * 0.2);
       }
-      // ghostは生のdxを使う（ゴム感なしで等速追従）
       trackDrag(tx, dx, w);
     }, { passive: false });
 
     carousel.addEventListener('touchend', () => {
-      if (!active) { return; }
-      if (axis !== 'h') {
-        // 縦スクロールや未確定の場合もghostをリセット
-        active = false; axis = null;
-        const w = carousel.offsetWidth;
-        ghostPrev().style.transition = 'none';
-        ghostNext().style.transition = 'none';
-        ghostPrev().style.opacity = '0';
-        ghostNext().style.opacity = '0';
-        ghostPrev().style.transform = `translateX(-${w}px)`;
-        ghostNext().style.transform = `translateX(${w}px)`;
+      if (sw.phase !== 'dragging') return;
+
+      if (sw.axis !== 'h') {
+        // 縦スクロール or 軸未確定 → 即 idle へ（ghost も確実にリセット）
+        goIdle();
         return;
       }
-      active = false;
-      axis   = null;
 
-      const w = carousel.offsetWidth;
-      const threshold = w * 0.28;
-
-      if (curX < -threshold) {
-        commitSlide('next');
-      } else if (curX > threshold) {
-        commitSlide('prev');
-      } else {
-        cancelDrag();
-      }
-      curX = 0;
+      const threshold = carousel.offsetWidth * 0.28;
+      if      (sw.curX < -threshold) commitSlide('next');
+      else if (sw.curX >  threshold) commitSlide('prev');
+      else                            cancelDrag();
     }, { passive: true });
 
-    // touchcancel: システム割り込み等でタッチが中断された場合のリセット
-    // ハンドラ未実装だと active=true が残留し次のスワイプ判定が狂う
+    // システム割り込み（通知バナー等）でタッチが中断された場合
     carousel.addEventListener('touchcancel', () => {
-      if (!active) return;
-      active = false;
-      axis   = null;
-      curX   = 0;
-      cancelDrag();
+      if (sw.phase === 'dragging') goIdle();
     }, { passive: true });
   },
 
+  // ── ボタンによる月切替（< > ボタン） ────────────────────
+  // スワイプと同様の状態管理で実装
   _slideMonth(dir) {
     const content = document.getElementById('page-content');
     const carousel = document.getElementById('content-carousel');
-    // 記録一覧以外はアニメーションなしで月変更のみ
+
+    // records 画面以外はアニメーションなしで即切替
     if (!content || !carousel || this.currentPage !== 'records') {
       if (dir === 'next') MonthState.next(); else MonthState.prev();
       this._updateMonthLabels(dir);
       return;
     }
-    const w = carousel.offsetWidth;
-    const outX = dir === 'next' ? -w : w;
+
+    const EASE = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
+    const w    = carousel.offsetWidth;
+    const outX = dir === 'next' ? -w :  w;
     const inX  = dir === 'next' ?  w : -w;
-    content.style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
-    content.style.transform  = `translateX(${outX}px)`;
-    setTimeout(() => {
-      content.style.transition = 'none';
-      content.style.transform  = `translateX(${inX}px)`;
+
+    // 退場アニメーション
+    content.style.cssText = `transition:${EASE};transform:translateX(${outX}px)`;
+
+    afterTransition(content, 280, () => {
+      // 月状態を更新して再描画
       if (dir === 'next') MonthState.next(); else MonthState.prev();
       this._updateMonthLabels(dir);
-      requestAnimationFrame(() => requestAnimationFrame(() => {
-        content.style.transition = 'transform 0.28s cubic-bezier(0.25,0.46,0.45,0.94)';
-        content.style.transform  = 'translateX(0)';
-      }));
-    }, 280);
+
+      // 反対側に瞬間移動（transition なし）
+      content.style.cssText = `transition:none;transform:translateX(${inX}px)`;
+      void content.offsetWidth; // 強制リフロー（transform を確定させてから次の transition を有効化）
+
+      // 入場アニメーション
+      content.style.cssText = `transition:${EASE};transform:translateX(0)`;
+
+      // 入場完了後にインラインスタイルをクリア（iOS Safari 対策）
+      afterTransition(content, 280, () => {
+        content.style.cssText = '';
+      });
+    });
   },
 
   _updateMonthLabels(dir = null) {
     const label = MonthState.label();
     const m = document.getElementById('mobile-month-label');
     const d = document.getElementById('desktop-month-label');
-    if (m) {
-      m.textContent = label;
-    }
+    if (m) m.textContent = label;
     if (d) d.textContent = label;
 
     // body クラスでページ種別を公開（CSS から参照）
     this._syncPageClass();
 
-    // records画面のときは月が変わったらコンテンツを再描画
+    // records 画面のときは月が変わったらコンテンツを再描画
     if (this.currentPage === 'records' && dir) {
       const handler = this._pageHandlers['records'];
       if (handler) handler();
     }
 
-    // ghostパネルに隣月データをロード（records画面のみ）
+    // ghost パネルに隣月データをロード（records 画面のみ）
     if (this.currentPage === 'records') {
       this._loadGhostPanels();
     }
@@ -446,9 +479,9 @@ export const Router = {
       getCachedTransactions({ year: nextY, month: nextM }),
     ]);
 
-    const gp = document.getElementById('ghost-prev');
-    const gn = document.getElementById('ghost-next');
-    if (gp) { gp.innerHTML = buildGhostHTML(prevTxs, prevY, prevM); gp.style.opacity = '0'; }
-    if (gn) { gn.innerHTML = buildGhostHTML(nextTxs, nextY, nextM); gn.style.opacity = '0'; }
+    const gpEl = document.getElementById('ghost-prev');
+    const gnEl = document.getElementById('ghost-next');
+    if (gpEl) { gpEl.innerHTML = buildGhostHTML(prevTxs, prevY, prevM); gpEl.style.opacity = '0'; }
+    if (gnEl) { gnEl.innerHTML = buildGhostHTML(nextTxs, nextY, nextM); gnEl.style.opacity = '0'; }
   },
 };
