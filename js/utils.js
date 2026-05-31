@@ -29,23 +29,27 @@ export function openModal(contentHTML) {
   document.body.style.overflow = 'hidden';
   Sound.playOpen();
 
-  // 下スワイプで閉じる
+  // 下スワイプで閉じる（リスナーは一度だけ登録）
   const sheet = document.getElementById('modal-add-record');
   if (sheet && !sheet._swipeInit) {
     sheet._swipeInit = true;
     let startY = 0;
     let startScrollTop = 0;
-    sheet.addEventListener('touchstart', (e) => {
+    const onTouchStart = (e) => {
       startY = e.touches[0].clientY;
       startScrollTop = sheet.scrollTop;
-    }, { passive: true });
-    sheet.addEventListener('touchend', (e) => {
+    };
+    const onTouchEnd = (e) => {
       const dy = e.changedTouches[0].clientY - startY;
       // スクロール位置が一番上 かつ 60px以上下スワイプで閉じる
       if (startScrollTop === 0 && dy > 60) {
         closeModal();
       }
-    }, { passive: true });
+    };
+    sheet.addEventListener('touchstart', onTouchStart, { passive: true });
+    sheet.addEventListener('touchend', onTouchEnd, { passive: true });
+    // リスナーを保持しておく（将来の削除に備えて）
+    sheet._swipeHandlers = { onTouchStart, onTouchEnd };
   }
 }
 
@@ -57,15 +61,23 @@ export function closeModal() {
   const saveBar = document.getElementById('save-bar');
   if (saveBar) saveBar.hidden = true;
   Sound.playClose();
-  if (sheet) {
-    sheet.classList.add('closing');
-    sheet.addEventListener('animationend', () => {
-      sheet.classList.remove('closing');
-      overlay.hidden = true;
-      document.body.style.overflow = '';
-    }, { once: true });
-  } else {
+
+  const forceClose = () => {
+    if (overlay.hidden) return; // 既に閉じていれば何もしない
+    if (sheet) sheet.classList.remove('closing');
     overlay.hidden = true;
     document.body.style.overflow = '';
+  };
+
+  if (sheet) {
+    sheet.classList.add('closing');
+    // animationend が発火しない場合に備えてフォールバックタイマーを設定
+    const fallbackTimer = setTimeout(forceClose, 400);
+    sheet.addEventListener('animationend', () => {
+      clearTimeout(fallbackTimer);
+      forceClose();
+    }, { once: true });
+  } else {
+    forceClose();
   }
 }
