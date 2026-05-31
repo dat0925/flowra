@@ -423,21 +423,6 @@ svg {
 body.page-records #mobile-month-label {
   color: #fff;
 }
-/* スライド中の月ラベルアニメーション */
-#mobile-month-label.slide-in-left {
-  animation: monthSlideInLeft 0.22s cubic-bezier(0.25,0.46,0.45,0.94) both;
-}
-#mobile-month-label.slide-in-right {
-  animation: monthSlideInRight 0.22s cubic-bezier(0.25,0.46,0.45,0.94) both;
-}
-@keyframes monthSlideInLeft {
-  from { opacity: 0; transform: translateX(16px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes monthSlideInRight {
-  from { opacity: 0; transform: translateX(-16px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
 /* ドラッグ中：色だけ変える（サイズ・幅は通常と同じ） */
 #mobile-month-label[data-dragging] {
   color: rgba(255,255,255,0.65);

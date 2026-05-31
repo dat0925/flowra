@@ -328,19 +328,7 @@ export const Router = {
     const m = document.getElementById('mobile-month-label');
     const d = document.getElementById('desktop-month-label');
     if (m) {
-      if (dir) {
-        // スライド方向に応じたアニメーション
-        // next（未来月）→ 左からくる（prevから見ると右へ）
-        const cls = dir === 'next' ? 'slide-in-left' : 'slide-in-right';
-        m.classList.remove('slide-in-left', 'slide-in-right');
-        // forceReflow
-        void m.offsetWidth;
-        m.textContent = label;
-        m.classList.add(cls);
-        m.addEventListener('animationend', () => m.classList.remove(cls), { once: true });
-      } else {
-        m.textContent = label;
-      }
+      m.textContent = label;
     }
     if (d) d.textContent = label;
 
