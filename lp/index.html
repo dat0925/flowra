@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flowra — ふたりの家計を、やさしく。</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600&family=Noto+Serif+JP:wght@400;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sage:    #4A7C59;
+      --sage-lt: #6FA882;
+      --sage-dk: #2F5239;
+      --sage-bg: #EEF5F1;
+      --mist:    #E8F0EC;
+      --stone:   #F5F2ED;
+      --ink:     #1C2B22;
+      --gold:    #B8973E;
+      --gold-bg: #FBF5E6;
+      --warm:    #FAF7F2;
+      --mid:     #7A9485;
+      --mid-lt:  #B0C4BB;
+      --border:  #E4DDD4;
+      --white:   #ffffff;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: var(--stone);
+      color: var(--ink);
+      overflow-x: hidden;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      height: 60px;
+      background: rgba(245,242,237,0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .nav-logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 22px;
+      color: var(--ink);
+      letter-spacing: -0.02em;
+    }
+    .nav-logo span { color: var(--sage); }
+
+    .nav-cta {
+      background: var(--sage);
+      color: #fff;
+      border: none;
+      border-radius: 100px;
+      padding: 9px 22px;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-block;
+      transition: background 0.2s;
+    }
+    .nav-cta:hover { background: var(--sage-dk); }
+
+    /* ── HERO ── */
+    .hero {
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 100px 24px 80px;
+      position: relative;
+      overflow: hidden;
+      text-align: center;
+    }
+
+    .hero-bg {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 10%, rgba(74,124,89,0.10) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 80%, rgba(184,151,62,0.07) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    /* 草むらっぽい波 */
+    .hero-wave {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 120px;
+      background: var(--ink);
+      clip-path: ellipse(60% 100% at 50% 100%);
+      opacity: 0.03;
+    }
+
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--sage-bg);
+      border: 1px solid rgba(74,124,89,0.2);
+      border-radius: 100px;
+      padding: 5px 14px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--sage-dk);
+      letter-spacing: 0.05em;
+      margin-bottom: 28px;
+      opacity: 0;
+      animation: fadeUp 0.6s ease forwards 0.1s;
+    }
+
+    .hero-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--sage);
+    }
+
+    .hero-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(42px, 8vw, 80px);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      margin-bottom: 8px;
+      opacity: 0;
+      animation: fadeUp 0.7s ease forwards 0.25s;
+    }
+    .hero-title em {
+      font-style: italic;
+      color: var(--sage);
+    }
+
+    .hero-subtitle-jp {
+      font-family: 'Noto Serif JP', serif;
+      font-size: clamp(16px, 3vw, 22px);
+      font-weight: 400;
+      color: var(--mid);
+      margin-bottom: 36px;
+      opacity: 0;
+      animation: fadeUp 0.7s ease forwards 0.4s;
+    }
+
+    .hero-desc {
+      max-width: 480px;
+      font-size: 15px;
+      line-height: 1.9;
+      color: var(--mid);
+      margin-bottom: 44px;
+      opacity: 0;
+      animation: fadeUp 0.7s ease forwards 0.55s;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      opacity: 0;
+      animation: fadeUp 0.7s ease forwards 0.7s;
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--ink);
+      color: #fff;
+      border: none;
+      border-radius: 100px;
+      padding: 15px 32px;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(28,43,34,0.2);
+    }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: var(--ink);
+      border: 1.5px solid var(--border);
+      border-radius: 100px;
+      padding: 14px 28px;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 14px;
+      font-weight: 400;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .btn-ghost:hover {
+      border-color: var(--sage);
+      background: var(--sage-bg);
+    }
+
+    .hero-note {
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--mid-lt);
+      opacity: 0;
+      animation: fadeUp 0.7s ease forwards 0.85s;
+    }
+
+    /* モックアップ */
+    .hero-mockup {
+      margin-top: 72px;
+      position: relative;
+      opacity: 0;
+      animation: fadeUp 0.9s ease forwards 0.95s;
+    }
+
+    .phone-frame {
+      width: 260px;
+      height: 520px;
+      background: var(--ink);
+      border-radius: 40px;
+      padding: 14px;
+      box-shadow:
+        0 40px 80px rgba(28,43,34,0.25),
+        0 0 0 1px rgba(255,255,255,0.08) inset;
+      position: relative;
+    }
+
+    .phone-screen {
+      width: 100%;
+      height: 100%;
+      background: var(--stone);
+      border-radius: 28px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .phone-statusbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 16px 0;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .phone-header {
+      background: var(--ink);
+      color: #fff;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+    }
+
+    .phone-month {
+      font-family: 'Noto Serif JP', serif;
+      font-size: 13px;
+    }
+
+    .phone-body { padding: 12px 12px; }
+
+    .phone-summary {
+      background: var(--ink);
+      border-radius: 14px;
+      padding: 14px 16px;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+
+    .phone-summary-label {
+      font-size: 9px;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 2px;
+    }
+
+    .phone-summary-amount {
+      font-family: 'Noto Serif JP', serif;
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .phone-summary-sub {
+      display: flex;
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .phone-summary-item {
+      font-size: 9px;
+      color: rgba(255,255,255,0.6);
+    }
+
+    .phone-summary-item strong {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .phone-tx {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 10px;
+      background: var(--white);
+      border-radius: 10px;
+      margin-bottom: 6px;
+    }
+
+    .phone-tx-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    .phone-tx-info { flex: 1; min-width: 0; }
+
+    .phone-tx-name {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    .phone-tx-tag {
+      font-size: 9px;
+      color: var(--mid);
+    }
+
+    .phone-tx-amount {
+      font-family: 'Noto Serif JP', serif;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .phone-tx-amount.income { color: var(--sage); }
+    .phone-tx-amount.expense { color: var(--ink); }
+
+    .phone-nav {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      background: var(--white);
+      border-top: 1px solid var(--border);
+      display: flex;
+      padding: 8px 0 14px;
+    }
+
+    .phone-nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      font-size: 8px;
+      color: var(--mid-lt);
+    }
+
+    .phone-nav-item.active { color: var(--sage); }
+
+    .phone-nav-dot {
+      width: 20px;
+      height: 20px;
+      border-radius: 6px;
+      background: currentColor;
+      opacity: 0.15;
+    }
+
+    .phone-nav-item.active .phone-nav-dot {
+      background: var(--sage);
+      opacity: 1;
+    }
+
+    /* 浮かぶカード装飾 */
+    .float-card {
+      position: absolute;
+      background: var(--white);
+      border-radius: 16px;
+      padding: 12px 16px;
+      box-shadow: 0 8px 32px rgba(28,43,34,0.12);
+      font-size: 12px;
+      white-space: nowrap;
+      animation: floatY 4s ease-in-out infinite;
+    }
+
+    .float-card-1 {
+      left: -100px;
+      top: 120px;
+      animation-delay: 0s;
+    }
+
+    .float-card-2 {
+      right: -80px;
+      top: 200px;
+      animation-delay: 2s;
+    }
+
+    @keyframes floatY {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .float-label { font-size: 10px; color: var(--mid); margin-bottom: 2px; }
+    .float-value { font-family: 'Noto Serif JP', serif; font-weight: 600; color: var(--ink); }
+
+    /* ── FEATURES ── */
+    .section {
+      padding: 100px 24px;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      color: var(--sage);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(28px, 5vw, 48px);
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      margin-bottom: 16px;
+    }
+
+    .section-desc {
+      font-size: 15px;
+      line-height: 1.9;
+      color: var(--mid);
+      max-width: 480px;
+      margin-bottom: 64px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 28px 24px;
+      transition: transform 0.25s, box-shadow 0.25s;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    .feature-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.25s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 12px 40px rgba(28,43,34,0.1);
+    }
+
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: var(--sage-bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 16px;
+      font-size: 20px;
+    }
+
+    .feature-name {
+      font-family: 'Noto Serif JP', serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+
+    .feature-desc {
+      font-size: 13.5px;
+      line-height: 1.8;
+      color: var(--mid);
+    }
+
+    /* ── HOW ── */
+    .how-section {
+      background: var(--ink);
+      padding: 100px 24px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .how-bg {
+      position: absolute;
+      top: -100px; right: -100px;
+      width: 400px; height: 400px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(74,124,89,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .how-inner {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .how-section .section-label { color: var(--sage-lt); }
+    .how-section .section-title { color: #fff; }
+    .how-section .section-desc { color: rgba(255,255,255,0.5); }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 32px;
+    }
+
+    .step {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    .step.visible {
+      opacity: 1;
+      transform: translateY(0);
+      transition: opacity 0.5s ease, transform 0.5s ease;
+    }
+
+    .step-num {
+      font-family: 'DM Serif Display', serif;
+      font-size: 48px;
+      line-height: 1;
+      color: rgba(255,255,255,0.08);
+      margin-bottom: 8px;
+    }
+
+    .step-title {
+      font-family: 'Noto Serif JP', serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .step-desc {
+      font-size: 13px;
+      line-height: 1.8;
+      color: rgba(255,255,255,0.45);
+    }
+
+    /* ── COUPLE ── */
+    .couple-section {
+      padding: 100px 24px;
+      background: var(--warm);
+    }
+
+    .couple-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 64px;
+      align-items: center;
+    }
+
+    @media (max-width: 680px) {
+      .couple-inner { grid-template-columns: 1fr; gap: 40px; }
+      .float-card-1, .float-card-2 { display: none; }
+    }
+
+    .couple-visual {
+      display: flex;
+      gap: 12px;
+    }
+
+    .avatar-card {
+      flex: 1;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 20px 16px;
+      text-align: center;
+    }
+
+    .avatar-circle {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      margin: 0 auto 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .avatar-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--ink);
+      margin-bottom: 4px;
+    }
+
+    .avatar-role {
+      font-size: 10px;
+      color: var(--mid-lt);
+    }
+
+    .share-arrow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      color: var(--mid-lt);
+    }
+
+    /* ── FREE BADGE ── */
+    .free-section {
+      padding: 100px 24px;
+      text-align: center;
+    }
+
+    .free-badge {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      background: var(--sage-bg);
+      border: 1.5px solid rgba(74,124,89,0.25);
+      border-radius: 24px;
+      padding: 40px 56px;
+      margin-bottom: 32px;
+    }
+
+    .free-price {
+      font-family: 'DM Serif Display', serif;
+      font-size: 72px;
+      line-height: 1;
+      color: var(--ink);
+      letter-spacing: -0.04em;
+      margin-bottom: 4px;
+    }
+
+    .free-label {
+      font-size: 14px;
+      color: var(--mid);
+    }
+
+    .free-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 24px;
+      text-align: left;
+    }
+
+    .free-features li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--ink);
+    }
+
+    .check {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--sage);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      flex-shrink: 0;
+    }
+
+    /* ── CTA ── */
+    .cta-section {
+      background: var(--ink);
+      padding: 100px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-bg {
+      position: absolute;
+      bottom: -100px; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(74,124,89,0.2) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(32px, 6vw, 60px);
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+
+    .cta-title em {
+      font-style: italic;
+      color: var(--sage-lt);
+    }
+
+    .cta-desc {
+      font-size: 15px;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 40px;
+    }
+
+    .btn-primary-inv {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #fff;
+      color: var(--ink);
+      border: none;
+      border-radius: 100px;
+      padding: 16px 36px;
+      font-family: 'Noto Sans JP', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn-primary-inv:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(255,255,255,0.15);
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--ink);
+      border-top: 1px solid rgba(255,255,255,0.06);
+      padding: 32px 24px;
+      text-align: center;
+    }
+
+    .footer-logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 20px;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 8px;
+    }
+
+    .footer-logo span { color: var(--sage-lt); }
+
+    .footer-copy {
+      font-size: 12px;
+      color: rgba(255,255,255,0.2);
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 640px) {
+      nav { padding: 0 20px; }
+      .phone-frame { width: 220px; height: 440px; }
+      .phone-summary-amount { font-size: 17px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">Flow<span>ra</span></div>
+    <a href="https://flowra.taskra.jp" class="nav-cta">無料で始める →</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-bg"></div>
+    <div class="hero-wave"></div>
+
+    <div class="hero-eyebrow">
+      <div class="hero-dot"></div>
+      完全無料 · Google ログインで即スタート
+    </div>
+
+    <h1 class="hero-title">
+      ふたりの<em>お金</em>を、<br>もっと自然に。
+    </h1>
+
+    <p class="hero-subtitle-jp">家計管理アプリ Flowra</p>
+
+    <p class="hero-desc">
+      夫婦・カップルのためのシンプルな家計簿。<br>
+      記録・共有・確認がスムーズにできる、<br>
+      毎日使いたくなるアプリです。
+    </p>
+
+    <div class="hero-actions">
+      <a href="https://flowra.taskra.jp" class="btn-primary">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        無料で使ってみる
+      </a>
+      <a href="#features" class="btn-ghost">詳しく見る</a>
+    </div>
+
+    <p class="hero-note">登録不要 · 広告なし · ずっと無料</p>
+
+    <div class="hero-mockup">
+      <!-- 浮かぶカード -->
+      <div class="float-card float-card-1">
+        <div class="float-label">今月の支出</div>
+        <div class="float-value">¥87,400</div>
+      </div>
+      <div class="float-card float-card-2">
+        <div class="float-label">パートナーと共有中</div>
+        <div class="float-value">✓ リアルタイム同期</div>
+      </div>
+
+      <div class="phone-frame">
+        <div class="phone-screen">
+          <div class="phone-statusbar">
+            <span>9:41</span>
+            <span>●●●</span>
+          </div>
+          <div class="phone-header">
+            <span style="font-size:11px;opacity:0.6;">Flowra</span>
+            <span class="phone-month">2026年6月</span>
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--sage);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">T</div>
+          </div>
+          <div class="phone-body">
+            <div class="phone-summary">
+              <div class="phone-summary-label">残高合計</div>
+              <div class="phone-summary-amount">¥1,240,500</div>
+              <div class="phone-summary-sub">
+                <div class="phone-summary-item">
+                  <strong style="color:#6FA882;">+ ¥350,000</strong>
+                  収入
+                </div>
+                <div class="phone-summary-item">
+                  <strong>− ¥87,400</strong>
+                  支出
+                </div>
+              </div>
+            </div>
+
+            <div class="phone-tx">
+              <div class="phone-tx-icon" style="background:#EEF5F1;">🛒</div>
+              <div class="phone-tx-info">
+                <div class="phone-tx-name">スーパー</div>
+                <div class="phone-tx-tag">食費</div>
+              </div>
+              <div class="phone-tx-amount expense">−¥3,200</div>
+            </div>
+
+            <div class="phone-tx">
+              <div class="phone-tx-icon" style="background:#FBF5E6;">🚃</div>
+              <div class="phone-tx-info">
+                <div class="phone-tx-name">交通費</div>
+                <div class="phone-tx-tag">交通</div>
+              </div>
+              <div class="phone-tx-amount expense">−¥1,540</div>
+            </div>
+
+            <div class="phone-tx">
+              <div class="phone-tx-icon" style="background:#EEF5F1;">💰</div>
+              <div class="phone-tx-info">
+                <div class="phone-tx-name">給与</div>
+                <div class="phone-tx-tag">収入</div>
+              </div>
+              <div class="phone-tx-amount income">+¥250,000</div>
+            </div>
+          </div>
+
+          <div class="phone-nav">
+            <div class="phone-nav-item active">
+              <div class="phone-nav-dot"></div>
+              <span>ホーム</span>
+            </div>
+            <div class="phone-nav-item">
+              <div class="phone-nav-dot"></div>
+              <span>記録</span>
+            </div>
+            <div class="phone-nav-item">
+              <div class="phone-nav-dot"></div>
+              <span>口座</span>
+            </div>
+            <div class="phone-nav-item">
+              <div class="phone-nav-dot"></div>
+              <span>設定</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="section" id="features">
+    <span class="section-label">Features</span>
+    <h2 class="section-title">使いたくなる<br>理由があります。</h2>
+    <p class="section-desc">難しい設定は不要。開いたらすぐ使えるシンプルさと、ふたりで使うからこそ嬉しい機能を揃えました。</p>
+
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">👫</div>
+        <div class="feature-name">パートナー共有</div>
+        <p class="feature-desc">招待リンクを送るだけで、家計をリアルタイムで共有。お互いの収支が一目でわかります。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <div class="feature-name">PWA対応</div>
+        <p class="feature-desc">ホーム画面に追加すればアプリのように使えます。インストール不要で、iPhoneでもAndroidでも。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏦</div>
+        <div class="feature-name">複数口座管理</div>
+        <p class="feature-desc">財布・クレカ・銀行口座をまとめて管理。口座間の振替も簡単に記録できます。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏷️</div>
+        <div class="feature-name">カテゴリタグ</div>
+        <p class="feature-desc">食費・交通・娯楽など、自由にタグをカスタマイズ。支出の傾向がパッとわかります。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🔍</div>
+        <div class="feature-name">全期間検索</div>
+        <p class="feature-desc">メモ・タグ名で全期間の記録を瞬時に検索。「あの出費いくらだっけ？」がすぐ解決。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📅</div>
+        <div class="feature-name">月スワイプ</div>
+        <p class="feature-desc">スワイプで月を移動するカルーセル式UI。隣の月の記録をチラ見しながらスムーズに行き来できます。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW -->
+  <section class="how-section">
+    <div class="how-bg"></div>
+    <div class="how-inner">
+      <span class="section-label">How to start</span>
+      <h2 class="section-title">3ステップで<br>始められます。</h2>
+      <p class="section-desc">面倒な初期設定はありません。Googleアカウントがあればすぐスタート。</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-title">Googleでログイン</div>
+          <p class="step-desc">Googleアカウントでワンタップログイン。メールアドレスや個人情報の入力は不要です。</p>
+        </div>
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-title">口座・タグを設定</div>
+          <p class="step-desc">使っている口座とカテゴリタグを登録するだけ。オンボーディングに沿って3分で完了します。</p>
+        </div>
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="step-title">パートナーを招待</div>
+          <p class="step-desc">招待リンクをLINEやメッセージで送るだけ。すぐにデータが共有されます。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- COUPLE -->
+  <section class="couple-section">
+    <div class="couple-inner">
+      <div>
+        <span class="section-label">Sharing</span>
+        <h2 class="section-title">ふたりで<br>管理するから<br>続けられる。</h2>
+        <p class="section-desc" style="margin-bottom:0;">
+          「今月いくら使ったの？」がなくなります。
+          お互いの記録がリアルタイムで見えるから、
+          自然にお金の話ができるようになります。
+        </p>
+      </div>
+      <div class="couple-visual">
+        <div class="avatar-card">
+          <div class="avatar-circle" style="background:var(--sage);">T</div>
+          <div class="avatar-name">あなた</div>
+          <div class="avatar-role">オーナー</div>
+          <div style="margin-top:12px;font-size:10px;color:var(--sage);background:var(--sage-bg);padding:4px 8px;border-radius:100px;">記録・管理</div>
+        </div>
+        <div class="share-arrow">⇄</div>
+        <div class="avatar-card">
+          <div class="avatar-circle" style="background:var(--gold);">P</div>
+          <div class="avatar-name">パートナー</div>
+          <div class="avatar-role">メンバー</div>
+          <div style="margin-top:12px;font-size:10px;color:var(--mid);background:var(--stone);padding:4px 8px;border-radius:100px;">閲覧・編集</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FREE -->
+  <section class="free-section">
+    <span class="section-label">Pricing</span>
+    <h2 class="section-title" style="margin-bottom:40px;">今はずっと、無料です。</h2>
+
+    <div class="free-badge">
+      <div class="free-price">¥0</div>
+      <div class="free-label">/ 月 · 完全無料</div>
+      <ul class="free-features">
+        <li><div class="check">✓</div>収支の記録・編集（無制限）</li>
+        <li><div class="check">✓</div>パートナーとの共有</li>
+        <li><div class="check">✓</div>複数口座・タグ管理</li>
+        <li><div class="check">✓</div>全期間の検索</li>
+        <li><div class="check">✓</div>PWA対応（ホーム画面に追加）</li>
+        <li><div class="check">✓</div>広告なし</li>
+      </ul>
+    </div>
+
+    <p style="font-size:13px;color:var(--mid-lt);">
+      現在ベータ版として無料公開中。今後も基本機能は無料で使えます。
+    </p>
+  </section>
+
+  <!-- CTA -->
+  <section class="cta-section">
+    <div class="cta-bg"></div>
+    <h2 class="cta-title">さあ、<em>今日から</em><br>始めましょう。</h2>
+    <p class="cta-desc">Googleアカウントで、すぐに使えます。</p>
+    <a href="https://flowra.taskra.jp" class="btn-primary-inv">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      Flowraを無料で使う
+    </a>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">Flow<span>ra</span></div>
+    <p class="footer-copy">© 2026 Flowra. All rights reserved.</p>
+  </footer>
+
+  <script>
+    // スクロールアニメーション
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => {
+            entry.target.classList.add('visible');
+          }, entry.target.dataset.delay || 0);
+        }
+      });
+    }, { threshold: 0.15 });
+
+    document.querySelectorAll('.feature-card').forEach((el, i) => {
+      el.dataset.delay = i * 80;
+      observer.observe(el);
+    });
+
+    document.querySelectorAll('.step').forEach((el, i) => {
+      el.dataset.delay = i * 120;
+      observer.observe(el);
+    });
+  </script>
+</body>
+</html>
