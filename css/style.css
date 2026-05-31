@@ -350,8 +350,12 @@ svg {
   overflow-y: auto;
   padding: 24px 28px 48px;
   -webkit-overflow-scrolling: touch;
-  will-change: transform;
   overscroll-behavior-y: contain;
+  /* will-change: transform を削除
+     → iOS Safari でコンポジットレイヤーが残留し overflow:hidden を
+       突き破るヒットテスト問題の根本原因。
+       スライドアニメーション中は inline transform が自動でレイヤーを
+       昇格させるので will-change は不要 */
 }
 .ghost-panel {
   position: absolute;

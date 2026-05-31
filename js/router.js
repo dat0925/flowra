@@ -180,9 +180,11 @@ export const Router = {
       sw.phase = 'idle';
       sw.curX  = 0;
       sw.axis  = null;
-      // content の全インラインスタイルをクリア
-      // ↑ iOS Safari の compositing layer hit-test バグ対策
+      // インラインスタイルを完全クリア → コンポジットレイヤーを確実に解放
       content.style.cssText = '';
+      // 強制リフロー: iOS Safari がレイヤーのヒットテスト範囲を
+      // 即座に再計算するよう促す
+      void content.offsetWidth;
       resetGhosts();
       const label = document.getElementById('mobile-month-label');
       if (label) {
