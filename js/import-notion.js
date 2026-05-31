@@ -57,20 +57,33 @@ const ACCOUNT_NAME_MAP = {
 // ── Notion API ────────────────────────────────────────────
 
 async function notionQuery(token, cursor = null) {
-  const res = await fetch(PROXY_URL, {
-    method:  'POST',
-    headers: {
-      'Content-Type':   'application/json',
-      'x-notion-token': token,
-    },
-    body: JSON.stringify({ cursor }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 30000); // 30秒でタイムアウト
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || err.message || `proxy error ${res.status}`);
+  try {
+    const res = await fetch(PROXY_URL, {
+      method:  'POST',
+      headers: {
+        'Content-Type':   'application/json',
+        'x-notion-token': token,
+      },
+      body:   JSON.stringify({ cursor }),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || err.message || `proxy error ${res.status}`);
+    }
+    return res.json();
+  } catch (e) {
+    clearTimeout(timer);
+    if (e.name === 'AbortError') {
+      throw new Error(`タイムアウト（cursor: ${cursor ? cursor.slice(0,8) : 'null'}）`);
+    }
+    throw e;
   }
-  return res.json();
 }
 
 // ── 軽量スキャン ──────────────────────────────────────────
