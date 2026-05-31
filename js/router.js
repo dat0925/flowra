@@ -208,9 +208,12 @@ export const Router = {
         ghostPrev().style.transform = `translateX(-${w}px)`;
         ghostNext().style.transform = `translateX(${w}px)`;
 
-        content.style.transition = 'none';
-        content.style.transform  = 'translateX(0)';
-        content.style.opacity    = '1';
+        // インラインスタイルを完全にクリア
+        // transform: translateX(0) を残すと iOS Safari でコンポジットレイヤーの
+        // ヒットテスト範囲が overflow:hidden を突き破り、ボトムナビを覆ってしまう
+        content.style.transition = '';
+        content.style.transform  = '';
+        content.style.opacity    = '';
 
         if (dir === 'next') MonthState.next(); else MonthState.prev();
         this._updateMonthLabels(dir);
@@ -294,6 +297,16 @@ export const Router = {
         cancelDrag();
       }
       curX = 0;
+    }, { passive: true });
+
+    // touchcancel: システム割り込み等でタッチが中断された場合のリセット
+    // ハンドラ未実装だと active=true が残留し次のスワイプ判定が狂う
+    carousel.addEventListener('touchcancel', () => {
+      if (!active) return;
+      active = false;
+      axis   = null;
+      curX   = 0;
+      cancelDrag();
     }, { passive: true });
   },
 
