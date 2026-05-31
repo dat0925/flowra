@@ -961,22 +961,22 @@ async function showSuggest(onSave, onReady, accounts, tags) {
   document.body.style.overflow = 'hidden';
   Sound.playOpen();
 
-  // ×ボタンで閉じる
-  document.getElementById('suggest-close-btn')?.addEventListener('click', () => {
+  // suggest を閉じる共通関数（リスナー解除を確実に行う）
+  let onOverlayClick;
+  const closeSuggest = () => {
+    if (onOverlayClick) overlay.removeEventListener('click', onOverlayClick);
     overlay.hidden = true;
     document.body.style.overflow = '';
     Sound.playClose();
-  });
+  };
+  // オーバーレイ背景タップで閉じる（リスナーを必ず解除）
+  onOverlayClick = (e) => {
+    if (e.target === overlay) closeSuggest();
+  };
+  overlay.addEventListener('click', onOverlayClick);
 
-  // オーバーレイ背景タップで閉じる
-  overlay.addEventListener('click', function onOverlayClick(e) {
-    if (e.target === overlay) {
-      overlay.hidden = true;
-      document.body.style.overflow = '';
-      Sound.playClose();
-      overlay.removeEventListener('click', onOverlayClick);
-    }
-  });
+  // ×ボタンで閉じる
+  document.getElementById('suggest-close-btn')?.addEventListener('click', closeSuggest);
 
   // カテゴリボタンをタップ → カテゴリを主タグとして追加画面へ
   document.querySelectorAll('.suggest-cat-btn').forEach(btn => {
@@ -984,6 +984,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
       const dummy = document.getElementById('ios-focus-trick');
       dummy?.focus();
       const tagId = btn.dataset.tagId;
+      overlay.removeEventListener('click', onOverlayClick);
       overlay.hidden = true;
       document.body.style.overflow = '';
       renderAddRecord(onSave, () => {
@@ -1016,6 +1017,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
         isUnsettled: false,
         selectedTags: (tx.tags || []).map(t => t.id),
       };
+      overlay.removeEventListener('click', onOverlayClick);
       overlay.hidden = true;
       document.body.style.overflow = '';
       renderAddRecord(onSave, null, state);
@@ -1026,6 +1028,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
   document.getElementById('suggest-new-btn')?.addEventListener('click', () => {
     const dummy = document.getElementById('ios-focus-trick');
     dummy?.focus();
+    overlay.removeEventListener('click', onOverlayClick);
     overlay.hidden = true;
     document.body.style.overflow = '';
     renderAddRecord(onSave, () => {
@@ -1049,3 +1052,4 @@ function calculate(left, right, op) {
   // 負の値は0に（家計アプリなので）
   return Math.max(0, result);
 }
+
