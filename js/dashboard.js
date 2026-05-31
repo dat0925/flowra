@@ -117,7 +117,8 @@ export async function renderDashboard() {
     getCachedTransactions({ year, month }),
   ]);
 
-  const hasCached = cachedAccounts.length > 0;
+  // 口座が0件でもキャッシュ済みとみなす（口座なし状態も正常）
+  const hasCached = cachedAccounts.length > 0 || cachedTxs.length > 0;
   if (hasCached) {
     renderContent(content, cachedAccounts, cachedTxs, year, month, true);
   } else {
@@ -270,8 +271,20 @@ async function syncInBackground(year, month, hadCache) {
       }
     }
   } catch (e) {
-    // バックグラウンド同期失敗は無視（次回に持ち越し）
     console.warn('Background sync failed:', e.message);
+    // キャッシュなしでスピナーのまま止まるのを防ぐ
+    if (!hadCache) {
+      const content = document.getElementById('page-content');
+      if (content && content.querySelector('.spinner')) {
+        content.innerHTML = `
+          <div class="empty-state" style="margin-top:80px;">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <div class="empty-state-title">読み込みに失敗しました</div>
+            <div class="empty-state-sub">通信状況を確認して再読み込みしてください</div>
+            <button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;background:var(--sage);color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">再読み込み</button>
+          </div>`;
+      }
+    }
   }
 }
 
