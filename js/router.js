@@ -21,6 +21,15 @@ export const MonthState = {
   label() {
     return `${this.year}年${this.month}月`;
   },
+  goTo(year, month) {
+    this.year  = year;
+    this.month = month;
+    this._emit();
+  },
+  isCurrentMonth() {
+    const now = new Date();
+    return this.year === now.getFullYear() && this.month === now.getMonth() + 1;
+  },
   _listeners: [],
   onChange(fn) { this._listeners.push(fn); },
   _emit() { this._listeners.forEach(fn => fn(this.year, this.month)); }
@@ -120,6 +129,21 @@ export const Router = {
 
     this._updateMonthLabels();
     this._initCarousel();
+
+    // 月ラベルタップ → YMピッカー
+    ['mobile-month-label', 'desktop-month-label'].forEach(id => {
+      document.getElementById(id)?.addEventListener('click', () => {
+        this._showMonthPicker();
+      });
+    });
+
+    // 今月ボタン
+    ['btn-today-month', 'btn-today-month-d'].forEach(id => {
+      document.getElementById(id)?.addEventListener('click', () => {
+        const now = new Date();
+        this._jumpToMonth(now.getFullYear(), now.getMonth() + 1);
+      });
+    });
   },
 
   // ══════════════════════════════════════════════════
@@ -380,6 +404,13 @@ export const Router = {
     if (m) m.textContent = label;
     if (d) d.textContent = label;
 
+    // 今月ボタンは今月以外のときだけ表示
+    const notCurrent = !MonthState.isCurrentMonth();
+    ['btn-today-month', 'btn-today-month-d'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) btn.hidden = !notCurrent;
+    });
+
     // body クラスでページ種別を公開（CSS から参照）
     this._syncPageClass();
 
@@ -393,6 +424,90 @@ export const Router = {
     if (this.currentPage === 'records') {
       this._loadGhostPanels();
     }
+  },
+
+  // 指定年月にジャンプ（スライドなしで即遷移）
+  _jumpToMonth(year, month) {
+    MonthState.goTo(year, month);
+    this._updateMonthLabels();
+    // dashboard or records を再描画
+    if (this.currentPage === 'dashboard' || this.currentPage === 'records') {
+      const handler = this._pageHandlers[this.currentPage];
+      if (handler) handler();
+    }
+  },
+
+  // 年月ピッカーモーダルを表示
+  _showMonthPicker() {
+    Sound.playOpen();
+    const overlay = document.createElement('div');
+    overlay.id = 'month-picker-overlay';
+    overlay.style.cssText = `
+      position:fixed;inset:0;z-index:700;
+      background:rgba(0,0,0,0.45);
+      display:flex;align-items:flex-end;justify-content:center;
+    `;
+
+    const now    = new Date();
+    const curY   = MonthState.year;
+    const curM   = MonthState.month;
+    const minYear = 2010;
+    const maxYear = now.getFullYear() + 1;
+
+    // 年リスト（新しい順）
+    const years = [];
+    for (let y = maxYear; y >= minYear; y--) years.push(y);
+
+    overlay.innerHTML = `
+      <div id="month-picker-sheet" style="
+        background:var(--stone);border-radius:20px 20px 0 0;
+        width:100%;max-width:480px;padding:0 0 env(safe-area-inset-bottom,16px);
+        max-height:80vh;display:flex;flex-direction:column;
+      ">
+        <div style="display:flex;align-items:center;justify-content:space-between;
+          padding:16px 20px 12px;border-bottom:1px solid var(--border);">
+          <span style="font-size:15px;font-weight:600;">年月を選択</span>
+          <button id="mp-close" style="background:none;border:none;font-size:22px;color:var(--mid);cursor:pointer;line-height:1;">×</button>
+        </div>
+        <div style="overflow-y:auto;padding:12px 16px 8px;flex:1;">
+          ${years.map(y => `
+            <div class="mp-year-block" style="margin-bottom:12px;">
+              <div style="font-size:12px;color:var(--mid);font-weight:600;margin-bottom:6px;padding-left:4px;">${y}年</div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+                ${[1,2,3,4,5,6,7,8,9,10,11,12].map(mo => {
+                  const isCur  = y === curY && mo === curM;
+                  const isNow  = y === now.getFullYear() && mo === now.getMonth() + 1;
+                  const future = y > now.getFullYear() || (y === now.getFullYear() && mo > now.getMonth() + 1);
+                  return `<button data-y="${y}" data-m="${mo}"
+                    style="padding:8px 4px;border-radius:10px;border:none;cursor:pointer;font-size:13px;
+                      background:${isCur ? 'var(--sage)' : 'var(--mist)'};
+                      color:${isCur ? '#fff' : future ? 'var(--mid-lt)' : 'var(--ink)'};
+                      font-weight:${isCur || isNow ? '700' : '400'};
+                      outline:${isNow && !isCur ? '2px solid var(--sage)' : 'none'};
+                    ">${mo}月</button>`;
+                }).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    overlay.addEventListener('click', e => {
+      const btn = e.target.closest('button[data-y]');
+      if (btn) {
+        Sound.playTap();
+        this._jumpToMonth(+btn.dataset.y, +btn.dataset.m);
+        overlay.remove();
+        return;
+      }
+      if (e.target === overlay || e.target.id === 'mp-close') {
+        Sound.playClose();
+        overlay.remove();
+      }
+    });
   },
 
   _syncPageClass() {
