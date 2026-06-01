@@ -162,35 +162,40 @@ function updateSummaryBar(summary) {
 }
 
 // リスト部分だけ更新（フィルター・検索変更時）
-// 検索語がある場合は全期間モード（IndexedDB 全件）に切り替わる
+// 検索語がある場合は全期間モード（Supabase直接検索）
 async function renderList() {
   const listEl = document.getElementById('records-list');
   if (!listEl) return;
 
   const q          = searchQuery.trim().toLowerCase();
-  const isGlobal   = q.length > 0;           // 全期間モードか
-  const myGen      = ++_searchGen;             // この呼び出しの世代番号
+  const isGlobal   = q.length > 0;
+  const myGen      = ++_searchGen;
 
   // ── データ取得 ──────────────────────────
-  let txData = _allTx; // デフォルトは当月
+  let filtered;
 
   if (isGlobal) {
-    // 全期間: IndexedDB から全件取得（検索語入力時のみ）
+    // 全期間: Supabase直接検索（IndexedDBは使わない）
     listEl.innerHTML = '<div class="spinner"></div>';
-    const allCached = await getCachedTransactions(); // 年月フィルタなし
-    if (myGen !== _searchGen) return; // 新しい検索が始まっていたら破棄
-    txData = allCached;
+    try {
+      const results = await DB.searchTransactions(q, currentFilter);
+      if (myGen !== _searchGen) return;
+      filtered = results;
+    } catch (e) {
+      if (myGen !== _searchGen) return;
+      listEl.innerHTML = `<div class="empty-state">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <div class="empty-state-title">検索に失敗しました</div>
+        <div class="empty-state-sub">${e.message}</div>
+      </div>`;
+      return;
+    }
+  } else {
+    // 当月: 従来通りキャッシュから
+    filtered = _allTx.filter(tx => {
+      return currentFilter === 'all' || tx.type === currentFilter;
+    });
   }
-
-  // ── フィルタリング ──────────────────────
-  const filtered = txData.filter(tx => {
-    if (currentFilter !== 'all' && tx.type !== currentFilter) return false;
-    if (!q) return true;
-    const validTags = (tx.tags || []).filter(t => t);
-    return (tx.memo         || '').toLowerCase().includes(q) ||
-           (tx.account?.name|| '').toLowerCase().includes(q) ||
-           validTags.some(t => t.name.toLowerCase().includes(q));
-  });
 
   // ── サマリーバー更新 ────────────────────
   if (isGlobal) {
