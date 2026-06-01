@@ -904,6 +904,88 @@ async function showSuggest(onSave, onReady, accounts, tags) {
       path:'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z' },
   };
 
+  // キーワード部分一致でアイコンを自動推定
+  const KEYWORD_ICON_MAP = [
+    // 食・飲
+    { keys:['食費','食料','食材','スーパー','外食','飲食','コンビニ','ランチ','夕食','朝食','惣菜','弁当','米','乾物','調味料'],
+      icon: CATEGORY_ICONS['食費'] },
+    // 日用品
+    { keys:['日用品','消耗品','雑貨','ドラッグ','衛生','洗剤','ティッシュ'],
+      icon: CATEGORY_ICONS['日用品'] },
+    // 住居
+    { keys:['住居','家賃','住宅','ローン','管理費','修繕','リフォーム','家事'],
+      icon: CATEGORY_ICONS['住居'] },
+    // 光熱・水道
+    { keys:['光熱','水道','電気','ガス','電力','東電','関電','都市ガス'],
+      icon: CATEGORY_ICONS['光熱・水道'] },
+    // 通信
+    { keys:['通信','スマホ','携帯','インターネット','Wi-Fi','回線','NHK','電話'],
+      icon: CATEGORY_ICONS['通信費'] },
+    // サブスク
+    { keys:['サブスク','Netflix','Spotify','Amazon','Apple','YouTube','定額'],
+      icon: CATEGORY_ICONS['サブスク'] },
+    // 交通
+    { keys:['交通','電車','バス','タクシー','Suica','交通系','定期'],
+      icon: CATEGORY_ICONS['交通費'] },
+    // 車
+    { keys:['車','自動車','駐車','ガソリン','車検','カーシェア','ETC','高速'],
+      icon: CATEGORY_ICONS['車'] },
+    // 医療・健康
+    { keys:['医療','医費','病院','薬局','クリニック','歯科','健康','処方','診察','保健'],
+      icon: CATEGORY_ICONS['医療・健康'] },
+    // 保険
+    { keys:['保険','生命','火災','損保','共済'],
+      icon: CATEGORY_ICONS['保険料'] },
+    // 教育
+    { keys:['教育','学費','授業料','塾','習い事','書籍','本代','参考書','大学','学校'],
+      icon: CATEGORY_ICONS['教育'] },
+    // 娯楽
+    { keys:['娯楽','趣味','レジャー','映画','ゲーム','スポーツ','旅行','おでかけ','遊び'],
+      icon: CATEGORY_ICONS['娯楽・趣味'] },
+    // 服・美容
+    { keys:['服','衣料','ファッション','美容','化粧','ヘア','クリーニング','洗濯'],
+      icon: CATEGORY_ICONS['服・美容'] },
+    // 収入系
+    { keys:['給料','給与','賞与','ボーナス','収入','振込'],
+      icon: { bg:'#E8F5ED', stroke:'#4A8C6A',
+        path:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z' } },
+    // 子育て
+    { keys:['子育て','育児','おむつ','ベビー','子供','こども','キッズ'],
+      icon: { bg:'#FFF0E8', stroke:'#C07840',
+        path:'M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z' } },
+    // おこづかい・小遣い
+    { keys:['おこづかい','小遣い','こづかい','ポケット'],
+      icon: { bg:'#F5F0E0', stroke:'#A09040',
+        path:'M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z' } },
+    // 税金・行政
+    { keys:['税金','税','住民税','所得税','固定資産','国民年金','年金','社会保険','行政'],
+      icon: { bg:'#EEE8F0', stroke:'#806890',
+        path:'M20 6h-2.18c.07-.44.18-.88.18-1.36C18 2.51 15.5 0 12 0S6 2.51 6 4.64c0 .48.11.92.18 1.36H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm-8-3.18c1.07 0 2 .93 2 1.82 0 1-1.05 1.5-2 1.5S10 5.64 10 4.64c0-.89.93-1.82 2-1.82zM12 13c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z' } },
+    // その他支出
+    { keys:['その他支出','その他の支出','雑費','その他費'],
+      icon: { bg:'#EEF0EE', stroke:'#6A8A6A',
+        path:'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z' } },
+    // その他収入
+    { keys:['その他収入','その他の収入','雑収入'],
+      icon: { bg:'#E8F5ED', stroke:'#4A8C6A',
+        path:'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z' } },
+    // 残高調整
+    { keys:['残高調整','調整'],
+      icon: { bg:'#F0F0F0', stroke:'#909090',
+        path:'M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 3c1.93 0 3.5 1.57 3.5 3.5S13.93 13 12 13s-3.5-1.57-3.5-3.5S10.07 6 12 6zm7 13H5v-.23c0-.62.28-1.2.76-1.58C7.47 15.82 9.64 15 12 15s4.53.82 6.24 2.19c.48.38.76.97.76 1.58V19z' } },
+  ];
+
+  function resolveTagIcon(tagName) {
+    // 完全一致
+    if (CATEGORY_ICONS[tagName]) return CATEGORY_ICONS[tagName];
+    // キーワード部分一致（先勝ち）
+    const name = tagName || '';
+    for (const entry of KEYWORD_ICON_MAP) {
+      if (entry.keys.some(k => name.includes(k))) return entry.icon;
+    }
+    return null; // マッチなし
+  }
+
   // カテゴリグリッドHTML生成（全タグを表示、アイコン定義があるものはアイコン付き）
   const DEFAULT_BG = '#EEF0EE';
   const DEFAULT_STROKE = '#6A8A6A';
@@ -914,7 +996,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
       <div style="font-size:11px;color:var(--mid-lt);margin-bottom:10px;letter-spacing:0.05em;">カテゴリから始める</div>
       <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
         ${tags.map(tag => {
-          const icon = CATEGORY_ICONS[tag.name] || { bg: DEFAULT_BG, stroke: DEFAULT_STROKE, path: DEFAULT_PATH };
+          const icon = resolveTagIcon(tag.name) || { bg: DEFAULT_BG, stroke: DEFAULT_STROKE, path: DEFAULT_PATH };
           return `<button class="suggest-cat-btn" data-tag-id="${tag.id}"
             style="display:flex;flex-direction:column;align-items:center;gap:6px;
             padding:12px 4px 10px;border-radius:14px;border:none;background:${icon.bg};
