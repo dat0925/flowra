@@ -314,11 +314,7 @@ function setupBalanceToggle() {
   card.addEventListener('click', () => {
     const isHidden = localStorage.getItem('flowra_balance_hidden') === '1';
     localStorage.setItem('flowra_balance_hidden', isHidden ? '0' : '1');
-    // 再描画（軽量）
-    import('./router.js').then(({ Router }) => {
-      const page = Router?.currentPage;
-      if (page === 'dashboard') renderDashboard();
-    });
+    renderDashboard();
   });
 }
 
