@@ -1162,8 +1162,8 @@ body.page-records #mobile-month-label {
   padding-bottom: calc(10px + env(safe-area-inset-bottom));
   display: flex;
   justify-content: center;
+  gap: 10px;
 }
-#save-bar > * { flex: 1; }
 /* モーダルと同じ最大幅でセンタリング */
 @media (min-width: 600px) {
   #save-bar {
@@ -1173,7 +1173,8 @@ body.page-records #mobile-month-label {
 }
 #save-bar[hidden] { display: none; }
 #save-bar-cancel {
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 88px;
   padding: 12px;
   border-radius: 12px;
   border: 1.5px solid var(--border);
@@ -1185,7 +1186,7 @@ body.page-records #mobile-month-label {
   cursor: pointer;
 }
 #save-bar-btn {
-  flex: 2;
+  flex: 1;
   padding: 12px;
   border-radius: 12px;
   border: none;
