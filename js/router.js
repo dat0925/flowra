@@ -408,7 +408,11 @@ export const Router = {
     const notCurrent = !MonthState.isCurrentMonth();
     ['btn-today-month', 'btn-today-month-d'].forEach(id => {
       const btn = document.getElementById(id);
-      if (btn) btn.hidden = !notCurrent;
+      if (!btn) return;
+      btn.disabled = !notCurrent;
+      btn.style.opacity    = notCurrent ? '1'   : '0.35';
+      btn.style.cursor     = notCurrent ? 'pointer' : 'default';
+      btn.style.pointerEvents = notCurrent ? 'auto' : 'none';
     });
 
     // body クラスでページ種別を公開（CSS から参照）
