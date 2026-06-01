@@ -241,6 +241,8 @@ function renderContent(content, accounts, transactions, year, month, fromCache =
 
   // 記録行タップ → 編集シート
   document.querySelectorAll('.tx-item[data-tx-id]').forEach(el => {
+    if (el.dataset.clickBound) return; // 重複登録防止
+    el.dataset.clickBound = '1';
     el.addEventListener('click', () => {
       const tx = transactions.find(t => t.id === el.dataset.txId);
       if (tx) openEditRecord(tx, () => renderDashboard());
@@ -310,7 +312,8 @@ async function syncInBackground(year, month, hadCache) {
 
 function setupBalanceToggle() {
   const card = document.getElementById('s-card-total');
-  if (!card) return;
+  if (!card || card.dataset.toggleBound) return; // 重複登録防止
+  card.dataset.toggleBound = '1';
   card.addEventListener('click', () => {
     const isHidden = localStorage.getItem('flowra_balance_hidden') === '1';
     localStorage.setItem('flowra_balance_hidden', isHidden ? '0' : '1');
