@@ -4,6 +4,7 @@
 import { DB }    from './db.js';
 import { Sound } from './sound.js';
 import { showToast } from './utils.js';
+import { setLastSync, clearAll } from './cache.js';
 
 const NOTION_DB_ID  = '1dd85cf70c4c8055949bf3ad4ecf7ef0';
 const PROXY_URL     = 'https://copyzpsyagscqrvkrwjo.supabase.co/functions/v1/notion-proxy';
@@ -572,22 +573,27 @@ export async function showImportNotion() {
       </div>
     `);
 
-    document.getElementById('btn-import-done')?.addEventListener('click', () => {
+    // インポート後はキャッシュをリセット（lastSyncをクリアして全件再取得させる）
+    const resetCacheAndNavigate = async (navFn) => {
       overlay.remove();
+      await setLastSync(null).catch(() => {});
+      // IndexedDBのtransactionsキャッシュをクリアして再取得
+      await clearAll().catch(() => {});
       const Router = window._flowraRouter;
-      if (Router) Router.navigate('records');
+      if (Router) navFn(Router);
+    };
+
+    document.getElementById('btn-import-done')?.addEventListener('click', () => {
+      resetCacheAndNavigate(Router => Router.navigate('records'));
     });
 
     document.getElementById('btn-jump-oldest')?.addEventListener('click', () => {
-      overlay.remove();
-      if (oldestDate) {
-        const [y, m] = oldestDate.split('-').map(Number);
-        const Router = window._flowraRouter;
-        if (Router) {
-          Router.navigate('dashboard');
-          setTimeout(() => Router._jumpToMonth(y, m), 100);
-        }
-      }
+      if (!oldestDate) return;
+      const [y, m] = oldestDate.split('-').map(Number);
+      resetCacheAndNavigate(Router => {
+        Router.navigate('dashboard');
+        setTimeout(() => Router._jumpToMonth(y, m), 100);
+      });
     });
   }
 
