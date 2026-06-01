@@ -374,6 +374,28 @@ export const DB = {
     return { total: rows.length, inserted, errors: importErrors };
   },
 
+  // 全件をページネーションしてIndexedDBに投入する（インポート後のキャッシュ再構築用）
+  // onProgress(done, total) でカウントを通知
+  async fetchAllToCache(onProgress) {
+    const { upsertTransactions } = await import('./cache.js');
+    const PAGE = 500;
+    let page  = 0;
+    let total = null;
+    let done  = 0;
+    while (true) {
+      const result = await this.getTransactions({ page, pageSize: PAGE });
+      if (total === null) total = result.count;
+      if (result.data.length > 0) {
+        await upsertTransactions(result.data);
+        done += result.data.length;
+        if (onProgress) onProgress(done, total);
+      }
+      if (!result.hasMore) break;
+      page++;
+    }
+    return done;
+  },
+
   // 差分インポート用: 既存レコードの "date|amount|type" キーセットを返す
   async getAllTransactionKeys() {
     const teamId = await this.getTeamId();
