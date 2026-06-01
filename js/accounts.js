@@ -403,15 +403,29 @@ function openEditModal(acct) {
             </select>
           </div>
         </div>
-        <div class="form-row no-tap">
-          <div class="row-body">
-            <div class="row-label">残高を補正 (¥)</div>
-            <div style="display:flex;align-items:center;gap:4px;">
-              <span id="edit-balance-sign" style="font-size:16px;color:var(--red);font-weight:600;
+        <div class="form-row no-tap" style="flex-direction:column;align-items:stretch;gap:0;">
+          <div class="row-label" style="margin-bottom:10px;">残高を修正</div>
+          <!-- 現在残高 -->
+          <div style="display:flex;align-items:center;justify-content:space-between;
+            background:var(--mist);border-radius:10px;padding:10px 14px;margin-bottom:8px;">
+            <span style="font-size:12px;color:var(--mid);">現在の残高</span>
+            <span style="font-size:16px;font-weight:600;color:${acct.balance<0?'var(--red)':'var(--ink)'};">
+              ${acct.balance<0?'−':''}¥${fmt(Math.abs(acct.balance))}
+            </span>
+          </div>
+          <!-- 新しい残高入力 -->
+          <div style="background:var(--warm);border-radius:10px;padding:10px 14px;">
+            <div style="font-size:12px;color:var(--mid);margin-bottom:6px;">修正後の残高</div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span id="edit-balance-sign" style="font-size:18px;color:var(--red);font-weight:700;
                 display:${acct.type==='credit'?'block':'none'};">−</span>
+              <span style="font-size:18px;font-weight:500;color:var(--mid);">¥</span>
               <input class="text-input" id="edit-acct-balance" type="number" inputmode="numeric"
-                value="${Math.abs(acct.balance)}" style="flex:1;">
+                value="${Math.abs(acct.balance)}"
+                style="flex:1;font-size:20px;font-weight:700;border:none;background:none;
+                  color:var(--ink);padding:0;outline:none;">
             </div>
+            <div id="edit-balance-diff" style="font-size:11px;color:var(--mid-lt);margin-top:4px;min-height:16px;"></div>
           </div>
         </div>
         <div class="form-row no-tap" style="border-bottom:none;">
@@ -477,11 +491,29 @@ function openEditModal(acct) {
     if (sign) sign.style.display = e.target.value === 'credit' ? 'block' : 'none';
   });
 
-  // 残高入力：先頭ゼロを除去
+  // 残高入力：先頭ゼロを除去 + 差分表示
   document.getElementById('edit-acct-balance')?.addEventListener('input', e => {
     const v = e.target.value;
     if (v.length > 1 && v.startsWith('0')) e.target.value = String(parseInt(v, 10));
+
+    const type    = document.getElementById('edit-acct-type')?.value || acct.type;
+    const rawNew  = parseInt(e.target.value || '0', 10);
+    const newBal  = type === 'credit' ? -Math.abs(rawNew) : rawNew;
+    const diff    = newBal - acct.balance;
+    const diffEl  = document.getElementById('edit-balance-diff');
+    if (diffEl) {
+      if (diff === 0) {
+        diffEl.textContent = '変化なし';
+        diffEl.style.color = 'var(--mid-lt)';
+      } else {
+        const sign = diff > 0 ? '+' : '−';
+        diffEl.textContent = `${sign}¥${fmt(Math.abs(diff))} の変更`;
+        diffEl.style.color = diff > 0 ? 'var(--sage)' : 'var(--red)';
+      }
+    }
   });
+  // 初期差分表示
+  document.getElementById('edit-acct-balance')?.dispatchEvent(new Event('input'));
 
   document.getElementById('btn-close-edit')?.addEventListener('click', closeModal);
 
