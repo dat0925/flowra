@@ -1,6 +1,6 @@
 # Flowra 引き継ぎドキュメント
 
-最終更新: 2026-06-01
+最終更新: 2026-06-02
 
 ---
 
@@ -40,13 +40,14 @@ flowra/
     ├── db.js           # Supabase全操作（唯一のDB層）
     ├── auth.js         # 認証処理
     ├── cache.js        # IndexedDB キャッシュ層
-    ├── router.js       # ページルーター・月カルーセル
+    ├── router.js       # ページルーター・月カルーセル・月ピッカー
     ├── dashboard.js    # ホーム画面
     ├── records.js      # 記録一覧
     ├── add-record.js   # 記録追加モーダル
     ├── edit-record.js  # 記録編集
     ├── accounts.js     # 口座管理
     ├── settings.js     # 設定画面
+    ├── import-notion.js # Notionインポート
     ├── onboarding.js   # 初回オンボーディング
     ├── sound.js        # 操作音
     ├── utils.js        # 共通ユーティリティ（openModal/closeModal等）
@@ -79,6 +80,7 @@ flowra/
 ### `transactions`
 収支記録
 - `id`, `team_id`, `type`（income/expense/transfer）, `amount`, `account_id`, `to_account_id`, `date`, `memo`, `created_by`, `updated_by`, `created_at`
+- **重要**: `amount` に `CHECK (amount > 0)` 制約あり。0円レコードは挿入不可
 
 ### `transaction_tags`
 記録とタグの中間テーブル
@@ -102,6 +104,7 @@ flowra/
 | `my_team_ids()` | `my_team_id()`（単数・LIMIT 1）でRLS再帰を回避 |
 | `my_all_team_ids()` | 複数チーム所属に対応したteam_ids取得 |
 | `get_team_member_profiles(p_team_id)` | auth.usersのJOINを回避してメンバー情報を返す |
+| `is_team_owner(p_team_id uuid)` | 自分がそのチームのownerかbooleanで返す |
 
 ---
 
@@ -113,6 +116,7 @@ flowra/
 - `team_members`: `my_all_team_ids()`で全所属チームのメンバーが見える
 - `team_invites`: 未使用・期限内のtoken保持者、またはチームメンバーが閲覧可
 - `comments`: 自チームのtransactionにのみ書き込み可
+- `teams`: `team_owners_can_update_teams`ポリシーで `is_team_owner(id)` のみUPDATE可
 
 ---
 
@@ -141,15 +145,6 @@ flowra/
 ### 招待リンク発行
 - `DB.createInviteForOwnTeam()` を使う（`createInvite()` はアクティブチームに対して発行するため、他チームを閲覧中だと意図しないチームに招待される）
 
-### メンバー管理UI
-- メンバー行タップ → ボトムシートで権限変更・削除
-- 削除は2段階確認（誤タップ防止）
-- 権限変更はテキストのみのカード選択式（SVGアイコン不要、中央揃えで見やすい）
-
-### 脱退フロー
-- 「このチームから脱退する」→ 確認モーダル → 「脱退する」と入力 → 脱退
-- 脱退後は自動的に自分のチームに戻る
-
 ### viewerロール制限
 - `+`ボタン（記録追加）を非表示
 - 記録タップ時のシートを「閲覧のみ」モードで表示
@@ -164,11 +159,43 @@ IndexedDB（`cache.js`）でオフライン対応：
 |--------|------|
 | `accounts` | 口座一覧 |
 | `tags` | タグ一覧 |
-| `transactions` | 月次トランザクション |
+| `transactions` | トランザクション（月次 + インポート後は全件） |
+| `meta` | lastSync などのメタ情報 |
 
 - ログアウト時に`clearAll()`で全消去（別アカウント漏れを防止）
 - `localStorage: flowra_active_team_id` もログアウト時にクリア
 - 保存時は `tags` を含めてキャッシュに保存すること（`tags: []` で上書きするとタグが消える）
+
+### キャッシュと検索の関係（重要）
+- 全期間検索はIndexedDBの全件を参照する（Supabaseを叩かない）
+- `syncInBackground` は**当月分しか**Supabaseから取得してIndexedDBに投入しない
+- インポート後など全件検索が必要な場合は `DB.fetchAllToCache()` で全件再構築する
+- インポート完了後: `clearAll()` → 画面遷移 → バックグラウンドで `fetchAllToCache()` → `setLastSync()`
+
+---
+
+## 月ナビゲーション（router.js）
+
+### 月操作API
+
+| メソッド | 説明 |
+|---------|------|
+| `MonthState.prev()` | 1ヶ月前へ（emit付き） |
+| `MonthState.next()` | 1ヶ月後へ（emit付き） |
+| `MonthState.goTo(year, month)` | 指定年月へジャンプ（emit付き） |
+| `MonthState.isCurrentMonth()` | 今月かどうかbooleanで返す |
+| `Router._jumpToMonth(year, month)` | goTo + ラベル更新 + ページ再描画 |
+| `Router._showMonthPicker()` | 年月ピッカーボトムシートを表示 |
+
+### 今月ボタン
+- `#btn-today-month`（モバイル）/ `#btn-today-month-d`（デスクトップ）
+- 今月以外の月を表示しているときだけ表示（`hidden` 属性で制御）
+- `_updateMonthLabels()` 内で `isCurrentMonth()` を見て自動表示/非表示
+
+### 年月ピッカー
+- 月ラベル（`#mobile-month-label` / `#desktop-month-label`）をタップすると表示
+- 2010年〜翌年まで対応。ボトムシート形式
+- 現在月: 緑ベタ塗り。今日の月（現在表示と異なる場合）: アウトライン
 
 ---
 
@@ -183,35 +210,16 @@ IndexedDB（`cache.js`）でオフライン対応：
 
 ### ghost の opacity 管理ルール
 | 状態 | opacity |
-|------|---------|
+|------|---------| 
 | 静止時 | `0`（JSで明示） |
 | ドラッグ中（アクティブ側） | `0.78` |
 | ドラッグ中（非アクティブ側） | `0` |
 | commitSlide完了後 | `0` |
 
-- `_loadGhostPanels()` が innerHTML を更新した後も `opacity:0` を明示すること
-- `touchend` で縦スクロール判定（`axis !== 'h'`）で早期returnする場合もghostをリセットすること
-
-### ghost の位置計算（px固定）
-- `ghostNext`: `translateX(tx + w)` — contentの右隣
-- `ghostPrev`: `translateX(tx - w)` — contentの左隣
-- **%指定は使わない**（要素幅基準になりズレる）
-- 静止時リセット: `translateX(-w)` / `translateX(w)`
-
 ### スワイプ判定
 - 判定開始: 12px移動後
-- 横スワイプ確定条件: `|dx| > |dy| × 2`（斜め移動をタップとみなして除外）
-- これによりレコードタップ時の微ブレでスライドが誤発動しない
-
-### 動作フロー
-1. `touchstart`: startX/Y記録
-2. `touchmove`: 12px超えたら軸判定 → 横確定で `trackDrag(tx, rawDx, w)`
-3. `touchend`: 28%閾値超えで `commitSlide(dir)` / 未満で `cancelDrag()`
-4. `commitSlide`: content退場 + ghost中央へ → 290ms後に月更新 + content即配置
-5. `_updateMonthLabels`: ラベル更新 + `renderRecords()` + `_loadGhostPanels()`
-
-### スワイプ有効画面
-記録一覧のみ有効。`< >` ボタンは全画面で有効。
+- 横スワイプ確定条件: `|dx| > |dy| × 2`
+- スワイプ有効画面: 記録一覧のみ。`< >` ボタンは全画面で有効
 
 ---
 
@@ -220,7 +228,6 @@ IndexedDB（`cache.js`）でオフライン対応：
 ### レイアウト構造（重要）
 ```css
 html, body { height: 100%; overflow: hidden; background: var(--ink); }
-body { background: var(--ink); overflow: hidden; }
 #app { display: flex; height: 100dvh; overflow: hidden; }
 #main { flex: 1; display: flex; flex-direction: column; min-height: 0; overflow: hidden; background: var(--stone); }
 /* モバイル */
@@ -229,8 +236,8 @@ body { background: var(--ink); overflow: hidden; }
 ```
 
 - `body` と `html` の背景を `var(--ink)` にすることでボトムナビ下の隙間を視覚的に解消
-- `#main` に `background: var(--stone)` を明示することでコンテンツエリアの色を保護
-- **`body` の背景を変えるとき `#main` の背景も必ず明示すること**（過去に総残高カードが壊れた教訓）
+- **`#main { height: 100dvh }` はモバイルメディアクエリ内に必須。絶対に触らないこと**
+- 安定状態のコミット: `3cfd80d`（`css/style.css` / `js/app.js`）
 
 ### ボトムナビ
 ```css
@@ -242,15 +249,12 @@ body { background: var(--ink); overflow: hidden; }
 }
 ```
 - `position: fixed` にするとフレックス高さ計算が壊れるため使わない
-- `box-shadow` や `::after` でホームバー下を塗る方法は不安定なため使わない
-- ホームバー下の余白が残る場合は `body/html` の背景色で対処する
 
-### その他
-- `viewport-fit=cover, maximum-scale=1.0, user-scalable=no` でダブルタップズーム無効
-- `theme-color: #1C2B22`（manifest.json と index.html 両方に設定）
-- PWAをホームから削除→再追加でキャッシュ起因の表示崩れが解消することがある
-- `user-select: none` を全体に適用済み（長押しメニュー抑制）
-- クリップボードAPIが失敗する場合はWeb Share APIにフォールバック
+### やってはいけないこと（過去に失敗）
+- `overscroll-behavior: none` → フッターが下にずれた
+- `window.innerHeight` で `--app-h` をセット → 同上
+- `#main { flex: 1 }` → 同上
+- ghost opacity をCSSで管理 → JSと競合してアニメーション崩れ
 
 ---
 
@@ -258,7 +262,6 @@ body { background: var(--ink); overflow: hidden; }
 
 - `accounts.js` の↑↓ボタンで `sort_order` を更新
 - **重要**: 既存の `sort_order` がバラバラな場合があるため、swap時は全口座を `0,1,2...` に正規化してからswapする
-- 更新後は `DB.getAccounts()` → `putAccounts()` → `renderAccounts()` の順で再描画
 
 ---
 
@@ -267,252 +270,56 @@ body { background: var(--ink); overflow: hidden; }
 記録保存後、再描画なしでリストの先頭に行を差し込む。
 
 - `tx.tags`（タグオブジェクト配列）を含めて渡すこと
-- 保存時に `tags: []` でキャッシュを上書きしない（`add-record.js` の `upsertTransactions` に注意）
-- 差し込んだ行にクリックイベントを付与すること（付け忘れるとタップで編集画面に行けない）
+- 保存時に `tags: []` でキャッシュを上書きしない
+- 差し込んだ行にクリックイベントを付与すること
 
 ---
 
-## バグ修正の鉄則
+## Notionインポート設計
 
-**ある機能を直そうとして別の機能が壊れたとき：**
+### 全体フロー
 
-1. `git log --oneline` で壊れる前のコミットを特定する
-2. `git show <hash>:path/to/file.css` でそのファイルの内容を確認する
-3. 動いていた状態を理解してから修正する
-
-新しいコードを書く前に必ず動いていた状態を確認すること。今日のボトムナビ問題で5回以上この手順を怠って遠回りした。
-
----
-
-## 既知の未完了タスク
-
-### ✅ 完了済み
-- **Notionインポート**（2026-06-01）: 3万件超を年フィルタ分割クエリで完走
-- **検索機能強化**（2026-06-01）: 全期間検索・タグ名検索に対応
-
-### 🟢 次フェーズ候補
-
-1. **タグの並び替え**
-   - 設定画面のタグ管理に↑↓ボタンを追加
-   - 追加画面のカテゴリ選択にも反映
-
-2. **MIRRAテーブルの削除**
-   - Supabaseに別アプリ（MIRRA）のテーブルが混在
-   - 対象: `appointments`, `conversations`, `customers`, `karte`, `salons`
-
-3. **ボトムナビ下の余白（未解決）**
-   - iOSのPWAでホームバー下にわずかな余白が残る
-   - `body/html { background: var(--ink) }` で視覚的には目立たなくなっている
-   - `env(safe-area-inset-bottom)` がPWAで正しく取れていない可能性あり
-   - PWAをホームから削除→再追加で解消するか未確認
-
----
-
-## 開発メモ
-
-- **Claude Codeより会話型Claudeで開発** - スマホ・iPadのみで開発しているためCLIなし
-- PATは都度発行・失効はオーナーが手動で行う（fine-grained PAT推奨）
-- Supabaseのスキーマ変更は必ずSQL Editorで実施後にコードを変更する順番で
-- `team_members`テーブルは`id`カラムがないので注意（`(team_id, user_id)`で識別）
-- RLS変更時は再帰に注意。`SECURITY DEFINER`関数で回避するパターンを使うこと
-- `db.js` の `_allTeams` キャッシュは `updateTeam()` / `leaveTeam()` 時にリセット済み
-- CSS と JS で同じプロパティを管理すると競合する（ghost opacity の教訓）
-- `body` の背景色を変えるときは必ず `#main` の背景色も明示すること
-
----
-
-## 変更履歴
-
-### 2026-05-30（セッション1）
-- **fix**: `settings.js` role判定をアクティブチームベースに修正
-- **fix**: モバイルヘッダーを1行に圧縮（ロゴ + 月ナビ + アバター）
-- **feat**: viewerロールの編集制限を実装
-- **feat**: チーム名カスタマイズ機能
-- **feat**: 月切り替えをスライドカルーセルに変更
-
-### 2026-05-30（セッション2）
-- **feat**: ghostパネルに隣月の実データを表示（キャッシュから取得）
-- **feat**: 月ラベルにスライドアニメーション（方向連動）、固定幅化で位置揺れ解消
-- **feat**: ドラッグ中ヘッダーに方向ラベル表示（`5月 → 6月`）
-- **refactor**: 設定画面を2セクション構造に刷新
-- **feat**: メンバー管理をボトムシート化（削除2段階確認・権限変更カード選択式）
-- **feat**: 口座並び替え↑↓ボタン（sort_order正規化方式）
-- **fix**: ghost opacity をJS完全管理に統一
-- **fix**: ghost DOM順序を `insertBefore` でcontentより背後に
-- **fix**: スワイプ判定を厳格化（閾値12px・横が縦の2倍以上）
-- **fix**: タグ保存後にキャッシュで消える問題
-- **fix**: 保存直後のタグ表示・タップ編集（`patchAddRecord`刷新）
-- **fix**: チーム名更新エラー（`ownTeamId`を明示的に渡す）
-- **fix**: 保存後にsave-barが残る問題（二重closeModal削除）
-- **fix**: 口座選択シートのヘッダー固定
-- **fix**: iOS PWA ダブルタップズーム無効化
-- **fix**: touchend縦スクロール判定時のghost残り問題
-- **fix**: `body/html` 背景を `var(--ink)` に、`#main` 背景を `var(--stone)` に明示
-
-### 2026-05-30（セッション3）
-- **fix**: ボトムナビ下余白を `3cfd80d` のCSS/JSを復元して解消（css/style.css・js/app.js のみ差し替え、機能系ファイルは無変更）
-- **fix**: `DB.updateTeam()` の `.single()` を削除（複数行返却時の `Cannot coerce the result to a single JSON object` エラー解消）
-- **fix**: `settings.js` の `ownTeam` JOINが配列で返る場合に `[0]` を取るよう正規化
-- **wip**: チーム名変更後の画面反映（保存は成功するがUI更新が効いていない・未解決）
-
-### ボトムナビ鉄則（セッション3で学んだこと）
-- `#main { height: 100dvh }` はモバイルメディアクエリ内に**必須**。削除すると起動直後フッターがずれる → **絶対に触らないこと**
-- `overscroll-behavior: none` → フッターが下にずれた
-- `window.innerHeight` で `--app-h` をセット → 同上
-- `#main { flex: 1 }` → 同上
-- 上記3つはすべて試して失敗。再実装しないこと
-- 安定状態のコミット: `3cfd80d`（`css/style.css` / `js/app.js`）
-
-### チーム名反映問題（未解決・次回調査ポイント）
-- `DB.updateTeam()` 自体は成功（トーストは表示される）
-- `_allTeams` キャッシュは `null` リセット済み
-- `renderSettings()` 再呼び出し後も古い名前が表示される
-- 調査ポイント: `getAllTeams()` の `teams:team_id(id,name)` JOINがSupabaseのスキーマキャッシュにより古い値を返している可能性。`?select=` クエリをブラウザのNetworkタブで確認すること
-
-### 2026-06-01（セッション7）
-- **feat**: 検索機能を全期間・タグ名対応に強化（`records.js`）
-  - 検索語入力時に自動で全期間モードへ切替（IndexedDB 全件対象）
-  - 検索対象にタグ名を追加（メモ・口座名・タグ名）
-  - 全期間モード時はサマリーバーを「X件 / 収入計 / 支出計」に切替
-  - 全期間モード時は日付ラベルに年を表示
-  - 300ms デバウンス + 世代カウンター（`_searchGen`）で競合防止
-  - 検索クリア時は即座に当月表示へ復帰
-
-### 2026-06-01（セッション6）
-- **fix**: 追加ボタンが月スライド後に効かなくなる問題を根本解決
-  - 真犯人: `showSuggest()` 内で `tx.tags[0].name` を null チェックなしで参照していた。スライド後に `renderRecords()` がキャッシュを更新し、削除済みタグ（null）を持つ記録が混入するとクラッシュして追加ボタンが無反応になっていた
-  - 修正: `tx.tags[0]` → `tx.tags.find(t => t)` で null を読み飛ばす
-- **fix**: `will-change: transform` を `#page-content` から削除
-  - iOS Safari でコンポジットレイヤーが残留し overflow:hidden を突き破るヒットテスト問題の根本対策
-  - `goIdle()` に `void content.offsetWidth`（強制リフロー）を追加
-- **fix**: `sw.js` の Google Fonts キャッシュで `res.clone()` を非同期 then 内で呼んでいたため「Response body is already used」エラーが大量発生 → 同期的にクローンするよう修正
-- **fix**: `mobile-web-app-capable` meta タグを追加（deprecated 警告を解消）
-- **feat**: Notionインポート完走（3万件超）
-  - 旧実装: 全件 Notion JSON をメモリに蓄積 → 150MB → クラッシュ
-  - 新実装: `scanAndCollect()` で変換済み最小レコードのみ保持（3MB）
-  - Notion API 10,000件打ち切り問題: 年ごとフィルタ分割クエリで回避（2010〜現在まで1年ずつ）
-  - Supabase プロキシに `filter` パラメータ転送を追加してデプロイ済み
-- **refactor**: カルーセル（スワイプ月切替）を状態機械で再実装
-  - `active/axis/curX` のバラバラ変数 → `sw.phase / sw.axis / sw.curX` オブジェクトに集約
-  - `setTimeout(290ms)` → `afterTransition()` （transitionend + フォールバックタイマー）に置換
-  - `goIdle()` という唯一の出口を通じて必ず cssText をクリアする構造
-
-### 2026-05-31（セッション5）
-- **fix**: 追加ボタンがタップしても機能しない問題を修正（`utils.js` / `closeModal`）
-  - 原因: `closeModal()` が `animationend` イベントの発火に依存していた。モバイルブラウザ（特にiOS Safari）で `animationend` が発火しないとオーバーレイ（`position:fixed; inset:0; z-index:500`）が残り続け、画面全体をブロックしていた
-  - 修正: 400msのフォールバックタイマーを追加。`animationend` が来れば即座に、来なくても400ms後に強制 `overlay.hidden = true`
-  - 合わせて: `openModal()` でスワイプリスナー（touchstart/touchend）が毎回追加されて蓄積するバグも修正（ハンドラを変数で保持し `_swipeHandlers` に格納）
-- **fix**: 記録画面スワイプ時の月ラベルアニメーションを削除（`router.js` / `style.css`）
-  - 理由: コンテンツ自体がスライドするようになったため、月ラベルも同時にアニメーションすると視覚的ノイズになっていた
-  - 変更: `_updateMonthLabels()` を `m.textContent = label` の1行に簡略化。CSS の `slide-in-left` / `slide-in-right` / `@keyframes` も削除（28行 → 1行）
-
-### 2026-05-30（セッション4）
-- **fix**: チーム名変更後のUI反映（3層構造のバグを解消）
-  - 第1層: `renderSettings`の再描画でcatchが握り潰していた → DOM直接更新に変更
-  - 第2層: `getTeamById`がRLSエラーで失敗 → catchが`cachedTags.length > 0`条件で無視
-  - 第3層: `teams`テーブルにUPDATE RLSポリシーがなくDB書き込みが静かに失敗していた
-  - Supabase SQL Editorで`is_team_owner()`関数と`team_owners_can_update_teams`ポリシーを追加
-- **fix**: `updateTeam()`で0件更新を検知してエラーにする（SupabaseのRLS静かな失敗対策）
-- **feat**: チーム名をヘッダー切り替えボタン・参加中チームに反映（オーナー名はサブテキストへ）
-- **fix**: コンテンツ少ない時のiOSバウンス問題（`overscroll-behavior-y: contain` + 境界`preventDefault`）
-- **fix**: 月ラベル固定幅化で揺れ解消（`min-width`→`width: 96px`）+ 全画面フォントサイズ15pxに統一
-
----
-
-## Notionインポート設計（次フェーズ最優先タスク）
-
-### 現状
-
-`js/import-notion.js` にほぼ実装済み。構成：
-
-| 機能 | 状態 |
-|------|------|
-| Notion API トークン入力UI（Step1） | ✅ 完成 |
-| レコード取得（Step2: fetchAllNotionRecords） | ⚠️ 問題あり（後述） |
-| データ変換（processPage） | ✅ 完成 |
-| 口座名マッピング（ACCOUNT_NAME_MAP） | ✅ 完成 |
-| タグ同期（syncTags） | ✅ 完成 |
-| Supabaseへのバッチ挿入（importTransactions: 200件/回） | ✅ 完成 |
-| タグ紐付けバッチ挿入（bulkInsertTransactionTags: 500件/回） | ✅ 完成 |
-| 完了画面（Step5） | ✅ 完成 |
-
-### ブロッカー：全件メモリ蓄積問題
-
-**現在の処理フロー（問題あり）**
 ```
-fetchAllNotionRecords() → 全件をメモリに溜める
-    ↓ 3万件 × 数KB/件 = 数十〜150MB
-processPage() → 変換
-    ↓
-importTransactions() → 200件ずつ Supabase に挿入
+Step1: トークン入力
+Step2: Notionスキャン（scanAndCollect）
+Step3: プレビュー（差分インポートチェック付き）
+Step4: 挿入実行
+Step5: 完了（スキップ件数・エラー件数・最古月ジャンプボタン）
 ```
 
-Notion APIは100件/リクエスト。3万件 = 300回のAPIコールを繰り返しながら
-全件を `pages` 配列に蓄積する。モバイルブラウザはこのメモリ量で
-クラッシュまたはタイムアウトする。
+### 差分インポート機能（2026-06-02追加）
 
-**解決策：ストリーミングパイプライン**
+- `DB.getAllTransactionKeys()` で既存レコードのキーセット（`date|amount|type|memo.slice(0,30)`）を取得
+- 既存と一致するレコードをスキップして新規分のみ挿入
+- 既存データがある場合はプレビュー画面で自動でONになる
+- 完了画面にスキップ件数・エラー件数・最古挿入月ジャンプボタンを表示
 
-フェッチと挿入を並行して進める。メモリには常に数百件しか持たない。
+### インポート後のキャッシュ再構築
 
-```js
-// fetchAllNotionRecords を以下に置き換える
-async function importStreaming(token, flowraAccounts, tagNameToId, onProgress) {
-  const BATCH = 500; // 何件溜まったらSupabaseに送るか
-  let cursor = null;
-  let hasMore = true;
-  let txBuffer = [], tagBuffer = [];
-  let totalFetched = 0, totalInserted = 0;
-
-  while (hasMore) {
-    // Notionから100件取得
-    const resp = await notionQuery(token, cursor);
-    hasMore = resp.has_more;
-    cursor  = resp.next_cursor;
-    totalFetched += resp.results.length;
-
-    // 変換してバッファに積む
-    for (const page of resp.results) {
-      const row = processPage(page, flowraAccounts, tagNameToId);
-      if (!row) continue;
-      const { tagId, ...txData } = row;
-      txBuffer.push(txData);
-      if (tagId) tagBuffer.push({ transaction_id: txData.id, tag_id: tagId });
-    }
-
-    // バッファが BATCH 件に達したら挿入してクリア
-    if (txBuffer.length >= BATCH || (!hasMore && txBuffer.length > 0)) {
-      await DB.importTransactions(txBuffer, () => {});
-      await DB.bulkInsertTransactionTags(tagBuffer, () => {});
-      totalInserted += txBuffer.length;
-      txBuffer = []; tagBuffer = [];
-    }
-
-    onProgress(totalFetched, totalInserted);
-  }
-  return totalInserted;
-}
+```
+完了ボタン押下
+  → clearAll()（IndexedDB全消去）
+  → setLastSync(null)
+  → 画面遷移（ユーザーは待たない）
+  → バックグラウンドで DB.fetchAllToCache()（全件500件ずつ取得してIndexedDBに投入）
+  → setLastSync(now)
 ```
 
-### 実装手順
+**この処理がないと全期間検索でインポート済みデータが表示されない。**
 
-1. **`fetchAllNotionRecords` を上記 `importStreaming` に置き換える**
-   - Step3（フェッチ中）と Step4（挿入中）を統合して1つのフェーズにする
-   - プログレスバーに「取得: X件 / 挿入済: Y件」を表示
+### 注意事項
 
-2. **プログレスUIの更新**
-   - 現状は「全件取得完了後に挿入」の2段階表示
-   - ストリーミング化により「取得しながら挿入」の1段階表示に変更
-
-3. **エラー時の再開対応（余裕があれば）**
-   - 失敗した cursor 値を localStorage に保存
-   - 再実行時に続きから再開できるように
+- `transactions.amount` に `CHECK (amount > 0)` 制約あり。**0円レコードはスキップ必須**
+  - `scanAndCollect` 内: `if (!日付 || 金額 == null || 金額 === 0) continue;`
+- バッチ挿入は1件でも0円があるとバッチ全体（200件）が失敗する
+- `importTransactions` は1秒待ってリトライ付き。それでも失敗したバッチは `importErrors` に蓄積され完了画面に表示される
+- Notion API 10,000件上限: 年ごとフィルタ分割クエリで回避（2010〜翌年まで1年ずつ）
 
 ### アーキテクチャ
 
 ```
 ブラウザ (import-notion.js)
-    ↓ POST {cursor} + x-notion-token ヘッダー
+    ↓ POST {cursor, filter} + x-notion-token ヘッダー
 Supabase Edge Function (notion-proxy)   ← CORS プロキシ
     ↓ Bearer token
 Notion API  (100件/リクエスト)
@@ -523,40 +330,142 @@ Notion API  (100件/リクエスト)
 - Notionのプロパティ列: `日付`, `金額`, `分類`(select), `管理`(select), `アカウント`(select), `内容`(rich_text), `支払先`(rich_text), `メモ`(rich_text)
 - `管理 === '除外'` または `分類 === '除外'` の行はスキップ
 
-### 注意事項
-- インポートは **ownerのみ実行可能**（`settings.js` の「データのインポート」セクションから呼び出し）
-- `DB.importTransactions` はエラーを握り潰して `importErrors` に蓄積する設計。インポート後にエラー件数を表示すること
-- Supabase の `transactions` テーブルに RLS がかかっているため、インポートは認証済みユーザーとして実行される（問題なし）
+---
+
+## db.js 主要メソッド一覧
+
+| メソッド | 説明 |
+|---------|------|
+| `getTransactions({year, month, page, pageSize})` | 月次トランザクション取得（タグ・口座JOIN済み） |
+| `getDelta(since)` | lastSync以降の差分取得 |
+| `importTransactions(rows, progressCallback)` | バッチ挿入（200件/回・リトライ付き） |
+| `bulkInsertTransactionTags(tagRows, progressCallback)` | タグ紐付けバッチ挿入（500件/回） |
+| `getAllTransactionKeys()` | 差分インポート用キーセット取得（全件） |
+| `fetchAllToCache(onProgress)` | 全件IndexedDB再構築（インポート後に使用） |
+
+---
+
+## バグ修正の鉄則
+
+**null参照でクラッシュするとき:**
+- `tx.tags[0].name` → `tx.tags.find(t => t)?.name` に変える
+- `(tx.tags || []).filter(t => t)` で必ずnull除外してから`.map()`
+
+**スピナーが止まらないとき:**
+- `syncInBackground` の catch でエラーが握り潰されていないか確認
+- エラーを画面に表示する（`err-detail` パターン）
+
+**Supabase RLS「静かな失敗」:**
+```js
+const { data, error } = await supabase.from('table').update(x).eq('id', id).select();
+if (error) throw error;
+if (!data || data.length === 0) throw new Error('更新が拒否されました（RLS）');
+```
+
+**git bisectパターン:**
+```
+git log --oneline
+git show <hash>:path/to/file.css
+```
 
 ---
 
 ## SupabaseのRLS「静かな失敗」パターン
 
-**重要**: SupabaseはRLSで更新が弾かれても`error`を返さず、`data: []`を返す。トーストが出ても書き込めていない可能性がある。
+**重要**: SupabaseはRLSで更新が弾かれても`error`を返さず、`data: []`を返す。
 
-**対処パターン（必ずこの形で書く）:**
-```js
-const { data, error } = await supabase
-  .from('some_table')
-  .update(payload)
-  .eq('id', id)
-  .select(); // ← 必須
-if (error) throw error;
-if (!data || data.length === 0) throw new Error('更新が拒否されました（RLS）');
-```
+- `IN (SELECT ...)` はポリシー式に使えない → `SECURITY DEFINER`関数で回避
+- `my_all_team_ids()` はSELECTポリシーに直接使えない場合がある
 
-**バグ切り分けの方法:**
-- トーストが出た → 「例外は起きていない」だけがわかる（DB書き込み成功の証拠ではない）
-- リロード後も変わらない → DBに書き込めていないと確定（フロント問題ではない）
-- この2つが同時 → RLSか権限の問題をまず疑う
+---
 
-**RLSポリシー追加時の注意:**
-- `IN (SELECT ...)` はポリシー式に使えない（`set-returning functions are not allowed`エラー）
-- `SECURITY DEFINER`関数を作って`is_team_owner(id)`のような形で使うこと
-- `my_all_team_ids()`もset-returning functionなのでSELECTポリシーに直接使えない場合がある
+## 既知の未完了タスク
 
-**現在追加済みのSupabase関数:**
-- `is_team_owner(p_team_id uuid)` → 自分がそのチームのownerかbooleanで返す
+### ✅ 完了済み
+- チーム名変更後のUI反映（2026-05-30）
+- タグの並び替え（2026-06-02）
+- Notionインポート（3万件・差分インポート対応）（2026-06-01〜02）
+- 検索機能強化（全期間・タグ名対応）
+- ホーム画面スピナーが止まらないバグ（2026-06-02）
+- 年月ピッカー・今月ボタン（2026-06-02）
 
-**現在追加済みのRLSポリシー（teamsテーブル）:**
-- `team_owners_can_update_teams`: `is_team_owner(id)` でownerのみUPDATE可
+### 🟢 次フェーズ候補
+
+1. **予算管理機能**（最優先）
+   - タグごとに月の予算を設定
+   - ダッシュボードに「食費 予算3万 / 使用2.4万（80%）」と進捗表示
+   - AIサマリーの前提条件
+
+2. **AIサマリー**（予算管理実装後）
+   - 「今月どう？」「先月と比べて何が増えた？」「節約できそうなところある？」
+   - 3つの問いに絞ったUI（チャット形式ではなくボタン選択式）
+   - Flowraのデータ構造（金額・タグ・口座・日付）で答えられる問いのみ対象
+
+3. **月次レポートシェア**
+   - html2canvas + Web Share APIで「今月の家計まとめ」を画像化してSNSシェア
+   - Flowraロゴ入り → バイラル効果
+
+4. **MIRRAテーブルの削除**
+   - Supabaseに別アプリ（MIRRA）のテーブルが混在
+   - 対象: `appointments`, `conversations`, `customers`, `karte`, `salons`
+
+---
+
+## 開発メモ
+
+- **Claude Codeより会話型Claudeで開発** - スマホ・iPadのみで開発しているためCLIなし
+- PATは都度発行・失効はオーナーが手動で行う（fine-grained PAT推奨）
+- Supabaseのスキーマ変更は必ずSQL Editorで実施後にコードを変更する順番で
+- `team_members`テーブルは`id`カラムがないので注意（`(team_id, user_id)`で識別）
+
+---
+
+## 変更履歴
+
+### 2026-06-02（本日）
+
+- **fix**: ホーム画面スピナーが永遠に止まらないバグを修正（`dashboard.js`）
+  - 原因1: `syncInBackground` のcatchでエラーを握り潰していた → エラー表示＋再読み込みボタンを追加
+  - 原因2: `hasCached` 判定が `accounts.length > 0` のみ → `accounts || transactions` に変更
+  - 原因3: `tx.tags[0].name` のnull参照クラッシュ → `tx.tags.find(t => t)` に修正
+  - デバッグ用にエラー内容を画面表示する仕組みを追加（`err-detail` ID）
+
+- **feat**: 年月ピッカー・今月ボタン（`router.js` / `index.html`）
+  - 月ラベルタップ → 年月ピッカーボトムシート（2010年〜翌年）
+  - 今月以外の月を表示中に「今月」ボタンが出現
+  - `MonthState.goTo(year, month)` / `MonthState.isCurrentMonth()` を追加
+  - `Router._jumpToMonth(year, month)` / `Router._showMonthPicker()` を追加
+
+- **feat**: 差分インポート機能（`import-notion.js` / `db.js`）
+  - `DB.getAllTransactionKeys()`: 既存全件のキーセット取得
+  - プレビュー画面に「差分インポート」チェックボックス（既存データありで自動ON）
+  - 完了画面にスキップ件数・エラー件数・最古挿入月ジャンプボタン
+
+- **fix**: インポート後にIndexedDBキャッシュを再構築（`import-notion.js` / `db.js`）
+  - 問題: インポートはSupabaseに正しく書き込むが、IndexedDBには反映されず全期間検索に出なかった
+  - `DB.fetchAllToCache()` を新規追加（500件ずつ全件取得してIndexedDBに投入）
+  - インポート完了後: `clearAll()` → 遷移 → バックグラウンドで `fetchAllToCache()`
+
+- **fix**: `transactions_amount_check` 制約違反（`import-notion.js`）
+  - 原因: Notionの0円レコードがバッチに混入 → バッチ全体（200件）が失敗
+  - 修正: `金額 === 0` のレコードをスキャン時点でスキップ
+
+- **feat**: `importTransactions` にリトライ追加（`db.js`）
+  - 失敗バッチを1秒後に再試行（最大1回）
+  - エラー件数をプログレスコールバックに渡して画面表示
+
+### 2026-06-01（セッション7）
+- **feat**: 検索機能を全期間・タグ名対応に強化（`records.js`）
+- **feat**: Notionインポート完走（3万件超・scanAndCollect方式・年フィルタ分割クエリ）
+
+### 2026-05-31（セッション5〜6）
+- **fix**: 追加ボタンが月スライド後に効かなくなる問題（null参照クラッシュ）
+- **fix**: closeModal の animationend 問題
+- **refactor**: カルーセルを状態機械で再実装
+
+### 2026-05-30（セッション1〜4）
+- **feat**: 月切り替えスライドカルーセル
+- **feat**: チーム名変更・メンバー管理
+- **feat**: viewerロール制限
+- **fix**: ボトムナビ下余白
+- **fix**: RLS静かな失敗パターン各種
