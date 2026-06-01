@@ -140,7 +140,7 @@ async function scanAndCollect(token, flowraAccounts, onProgress) {
 
       const 日付   = props['日付']?.date?.start;
       const 金額   = props['金額']?.number;
-      if (!日付 || 金額 == null) continue;
+      if (!日付 || 金額 == null || 金額 === 0) continue;  // 0円は制約違反になるためスキップ
 
       // タグ名収集（フル JSON の代わりに文字列だけ保持）
       if (分類) tagNamesSet.add(分類);
