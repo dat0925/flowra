@@ -573,14 +573,29 @@ export async function showImportNotion() {
       </div>
     `);
 
-    // インポート後はキャッシュをリセット（lastSyncをクリアして全件再取得させる）
+    // インポート後はキャッシュを再構築してから遷移
     const resetCacheAndNavigate = async (navFn) => {
-      overlay.remove();
-      await setLastSync(null).catch(() => {});
-      // IndexedDBのtransactionsキャッシュをクリアして再取得
+      // まずキャッシュをクリア
       await clearAll().catch(() => {});
+      await setLastSync(null).catch(() => {});
+
+      // 遷移先へ移動
+      overlay.remove();
       const Router = window._flowraRouter;
       if (Router) navFn(Router);
+
+      // バックグラウンドで全件キャッシュ再構築（検索のため）
+      try {
+        let totalFetched = 0;
+        await DB.fetchAllToCache((done, total) => {
+          totalFetched = done;
+        });
+        const { setLastSync: setSync } = await import('./cache.js');
+        await setSync(new Date().toISOString());
+        console.log(`キャッシュ再構築完了: ${totalFetched}件`);
+      } catch (e) {
+        console.warn('キャッシュ再構築エラー:', e.message);
+      }
     };
 
     document.getElementById('btn-import-done')?.addEventListener('click', () => {
