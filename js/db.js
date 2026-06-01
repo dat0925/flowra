@@ -340,10 +340,11 @@ export const DB = {
 
     const importErrors = [];
     let done = 0;
+    let inserted = 0;
 
     for (let i = 0; i < rows.length; i += CHUNK_SIZE) {
       const chunk = rows.slice(i, i + CHUNK_SIZE).map(r => ({
-        ...(r.id ? { id: r.id } : {}),   // 事前生成IDがあれば使用
+        ...(r.id ? { id: r.id } : {}),
         team_id:       teamId,
         created_by:    user.id,
         type:          r.type,
@@ -356,14 +357,44 @@ export const DB = {
         is_unsettled:  r.is_unsettled || false,
       }));
 
-      const { error } = await supabase.from('transactions').insert(chunk);
-      if (error) importErrors.push({ chunk: i, error: error.message });
+      // 1回リトライ
+      let error;
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const res = await supabase.from('transactions').insert(chunk);
+        error = res.error;
+        if (!error) { inserted += chunk.length; break; }
+        if (attempt === 0) await new Promise(r => setTimeout(r, 1000));
+      }
+      if (error) importErrors.push({ chunkStart: i, count: chunk.length, message: error.message });
 
       done = Math.min(i + CHUNK_SIZE, rows.length);
-      if (progressCallback) progressCallback(done, rows.length);
+      if (progressCallback) progressCallback(done, rows.length, importErrors.length);
     }
 
-    return { total: rows.length, errors: importErrors };
+    return { total: rows.length, inserted, errors: importErrors };
+  },
+
+  // 差分インポート用: 既存レコードの "date|amount|type" キーセットを返す
+  async getAllTransactionKeys() {
+    const teamId = await this.getTeamId();
+    const keys = new Set();
+    const PAGE = 1000;
+    let from = 0;
+    while (true) {
+      const { data, error } = await supabase
+        .from('transactions')
+        .select('date, amount, type, memo')
+        .eq('team_id', teamId)
+        .range(from, from + PAGE - 1);
+      if (error) throw error;
+      if (!data || data.length === 0) break;
+      for (const r of data) {
+        keys.add(`${r.date}|${r.amount}|${r.type}|${(r.memo||'').slice(0,30)}`);
+      }
+      if (data.length < PAGE) break;
+      from += PAGE;
+    }
+    return keys;
   },
 
   async bulkInsertTransactionTags(tagRows, progressCallback) {
