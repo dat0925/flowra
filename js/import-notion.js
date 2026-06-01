@@ -410,6 +410,14 @@ export async function showImportNotion() {
         </svg>
         ${collected.length.toLocaleString()} 件をインポート
       </button>
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 4px;cursor:pointer;">
+        <input type="checkbox" id="chk-diff-mode" ${existingCount > 0 ? 'checked' : ''}
+          style="width:18px;height:18px;accent-color:var(--sage);cursor:pointer;">
+        <span style="font-size:13px;color:var(--mid);line-height:1.5;">
+          差分インポート（既存と重複するレコードをスキップ）<br>
+          <span style="font-size:11px;color:var(--mid-lt);">既存データがある場合は推奨</span>
+        </span>
+      </label>
       <button id="btn-cancel-import"
         style="width:100%;padding:12px;background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;">
         キャンセル
@@ -421,14 +429,15 @@ export async function showImportNotion() {
     });
 
     document.getElementById('btn-start-import')?.addEventListener('click', () => {
-      showStep4(collected, existingTags);
+      const diffMode = document.getElementById('chk-diff-mode')?.checked ?? (existingCount > 0);
+      showStep4(collected, existingTags, diffMode);
     });
   }
 
   // ── Step 4: インポート実行 ──
   // collected: [{id, type, amount, date, account_id, memo, tagName}]
   // tagName は仮置き。syncTags でIDに変換してから挿入する。
-  async function showStep4(collected, existingTags) {
+  async function showStep4(collected, existingTags, diffMode = false) {
     setContent(`
       <div style="text-align:center;padding:40px 20px;">
         <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;margin-bottom:20px;">インポート中…</div>
@@ -447,29 +456,49 @@ export async function showImportNotion() {
     };
 
     try {
-      // Step 4-1: タグ同期（collected から tagName を収集してまとめて作成）
-      setStatus('タグを同期中…', 5);
+      // Step 4-1: 差分モード時は既存キーセットを取得
+      let existingKeys = null;
+      if (diffMode) {
+        setStatus('既存データを確認中…', 3);
+        existingKeys = await DB.getAllTransactionKeys();
+        setStatus(`既存 ${existingKeys.size.toLocaleString()} 件を確認済み`, 5);
+      }
+
+      // Step 4-2: タグ同期
+      setStatus('タグを同期中…', 7);
       const tagNamesSet = new Set(collected.map(r => r.tagName).filter(Boolean));
       const tagNameToId = await syncTags([...tagNamesSet], existingTags);
 
-      // Step 4-2: tagName → tagId に変換してレコードを分離
-      setStatus('データを変換中…', 12);
+      // Step 4-3: tagName → tagId に変換 ＋ 差分フィルタリング
+      setStatus('データを変換中…', 13);
       const txRows  = [];
       const tagRows = [];
+      let skipped = 0;
       for (const { tagName, ...txData } of collected) {
+        if (existingKeys) {
+          const key = `${txData.date}|${txData.amount}|${txData.type}|${(txData.memo||'').slice(0,30)}`;
+          if (existingKeys.has(key)) { skipped++; continue; }
+        }
         txRows.push(txData);
         const tagId = tagName ? (tagNameToId[tagName] || null) : null;
         if (tagId) tagRows.push({ transaction_id: txData.id, tag_id: tagId });
       }
 
-      // Step 4-3: トランザクション挿入（200件/バッチ）
+      if (txRows.length === 0) {
+        setStatus('スキップ完了', 100);
+        setTimeout(() => showStep5(0, 0, skipped), 400);
+        return;
+      }
+
+      // Step 4-4: トランザクション挿入（200件/バッチ）
       setStatus(`記録を挿入中… (0 / ${txRows.length.toLocaleString()})`, 20);
-      await DB.importTransactions(txRows, (done, total) => {
+      const { inserted, errors: insertErrors } = await DB.importTransactions(txRows, (done, total, errCount) => {
         const pct = 20 + Math.round((done / total) * 60);
-        setStatus(`記録を挿入中… (${done.toLocaleString()} / ${total.toLocaleString()})`, pct);
+        const errNote = errCount > 0 ? ` ⚠️ ${errCount}件エラー` : '';
+        setStatus(`記録を挿入中… (${done.toLocaleString()} / ${total.toLocaleString()})${errNote}`, pct);
       });
 
-      // Step 4-4: タグ紐付け挿入（500件/バッチ）
+      // Step 4-5: タグ紐付け挿入（500件/バッチ）
       setStatus(`タグを関連付け中… (0 / ${tagRows.length.toLocaleString()})`, 80);
       await DB.bulkInsertTransactionTags(tagRows, (done, total) => {
         const pct = 80 + Math.round((done / total) * 18);
@@ -477,7 +506,7 @@ export async function showImportNotion() {
       });
 
       setStatus('完了！', 100);
-      setTimeout(() => showStep5(txRows.length, tagRows.length), 500);
+      setTimeout(() => showStep5(inserted, tagRows.length, skipped, insertErrors), 500);
 
     } catch (e) {
       showError(`インポートエラー: ${e.message}`, () => overlay.remove());
@@ -500,8 +529,18 @@ export async function showImportNotion() {
   }
 
   // ── Step 5: 完了 ──
-  function showStep5(txCount, tagCount) {
+  function showStep5(txCount, tagCount, skipped = 0, insertErrors = []) {
     Sound.playSave();
+    const errHtml = insertErrors.length > 0
+      ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;
+           padding:10px 14px;margin-bottom:16px;font-size:12px;color:#856404;text-align:left;line-height:1.6;">
+           ⚠️ ${insertErrors.length} バッチが挿入エラー（約 ${insertErrors.reduce((s,e)=>s+e.count,0)} 件）<br>
+           <span style="font-size:11px;">${insertErrors[0]?.message || ''}</span>
+         </div>`
+      : '';
+    const skipHtml = skipped > 0
+      ? `<span style="color:var(--mid-lt);font-size:13px;">スキップ（重複）: ${skipped.toLocaleString()} 件</span><br>`
+      : '';
     setContent(`
       <div style="text-align:center;padding:48px 20px;">
         <div style="width:56px;height:56px;border-radius:50%;background:var(--sage-bg);
@@ -513,9 +552,11 @@ export async function showImportNotion() {
         <div style="font-family:'Noto Serif JP',serif;font-size:18px;font-weight:600;margin-bottom:10px;">
           インポート完了
         </div>
+        ${errHtml}
         <div style="font-size:14px;color:var(--mid);line-height:1.8;margin-bottom:32px;">
           ${txCount.toLocaleString()} 件の記録をインポートしました<br>
-          タグ紐付け: ${tagCount.toLocaleString()} 件
+          タグ紐付け: ${tagCount.toLocaleString()} 件<br>
+          ${skipHtml}
         </div>
         <button class="btn-primary" id="btn-import-done">記録を確認する</button>
       </div>
@@ -523,7 +564,6 @@ export async function showImportNotion() {
 
     document.getElementById('btn-import-done')?.addEventListener('click', () => {
       overlay.remove();
-      // 記録一覧へ遷移
       const Router = window._flowraRouter;
       if (Router) Router.navigate('records');
     });
