@@ -141,11 +141,24 @@ function renderContent(content, accounts, transactions, year, month, fromCache =
   const income  = transactions.filter(t=>t.type==='income' ).reduce((s,t)=>s+t.amount, 0);
   const expense = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount, 0);
 
+  const hidden = localStorage.getItem('flowra_balance_hidden') === '1';
+  const maskNum = (n) => '••••••';
+  const totalDisp = hidden
+    ? '<span class="s-currency" style="opacity:0.5;">¥</span><span class="s-number" style="letter-spacing:2px;">••••••</span>'
+    : (total < 0
+        ? '<span class="s-currency" style="color:rgba(255,255,255,0.5)">−¥</span><span class="s-number">' + fmt(Math.abs(total)) + '</span>'
+        : '<span class="s-currency">¥</span><span class="s-number">' + fmt(total) + '</span>');
+
   const summaryHTML = `
     <div class="summary-row">
-      <div class="s-card total">
-        <div class="s-card-label">総残高</div>
-        <div class="s-amount">${total < 0 ? '<span class="s-currency" style="color:rgba(255,255,255,0.5)">−¥</span><span class="s-number">' + fmt(Math.abs(total)) + '</span>' : '<span class="s-currency">¥</span><span class="s-number">' + fmt(total) + '</span>'}</div>
+      <div class="s-card total" id="s-card-total" style="cursor:pointer;user-select:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div class="s-card-label">総残高</div>
+          <div id="btn-toggle-balance" style="font-size:11px;opacity:0.6;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,0.15);">
+            ${hidden ? '表示' : '隠す'}
+          </div>
+        </div>
+        <div class="s-amount" id="s-total-amount">${totalDisp}</div>
         <div class="s-sub">全口座合計${fromCache ? ' <span style="font-size:10px;opacity:0.4;">●</span>' : ''}</div>
       </div>
       <div class="s-card income-card">
@@ -173,8 +186,9 @@ function renderContent(content, accounts, transactions, year, month, fromCache =
             <div class="acct-type-label">${ACCT_TYPE_LABEL[a.type]||a.type}</div>
           </div>
         </div>
-        <div class="acct-balance" style="color:${a.balance<0?'var(--red)':'var(--ink)'}">
-          ${a.balance < 0 ? '<span class="acct-balance-cur" style="color:var(--red)">−¥</span>' : '<span class="acct-balance-cur">¥</span>'}${fmt(Math.abs(a.balance))}
+        <div class="acct-balance balance-maskable" style="color:${a.balance<0?'var(--red)':'var(--ink)'}">
+          ${hidden ? '<span class="acct-balance-cur" style="color:var(--mid)">¥</span><span style="letter-spacing:2px;color:var(--mid);">••••</span>'
+            : (a.balance < 0 ? '<span class="acct-balance-cur" style="color:var(--red)">−¥</span>' : '<span class="acct-balance-cur">¥</span>') + fmt(Math.abs(a.balance))}
         </div>
       </div>`).join('');
 
@@ -206,7 +220,11 @@ function renderContent(content, accounts, transactions, year, month, fromCache =
           ${acctHTML}
           <div class="acct-total">
             <div class="acct-total-label">合計</div>
-            <div class="acct-total-amount"><span style="font-size:11px;font-weight:300;color:var(--mid);margin-right:1px;">¥</span>${fmt(total)}</div>
+            <div class="acct-total-amount" id="acct-total-amount">
+              ${hidden
+                ? '<span style="font-size:11px;font-weight:300;color:var(--mid);margin-right:1px;">¥</span><span style="letter-spacing:2px;color:var(--mid);">••••••</span>'
+                : '<span style="font-size:11px;font-weight:300;color:var(--mid);margin-right:1px;">¥</span>' + fmt(total)}
+            </div>
           </div>
         </div>
         <div class="panel" id="tx-panel">
@@ -288,6 +306,20 @@ async function syncInBackground(year, month, hadCache) {
       }
     }
   }
+}
+
+function setupBalanceToggle() {
+  const card = document.getElementById('s-card-total');
+  if (!card) return;
+  card.addEventListener('click', () => {
+    const isHidden = localStorage.getItem('flowra_balance_hidden') === '1';
+    localStorage.setItem('flowra_balance_hidden', isHidden ? '0' : '1');
+    // 再描画（軽量）
+    import('./router.js').then(({ Router }) => {
+      const page = Router?.currentPage;
+      if (page === 'dashboard') renderDashboard();
+    });
+  });
 }
 
 function setupInfiniteScroll(year, month) {
