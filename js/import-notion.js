@@ -506,7 +506,11 @@ export async function showImportNotion() {
       });
 
       setStatus('完了！', 100);
-      setTimeout(() => showStep5(inserted, tagRows.length, skipped, insertErrors), 500);
+      // 挿入したレコードの最古日付を取得（ジャンプ用）
+      const oldestDate = txRows.length > 0
+        ? txRows.reduce((min, r) => r.date < min ? r.date : min, txRows[0].date)
+        : null;
+      setTimeout(() => showStep5(inserted, tagRows.length, skipped, insertErrors, oldestDate), 500);
 
     } catch (e) {
       showError(`インポートエラー: ${e.message}`, () => overlay.remove());
@@ -529,7 +533,7 @@ export async function showImportNotion() {
   }
 
   // ── Step 5: 完了 ──
-  function showStep5(txCount, tagCount, skipped = 0, insertErrors = []) {
+  function showStep5(txCount, tagCount, skipped = 0, insertErrors = [], oldestDate = null) {
     Sound.playSave();
     const errHtml = insertErrors.length > 0
       ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:10px;
@@ -558,7 +562,13 @@ export async function showImportNotion() {
           タグ紐付け: ${tagCount.toLocaleString()} 件<br>
           ${skipHtml}
         </div>
-        <button class="btn-primary" id="btn-import-done">記録を確認する</button>
+        <button class="btn-primary" id="btn-import-done" style="margin-bottom:10px;">記録を確認する</button>
+        ${oldestDate && txCount > 0 ? `
+        <button id="btn-jump-oldest"
+          style="width:100%;padding:11px;background:var(--sage-bg);border:1px solid var(--sage);
+          color:var(--sage);border-radius:12px;font-size:13px;font-weight:600;cursor:pointer;">
+          最古の挿入月（${oldestDate.slice(0,7).replace('-','年').replace('-','月')}）を確認する
+        </button>` : ''}
       </div>
     `);
 
@@ -566,6 +576,18 @@ export async function showImportNotion() {
       overlay.remove();
       const Router = window._flowraRouter;
       if (Router) Router.navigate('records');
+    });
+
+    document.getElementById('btn-jump-oldest')?.addEventListener('click', () => {
+      overlay.remove();
+      if (oldestDate) {
+        const [y, m] = oldestDate.split('-').map(Number);
+        const Router = window._flowraRouter;
+        if (Router) {
+          Router.navigate('dashboard');
+          setTimeout(() => Router._jumpToMonth(y, m), 100);
+        }
+      }
     });
   }
 
