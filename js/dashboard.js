@@ -186,9 +186,8 @@ function renderContent(content, accounts, transactions, year, month, fromCache =
             <div class="acct-type-label">${ACCT_TYPE_LABEL[a.type]||a.type}</div>
           </div>
         </div>
-        <div class="acct-balance balance-maskable" style="color:${a.balance<0?'var(--red)':'var(--ink)'}">
-          ${hidden ? '<span class="acct-balance-cur" style="color:var(--mid)">¥</span><span style="letter-spacing:2px;color:var(--mid);">••••</span>'
-            : (a.balance < 0 ? '<span class="acct-balance-cur" style="color:var(--red)">−¥</span>' : '<span class="acct-balance-cur">¥</span>') + fmt(Math.abs(a.balance))}
+        <div class="acct-balance" style="color:${a.balance<0?'var(--red)':'var(--ink)'}">
+          ${a.balance < 0 ? '<span class="acct-balance-cur" style="color:var(--red)">−¥</span>' : '<span class="acct-balance-cur">¥</span>'}${fmt(Math.abs(a.balance))}
         </div>
       </div>`).join('');
 
@@ -220,11 +219,7 @@ function renderContent(content, accounts, transactions, year, month, fromCache =
           ${acctHTML}
           <div class="acct-total">
             <div class="acct-total-label">合計</div>
-            <div class="acct-total-amount" id="acct-total-amount">
-              ${hidden
-                ? '<span style="font-size:11px;font-weight:300;color:var(--mid);margin-right:1px;">¥</span><span style="letter-spacing:2px;color:var(--mid);">••••••</span>'
-                : '<span style="font-size:11px;font-weight:300;color:var(--mid);margin-right:1px;">¥</span>' + fmt(total)}
-            </div>
+            <div class="acct-total-amount"><span style="font-size:11px;font-weight:300;color:var(--mid);margin-right:1px;">¥</span>${fmt(total)}</div>
           </div>
         </div>
         <div class="panel" id="tx-panel">
