@@ -428,6 +428,21 @@ function openEditModal(acct) {
             <div id="edit-balance-diff" style="font-size:11px;color:var(--mid-lt);margin-top:4px;min-height:16px;"></div>
           </div>
         </div>
+        <div class="form-row no-tap">
+          <div class="row-body" style="flex-direction:column;align-items:stretch;gap:6px;">
+            <div class="row-label">メモ</div>
+            <textarea id="edit-acct-notes" maxlength="200"
+              placeholder="引き落とし日、管理URL など"
+              style="width:100%;min-height:72px;resize:none;border:none;background:none;
+                font-family:'Noto Sans JP',sans-serif;font-size:14px;color:var(--ink);
+                outline:none;line-height:1.6;box-sizing:border-box;"
+            >${acct.notes || ''}</textarea>
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div id="edit-notes-link" style="font-size:12px;"></div>
+              <div id="edit-notes-count" style="font-size:11px;color:var(--mid-lt);">${(acct.notes||'').length}/200</div>
+            </div>
+          </div>
+        </div>
         <div class="form-row no-tap" style="border-bottom:none;">
           <div class="row-body">
             <div class="row-label" style="margin-bottom:10px;">カラー</div>
@@ -515,6 +530,29 @@ function openEditModal(acct) {
   // 初期差分表示
   document.getElementById('edit-acct-balance')?.dispatchEvent(new Event('input'));
 
+  // メモ: 文字数カウント + URLリンク検出
+  const notesEl = document.getElementById('edit-acct-notes');
+  const notesCount = document.getElementById('edit-notes-count');
+  const notesLink  = document.getElementById('edit-notes-link');
+
+  function updateNotesUI() {
+    const val = notesEl?.value || '';
+    if (notesCount) notesCount.textContent = `${val.length}/200`;
+    if (notesLink) {
+      const urlMatch = val.match(/https?:\/\/[^\s]+/);
+      if (urlMatch) {
+        notesLink.innerHTML = `<a href="${urlMatch[0]}" target="_blank" rel="noopener"
+          style="color:var(--sage);text-decoration:underline;word-break:break-all;">
+          🔗 リンクを開く
+        </a>`;
+      } else {
+        notesLink.innerHTML = '';
+      }
+    }
+  }
+  notesEl?.addEventListener('input', updateNotesUI);
+  updateNotesUI();
+
   document.getElementById('btn-close-edit')?.addEventListener('click', closeModal);
 
   document.getElementById('btn-update-acct')?.addEventListener('click', async () => {
@@ -522,9 +560,10 @@ function openEditModal(acct) {
     const type    = document.getElementById('edit-acct-type').value;
     const rawBalance = parseInt(document.getElementById('edit-acct-balance').value || '0', 10);
     const balance = type === 'credit' ? -Math.abs(rawBalance) : rawBalance;
+    const notes   = (document.getElementById('edit-acct-notes')?.value || '').slice(0, 200);
     if (!name) { showToast('口座名を入力してください'); return; }
     try {
-      await DB.updateAccount(acct.id, { name, type, balance, color: editColor });
+      await DB.updateAccount(acct.id, { name, type, balance, color: editColor, notes });
       closeModal();
       showToast('✓ 変更を保存しました');
       renderAccounts();
