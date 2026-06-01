@@ -238,6 +238,7 @@ function renderContent(content, accounts, transactions, year, month, fromCache =
   document.getElementById('link-acct-manage')?.addEventListener('click', () => {
     import('./router.js').then(({ Router }) => Router.navigate('accounts'));
   });
+  setupBalanceToggle();
 
   // 記録行タップ → 編集シート
   document.querySelectorAll('.tx-item[data-tx-id]').forEach(el => {
