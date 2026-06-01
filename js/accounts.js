@@ -537,7 +537,10 @@ function openEditModal(acct) {
 
   function updateNotesUI() {
     const val = notesEl?.value || '';
-    if (notesCount) notesCount.textContent = `${val.length}/200`;
+    if (notesCount) {
+      notesCount.textContent = `${val.length}/200`;
+      notesCount.style.color = val.length >= 200 ? 'var(--red)' : 'var(--mid-lt)';
+    }
     if (notesLink) {
       const urlMatch = val.match(/https?:\/\/[^\s]+/);
       if (urlMatch) {
