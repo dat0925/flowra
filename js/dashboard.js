@@ -298,30 +298,50 @@ async function renderContent(content, accounts, transactions, year, month, fromC
     content.innerHTML = `
       ${summaryHTML}
       ${budgetHTML}
-      <div class="panel" id="ai-summary-panel" style="margin-bottom:0;">
-        <div class="panel-head">
-          <div class="panel-title" style="display:flex;align-items:center;gap:6px;">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
-            AIに聞く
+      <div id="ai-summary-panel" style="
+          background:var(--ink);border-radius:16px;margin-bottom:0;
+          overflow:hidden;">
+        <!-- ヘッダー: 自動一言表示エリア -->
+        <div style="padding:16px 18px 0;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2">
+              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+            </svg>
+            <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.45);letter-spacing:0.05em;">AI アドバイス</span>
+          </div>
+          <!-- 自動生成の一言 -->
+          <div id="ai-auto-answer" style="font-size:13px;line-height:1.75;color:rgba(255,255,255,0.9);
+            min-height:42px;margin-bottom:14px;">
+            <div style="display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.4);font-size:12px;">
+              <div style="width:12px;height:12px;border:1.5px solid rgba(255,255,255,0.3);
+                border-top-color:rgba(255,255,255,0.8);border-radius:50%;
+                animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
+              分析中…
+            </div>
           </div>
         </div>
-        <div style="padding:0 14px 14px;display:flex;gap:6px;flex-wrap:wrap;">
+        <!-- 詳しく聞くボタン群 -->
+        <div style="padding:0 14px 14px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px;margin-top:0;">
           <button class="btn-ai-q" data-q="monthly"
-            style="font-size:12px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--sage);
-              background:none;color:var(--sage);cursor:pointer;font-weight:500;white-space:nowrap;">
+            style="font-size:11px;padding:5px 11px;border-radius:20px;
+              border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);
+              color:rgba(255,255,255,0.7);cursor:pointer;font-weight:500;white-space:nowrap;">
             今月どう？
           </button>
           <button class="btn-ai-q" data-q="compare"
-            style="font-size:12px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border);
-              background:none;color:var(--mid);cursor:pointer;font-weight:500;white-space:nowrap;">
+            style="font-size:11px;padding:5px 11px;border-radius:20px;
+              border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);
+              color:rgba(255,255,255,0.7);cursor:pointer;font-weight:500;white-space:nowrap;">
             先月と比べて
           </button>
           <button class="btn-ai-q" data-q="saving"
-            style="font-size:12px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border);
-              background:none;color:var(--mid);cursor:pointer;font-weight:500;white-space:nowrap;">
+            style="font-size:11px;padding:5px 11px;border-radius:20px;
+              border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);
+              color:rgba(255,255,255,0.7);cursor:pointer;font-weight:500;white-space:nowrap;">
             節約ヒント
           </button>
         </div>
+        <!-- ボタンクリック後の詳細回答 -->
         <div id="ai-answer" style="display:none;padding:0 16px 16px;"></div>
       </div>
       <div class="main-grid">
