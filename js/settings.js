@@ -199,6 +199,162 @@ function initTagDragSort(listEl, tags, onReorder) {
 
 // ── タグ編集ボトムシート ──
 
+// ── 予算管理 ────────────────────────────────────────────
+
+async function renderBudgetList(tags) {
+  const wrap = document.getElementById('budget-list-wrap');
+  if (!wrap) return;
+
+  const now      = new Date();
+  const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+
+  let budgetMap = {};
+  try {
+    budgetMap = await DB.getBudgets(null); // デフォルト予算
+  } catch(e) {
+    wrap.innerHTML = '<div style="font-size:12px;color:var(--red);padding:8px 0;">読み込みエラー</div>';
+    return;
+  }
+
+  if (tags.length === 0) {
+    wrap.innerHTML = '<div style="font-size:12px;color:var(--mid-lt);padding:12px 0;">タグがありません</div>';
+    return;
+  }
+
+  wrap.innerHTML = `
+    <div style="font-size:11px;color:var(--mid-lt);padding:10px 0 8px;line-height:1.6;">
+      タグごとに毎月の予算を設定します。月別に上書きも可能です。
+    </div>
+    ${tags.map(tag => {
+      const b = budgetMap[tag.id];
+      return `
+        <div class="form-row no-tap budget-row" data-tag-id="${tag.id}" style="padding:10px 0;">
+          <div class="row-body" style="justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:8px;flex:1;">
+              <span style="width:10px;height:10px;border-radius:50%;background:${tag.color||'var(--sage)'};flex-shrink:0;"></span>
+              <span style="font-size:14px;">${tag.name}</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:12px;color:var(--mid);">¥</span>
+              <input type="number" inputmode="numeric"
+                class="text-input budget-input" data-tag-id="${tag.id}"
+                value="${b ? b.amount : ''}"
+                placeholder="未設定"
+                style="width:100px;text-align:right;font-size:14px;padding:4px 6px;">
+              <button class="btn-budget-month" data-tag-id="${tag.id}"
+                style="font-size:11px;color:var(--sage);background:var(--sage-bg);border:none;
+                  border-radius:6px;padding:3px 7px;cursor:pointer;white-space:nowrap;">
+                月別
+              </button>
+            </div>
+          </div>
+        </div>`;
+    }).join('')}
+    <button id="btn-save-budgets" class="btn-primary" style="margin-top:8px;">
+      <svg viewBox="0 0 24 24" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>
+      予算を保存
+    </button>`;
+
+  // 保存
+  document.getElementById('btn-save-budgets')?.addEventListener('click', async () => {
+    const inputs = wrap.querySelectorAll('.budget-input');
+    try {
+      for (const input of inputs) {
+        const tagId = input.dataset.tagId;
+        const amount = parseInt(input.value || '0', 10);
+        await DB.upsertBudget(tagId, amount || 0, null);
+      }
+      showToast('✓ 予算を保存しました');
+      Sound.playTap();
+    } catch(e) {
+      showToast('エラー: ' + e.message);
+    }
+  });
+
+  // 月別上書きシート
+  wrap.querySelectorAll('.btn-budget-month').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tagId = btn.dataset.tagId;
+      const tag   = tags.find(t => t.id === tagId);
+      if (tag) openBudgetMonthSheet(tag, budgetMap[tagId]);
+    });
+  });
+}
+
+function openBudgetMonthSheet(tag, defaultBudget) {
+  Sound.playOpen();
+  const now = new Date();
+  // 直近6ヶ月 + 翌月を選択肢に
+  const months = [];
+  for (let i = -1; i <= 5; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
+    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+  }
+
+  const sheet = document.createElement('div');
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:700;background:rgba(28,43,34,0.45);display:flex;align-items:flex-end;justify-content:center;';
+  sheet.innerHTML = `
+    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:0 16px 36px;">
+      <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 16px;"></div>
+      <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;margin-bottom:4px;">月別予算 — ${tag.name}</div>
+      <div style="font-size:12px;color:var(--mid-lt);margin-bottom:16px;">デフォルト: ${defaultBudget ? '¥'+fmt(defaultBudget.amount) : '未設定'}</div>
+      <div class="form-section" style="margin-bottom:14px;">
+        ${months.map(m => `
+          <div class="form-row no-tap" style="padding:8px 0;">
+            <div class="row-body" style="justify-content:space-between;">
+              <span style="font-size:14px;">${m.slice(0,4)}年${parseInt(m.slice(5))}月</span>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:12px;color:var(--mid);">¥</span>
+                <input type="number" inputmode="numeric" class="text-input month-budget-input"
+                  data-month="${m}" placeholder="デフォルト使用"
+                  style="width:110px;text-align:right;font-size:14px;padding:4px 6px;">
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>
+      <button id="btn-save-month-budget" class="btn-primary" style="margin-bottom:10px;">保存</button>
+      <button id="btn-close-month-budget" style="width:100%;padding:12px;background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;">キャンセル</button>
+    </div>`;
+
+  document.body.appendChild(sheet);
+
+  // 既存の月別予算を非同期で読み込む
+  DB.getBudgets(null).then(() => {
+    // 月別上書き分を取得
+    const teamId = DB.getTeamId();
+    // 各月の既存値を取得してinputに反映
+    months.forEach(async m => {
+      try {
+        const map = await DB.getBudgets(m);
+        const b   = map[tag.id];
+        if (b && b.month === m) {
+          const input = sheet.querySelector(`input[data-month="${m}"]`);
+          if (input) input.value = b.amount;
+        }
+      } catch(_) {}
+    });
+  });
+
+  sheet.addEventListener('click', e => { if (e.target === sheet) { Sound.playClose(); sheet.remove(); } });
+  document.getElementById('btn-close-month-budget')?.addEventListener('click', () => { Sound.playClose(); sheet.remove(); });
+
+  document.getElementById('btn-save-month-budget')?.addEventListener('click', async () => {
+    try {
+      const inputs = sheet.querySelectorAll('.month-budget-input');
+      for (const input of inputs) {
+        const m      = input.dataset.month;
+        const amount = parseInt(input.value || '0', 10);
+        await DB.upsertBudget(tag.id, amount || 0, m);
+      }
+      showToast('✓ 月別予算を保存しました');
+      Sound.playTap();
+      sheet.remove();
+    } catch(e) {
+      showToast('エラー: ' + e.message);
+    }
+  });
+}
+
 // タグカラースウォッチ
 const TAG_COLORS = [
   '#7A9485', '#4A7C59', '#3B6FBF', '#7B5EA7',
@@ -424,6 +580,14 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
       <div id="tag-list-wrap"></div>
     </div>
 
+    <!-- 予算管理 -->
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="panel-title">予算管理</div></div>
+      <div id="budget-list-wrap" style="padding:0 18px 12px;">
+        <div style="font-size:12px;color:var(--mid-lt);padding:12px 0 4px;">読み込み中…</div>
+      </div>
+    </div>
+
     <!-- アプリ設定 -->
     <div class="panel" style="margin-bottom:16px;">
       <div class="panel-head"><div class="panel-title">アプリ設定</div></div>
@@ -453,6 +617,7 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
 
   // タグリスト描画
   renderTagList(tags);
+  renderBudgetList(tags);
 
   // 自分のチームのメンバーリスト
   renderMembersList(ownMembers, user);
