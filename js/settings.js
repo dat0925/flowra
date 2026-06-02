@@ -77,7 +77,7 @@ function renderTagList(tags) {
         + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="' + ico.stroke + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="' + ico.path + '"/></svg></div>'
       : '<div style="width:28px;height:28px;border-radius:8px;background:' + c + '33;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
         + '<div style="width:10px;height:10px;border-radius:50%;background:' + c + ';"></div></div>';
-    return '<div class="tag-item" data-tag-id="' + t.id + '">'
+    return '<div class="tag-item" data-tag-id="' + t.id + '" style="cursor:pointer;">'
       + '<div class="drag-handle" style="width:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--mid-lt);touch-action:none;cursor:grab;padding:8px 4px;">'
       + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="1" fill="currentColor"/><circle cx="15" cy="7" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="17" r="1" fill="currentColor"/><circle cx="15" cy="17" r="1" fill="currentColor"/></svg>'
       + '</div>'
@@ -85,14 +85,14 @@ function renderTagList(tags) {
       + dotOrIcon
       + '<span style="font-size:14px;">' + t.name + '</span>'
       + '</div>'
-      + '<svg viewBox="0 0 24 24" width="14" height="14" style="color:var(--mid-lt);flex-shrink:0;cursor:pointer;" class="tag-edit-chevron"><polyline points="9 18 15 12 9 6"/></svg>'
+      + '<svg viewBox="0 0 24 24" width="13" height="13" style="color:var(--mid-lt);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>'
       + '</div>';
   }).join('');
 
-  // シェブロンタップ → 編集シート
+  // 行全体タップ → 編集シート（シェブロンだけでなく行全体）
   wrap.querySelectorAll('.tag-item').forEach(row => {
-    row.querySelector('.tag-edit-chevron')?.addEventListener('click', e => {
-      e.stopPropagation();
+    row.addEventListener('click', e => {
+      if (e.target.closest('.drag-handle')) return; // ドラッグハンドルは除外
       const tag = tags.find(t => t.id === row.dataset.tagId);
       if (tag) openTagEditSheet(tag, tags);
     });
@@ -231,27 +231,27 @@ async function renderBudgetList(tags) {
     ${tags.map(tag => {
       const b = budgetMap[tag.id];
       return `
-        <div class="form-row no-tap budget-row" data-tag-id="${tag.id}" style="padding:10px 0;">
-          <div class="row-body" style="justify-content:space-between;align-items:center;">
-            <div style="display:flex;align-items:center;gap:8px;flex:1;">
-              <span style="width:10px;height:10px;border-radius:50%;background:${tag.color||'var(--sage)'};flex-shrink:0;"></span>
-              <span style="font-size:14px;">${tag.name}</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:6px;">
-              <span style="font-size:12px;color:var(--mid);">¥</span>
-              <input type="text" inputmode="numeric"
-                class="text-input budget-input" data-tag-id="${tag.id}"
-                value="${b ? Number(b.amount).toLocaleString() : ''}"
-                placeholder="未設定"
-                style="width:100px;text-align:right;font-size:14px;padding:4px 6px;">
-              <button class="btn-budget-month" data-tag-id="${tag.id}"
-                style="font-size:11px;color:var(--sage);background:var(--sage-bg);border:none;
-                  border-radius:6px;padding:3px 7px;cursor:pointer;white-space:nowrap;">
-                月別
-              </button>
-            </div>
+        <label class="budget-row" data-tag-id="${tag.id}"
+          style="display:flex;align-items:center;justify-content:space-between;
+            padding:12px 0;border-bottom:1px solid var(--border);gap:8px;cursor:text;">
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            <span style="width:10px;height:10px;border-radius:50%;background:${tag.color||'var(--sage)'};flex-shrink:0;display:inline-block;"></span>
+            <span style="font-size:14px;">${tag.name}</span>
           </div>
-        </div>`;
+          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+            <span style="font-size:12px;color:var(--mid);">¥</span>
+            <input type="text" inputmode="numeric"
+              class="text-input budget-input" data-tag-id="${tag.id}"
+              value="${b ? Number(b.amount).toLocaleString() : ''}"
+              placeholder="未設定"
+              style="width:90px;text-align:right;font-size:14px;padding:4px 6px;">
+            <button class="btn-budget-month" data-tag-id="${tag.id}"
+              style="font-size:11px;color:var(--sage);background:var(--sage-bg);border:none;
+                border-radius:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">
+              月別
+            </button>
+          </div>
+        </label>`;
     }).join('')}
     <div id="budget-total-row" style="
       display:flex;justify-content:space-between;align-items:center;
@@ -348,23 +348,29 @@ function openBudgetMonthSheet(tag, defaultBudget) {
       <div class="form-section" style="margin-bottom:14px;">
         ${months.map(m => {
           const isCurrentMonth = m === currentMonthKey;
-          const label = m.slice(0,4) + '年' + parseInt(m.slice(5)) + '月' + (isCurrentMonth ? ' <span style="font-size:10px;color:var(--sage);background:var(--sage-bg);padding:1px 5px;border-radius:4px;margin-left:4px;">今月</span>' : '');
+          const label = m.slice(0,4) + '年' + parseInt(m.slice(5)) + '月' + (isCurrentMonth ? ' <span style="font-size:10px;color:var(--sage);background:var(--sage-bg);padding:1px 6px;border-radius:4px;margin-left:6px;">今月</span>' : '');
           return `
-          <div class="form-row no-tap" style="padding:8px 0;">
-            <div class="row-body" style="justify-content:space-between;align-items:center;">
-              <span style="font-size:14px;">${label}</span>
-              <div style="display:flex;align-items:center;gap:6px;">
-                <span style="font-size:12px;color:var(--mid);">¥</span>
-                <input type="text" inputmode="numeric" class="text-input month-budget-input"
-                  data-month="${m}" placeholder="${defaultAmt ? defaultAmt : '−'}"
-                  style="width:110px;text-align:right;font-size:14px;padding:4px 6px;">
-              </div>
+          <label style="display:flex;align-items:center;justify-content:space-between;
+            padding:13px 16px;cursor:pointer;border-bottom:1px solid var(--border);">
+            <span style="font-size:14px;">${label}</span>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <span style="font-size:13px;color:var(--mid);">¥</span>
+              <input type="text" inputmode="numeric" class="text-input month-budget-input"
+                data-month="${m}" placeholder="${defaultAmt ? defaultAmt : '−'}"
+                style="width:110px;text-align:right;font-size:15px;padding:4px 8px;border-radius:8px;">
             </div>
-          </div>`;
+          </label>`;
         }).join('')}
       </div>
-      <button id="btn-save-month-budget" class="btn-primary" style="margin-bottom:10px;">保存</button>
-      <button id="btn-close-month-budget" style="width:100%;padding:12px;background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;">キャンセル</button>
+      <div style="display:flex;gap:10px;">
+        <button id="btn-close-month-budget"
+          style="min-width:88px;padding:14px;border-radius:14px;border:1.5px solid var(--border);
+          background:var(--white);color:var(--mid);font-family:'Noto Sans JP',sans-serif;
+          font-size:14px;font-weight:500;cursor:pointer;">
+          キャンセル
+        </button>
+        <button id="btn-save-month-budget" class="btn-primary" style="flex:1;margin-bottom:0;">保存</button>
+      </div>
     </div>`;
 
   document.body.appendChild(sheet);
@@ -515,7 +521,7 @@ function openTagEditSheet(tag, allTags) {
               style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;"></div>
             <button id="btn-clear-tag-icon"
               style="font-size:11px;color:var(--mid);background:none;border:1px solid var(--border);
-                border-radius:8px;padding:4px 10px;cursor:pointer;">
+                border-radius:8px;padding:5px 12px;cursor:pointer;margin-top:4px;">
               自動推定に戻す
             </button>
           </div>
@@ -530,16 +536,29 @@ function openTagEditSheet(tag, allTags) {
       </div>
       <div id="edit-tag-error" style="display:none;font-size:11.5px;color:var(--red);margin:-8px 0 10px 2px;"></div>
 
-      <button class="btn-primary" id="btn-save-tag" style="margin-bottom:10px;">
-        <svg viewBox="0 0 24 24" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>
-        変更を保存
-      </button>
-      <button id="btn-delete-tag"
-        style="width:100%;padding:13px;border-radius:14px;border:1px solid var(--red-bg);
-        background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;
-        font-size:14px;font-weight:500;cursor:pointer;">
-        このタグを削除
-      </button>
+      <!-- キャンセル・保存を横並び（記録画面と同じパターン） -->
+      <div style="display:flex;gap:10px;margin-bottom:20px;">
+        <button id="btn-cancel-tag"
+          style="min-width:88px;padding:14px;border-radius:14px;border:1.5px solid var(--border);
+          background:var(--white);color:var(--mid);font-family:'Noto Sans JP',sans-serif;
+          font-size:14px;font-weight:500;cursor:pointer;">
+          キャンセル
+        </button>
+        <button class="btn-primary" id="btn-save-tag" style="flex:1;margin-bottom:0;">
+          <svg viewBox="0 0 24 24" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>
+          変更を保存
+        </button>
+      </div>
+
+      <!-- 削除は十分な余白をとって別ゾーンに -->
+      <div style="border-top:1px solid var(--border);padding-top:16px;">
+        <button id="btn-delete-tag"
+          style="width:100%;padding:13px;border-radius:14px;border:1px solid var(--border);
+          background:var(--white);color:var(--mid);font-family:'Noto Sans JP',sans-serif;
+          font-size:13px;font-weight:400;cursor:pointer;">
+          このタグを削除…
+        </button>
+      </div>
     </div>`;
 
   document.body.appendChild(sheet);
@@ -547,6 +566,7 @@ function openTagEditSheet(tag, allTags) {
   const closeSheet = () => { Sound.playClose(); sheet.remove(); };
   sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
   document.getElementById('btn-close-tag-sheet')?.addEventListener('click', closeSheet);
+  document.getElementById('btn-cancel-tag')?.addEventListener('click', closeSheet);
 
   // アイコンピッカー初期化
   let selectedTagIcon = tag.icon || null;
@@ -621,9 +641,27 @@ function openTagEditSheet(tag, allTags) {
     }
   });
 
-  // 削除
+  // 削除（2ステップ確認: 1回目でボタンを赤く、2回目で実行）
+  let deleteConfirmPending = false;
   document.getElementById('btn-delete-tag')?.addEventListener('click', async () => {
-    if (!confirm(`「${tag.name}」を削除しますか？\n※ このタグが付いた記録からも外れます`)) return;
+    const delBtn = document.getElementById('btn-delete-tag');
+    if (!deleteConfirmPending) {
+      deleteConfirmPending = true;
+      delBtn.textContent = '本当に削除しますか？ もう一度タップ';
+      delBtn.style.background = 'var(--red-bg)';
+      delBtn.style.color = 'var(--red)';
+      delBtn.style.borderColor = 'var(--red-bg)';
+      setTimeout(() => {
+        deleteConfirmPending = false;
+        if (delBtn.isConnected) {
+          delBtn.textContent = 'このタグを削除…';
+          delBtn.style.background = 'var(--white)';
+          delBtn.style.color = 'var(--mid)';
+          delBtn.style.borderColor = 'var(--border)';
+        }
+      }, 3000);
+      return;
+    }
     try {
       await DB.deleteTag(tag.id);
       await warmupAddRecord();
