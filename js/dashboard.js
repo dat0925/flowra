@@ -456,9 +456,9 @@ const SUPABASE_ANON_KEY_AI = (() => {
 })();
 
 function setupAiSummary(transactions, year, month) {
-  const btns = document.querySelectorAll('.btn-ai-q');
+  const btns     = document.querySelectorAll('.btn-ai-q');
   const answerEl = document.getElementById('ai-answer');
-  if (!btns.length || !answerEl) return;
+  const autoEl   = document.getElementById('ai-auto-answer');
 
   // タグ別支出集計
   function getTagBreakdown(txList) {
@@ -472,40 +472,84 @@ function setupAiSummary(transactions, year, month) {
     return Object.values(map);
   }
 
+  // Edge Function呼び出し
+  async function callAI(question, data) {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token || '';
+    const res = await fetch('https://copyzpsyagscqrvkrwjo.supabase.co/functions/v1/flowra-ai', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + token,
+        'apikey': token,
+      },
+      body: JSON.stringify({ question, data }),
+    });
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    return json.answer;
+  }
+
+  // 自動一言表示（ページ読み込み時・既存データのみ使用）
+  if (autoEl) {
+    const income  = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+    const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+    const tid = setTimeout(() => {
+      const el = document.getElementById('ai-auto-answer');
+      if (el && el.innerHTML.includes('分析中')) {
+        el.innerHTML = '<span style="color:rgba(255,180,100,0.7);font-size:11px;">⚠ タイムアウト。ボタンから試してください。</span>';
+      }
+    }, 12000);
+
+    callAI('monthly', {
+      year, month, income, expense,
+      tagBreakdown: getTagBreakdown(transactions),
+      budgets: [],
+      prevYear: month === 1 ? year - 1 : year,
+      prevMonth: month === 1 ? 12 : month - 1,
+      prevIncome: 0, prevExpense: 0, prevTagBreakdown: [],
+    }).then(answer => {
+      clearTimeout(tid);
+      const el = document.getElementById('ai-auto-answer');
+      if (el) el.innerHTML = answer.split('\n').join('<br>');
+    }).catch(e => {
+      clearTimeout(tid);
+      const el = document.getElementById('ai-auto-answer');
+      if (el) el.innerHTML = '<span style="color:rgba(255,180,100,0.7);font-size:11px;">⚠ ' + (e.message || 'エラー') + '</span>';
+    });
+  }
+
+  if (!btns.length || !answerEl) return;
+
+  // ボタンクリック → 詳細回答
   btns.forEach(btn => {
     btn.addEventListener('click', async () => {
       const q = btn.dataset.q;
 
-      // ボタンスタイル切り替え
       btns.forEach(b => {
-        b.style.border = '1.5px solid var(--border)';
-        b.style.color = 'var(--mid)';
-        b.style.background = 'none';
+        b.style.border = '1px solid rgba(255,255,255,0.25)';
+        b.style.color  = 'rgba(255,255,255,0.7)';
+        b.style.background = 'rgba(255,255,255,0.08)';
       });
-      btn.style.border = '1.5px solid var(--sage)';
-      btn.style.color = 'var(--sage)';
-      btn.style.background = 'var(--sage-bg)';
+      btn.style.border = '1px solid rgba(255,255,255,0.8)';
+      btn.style.color  = '#fff';
+      btn.style.background = 'rgba(255,255,255,0.18)';
 
-      // ローディング表示
       answerEl.style.display = 'block';
-      answerEl.innerHTML = `
-        <div style="display:flex;align-items:center;gap:8px;padding:8px 0;color:var(--mid);font-size:13px;">
-          <div style="width:14px;height:14px;border:2px solid var(--sage);border-top-color:transparent;
-            border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
-          考え中…
-        </div>`;
+      answerEl.innerHTML = '<div style="display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.4);font-size:12px;padding:4px 0 8px;">'
+        + '<div style="width:12px;height:12px;border:1.5px solid rgba(255,255,255,0.3);border-top-color:rgba(255,255,255,0.8);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>'
+        + '考え中…</div>';
 
       try {
-        // 先月データ取得
         const prevM = month === 1 ? 12 : month - 1;
         const prevY = month === 1 ? year - 1 : year;
-        const prevData = await DB.getTransactions({ year: prevY, month: prevM, pageSize: 1000 });
-        const prevTxs  = prevData.data || [];
+        const prevData    = await DB.getTransactions({ year: prevY, month: prevM, pageSize: 1000 });
+        const prevTxs     = prevData.data || [];
         const prevIncome  = prevTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
         const prevExpense = prevTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
-        // 予算データ
-        const monthKey = year + '-' + String(month).padStart(2, '0');
+        const monthKey  = year + '-' + String(month).padStart(2, '0');
         const budgetMap = await DB.getBudgets(monthKey);
         const spendByTag = {};
         transactions.filter(t => t.type === 'expense').forEach(tx => {
@@ -513,29 +557,25 @@ function setupAiSummary(transactions, year, month) {
             spendByTag[tag.id] = (spendByTag[tag.id] || 0) + tx.amount;
           });
         });
-        const budgets = Object.entries(budgetMap).map(([tagId, b]) => ({
-          name: b.tag_name || tagId,
-          amount: b.amount,
-          spent: spendByTag[tagId] || 0,
-        }));
 
         const income  = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
         const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
-        // Edge Functionを呼ぶ（callAI共通関数を使用）
         const answer = await callAI(q, {
           year, month, income, expense,
           tagBreakdown: getTagBreakdown(transactions),
-          budgets,
-          prevYear: prevY, prevMonth: prevM,
-          prevIncome, prevExpense,
+          budgets: Object.entries(budgetMap).map(([tid2, b]) => ({
+            name: b.tag_name || tid2, amount: b.amount, spent: spendByTag[tid2] || 0,
+          })),
+          prevYear: prevY, prevMonth: prevM, prevIncome, prevExpense,
           prevTagBreakdown: getTagBreakdown(prevTxs),
         });
+
         answerEl.innerHTML = '<div style="font-size:13px;line-height:1.75;color:rgba(255,255,255,0.9);'
           + 'border-top:1px solid rgba(255,255,255,0.1);padding-top:12px;">'
           + answer.split('\n').join('<br>') + '</div>';
       } catch (e) {
-        answerEl.innerHTML = `<div style="font-size:12px;color:var(--red);padding:4px 0;">エラー: ${e.message}</div>`;
+        answerEl.innerHTML = '<div style="font-size:12px;color:rgba(255,100,100,0.8);padding:4px 0;">エラー: ' + e.message + '</div>';
       }
     });
   });
