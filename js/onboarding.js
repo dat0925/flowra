@@ -4,6 +4,24 @@
 // ─────────────────────────────────────
 import { DB } from './db.js';
 
+// チームが存在するまで最大10秒リトライ（新規ユーザーのトリガー遅延対策）
+async function ensureTeam(maxWaitMs = 10000) {
+  const interval = 800;
+  let elapsed = 0;
+  while (elapsed < maxWaitMs) {
+    try {
+      const teamId = await DB.getOwnTeamId();
+      if (teamId) {
+        DB.setActiveTeamId(teamId);
+        return teamId;
+      }
+    } catch (_) {}
+    await new Promise(r => setTimeout(r, interval));
+    elapsed += interval;
+  }
+  throw new Error('チームの初期化がタイムアウトしました。画面を再読み込みしてください。');
+}
+
 // よく使われる口座テンプレート
 const ACCOUNT_PRESETS = [
   { name: '現金',         type: 'cash',    icon: '💴', color: '#7A9485' },
@@ -84,8 +102,11 @@ function showOnboarding(onComplete) {
   overlay.querySelector('#ob-next-2')?.addEventListener('click', async () => {
     const btn = overlay.querySelector('#ob-next-2');
     btn.disabled = true;
-    btn.textContent = '保存中…';
+    btn.textContent = '準備中…';
     try {
+      // チームが存在することを確認してから保存（新規ユーザーのトリガー遅延対策）
+      await ensureTeam();
+      btn.textContent = '保存中…';
       const toCreate = [...selected].map(idx => ACCOUNT_PRESETS[parseInt(idx)]);
       await Promise.all(
         toCreate.map((p, i) =>
@@ -95,8 +116,9 @@ function showOnboarding(onComplete) {
       goTo(3);
     } catch (e) {
       btn.disabled = false;
-      btn.textContent = `${selected.size}件追加して始める`;
-      alert('保存に失敗しました: ' + e.message);
+      btn.textContent = selected.size + '件追加して始める';
+      alert('保存に失敗しました。画面を再読み込みしてお試しください。');
+      console.error(e);
     }
   });
 
