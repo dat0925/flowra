@@ -193,24 +193,33 @@ async function renderContent(content, accounts, transactions, year, month, fromC
           });
         });
 
+        // 総合計計算用
+        let totalBudget = 0, totalSpent = 0;
+
         const rows = budgetEntries.map(([tagId, b]) => {
           const tag   = tags.find(t => t.id === tagId);
           if (!tag) return '';
           const spent = spendByTag[tagId] || 0;
-          const pct   = Math.min(100, Math.round((spent / b.amount) * 100));
+          const rawPct = Math.round((spent / b.amount) * 100);
+          const pct   = Math.min(100, rawPct);
           const over  = spent > b.amount;
           const color = over ? 'var(--red)' : pct >= 80 ? 'var(--gold)' : 'var(--sage)';
+          totalBudget += b.amount;
+          totalSpent  += spent;
           return `
-            <div style="margin-bottom:12px;">
+            <div style="margin-bottom:14px;">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-                <div style="display:flex;align-items:center;gap:6px;">
+                <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
                   <span style="width:8px;height:8px;border-radius:50%;background:${tag.color||'var(--sage)'};flex-shrink:0;display:inline-block;"></span>
-                  <span style="font-size:13px;font-weight:500;">${tag.name}</span>
-                  ${b.month ? `<span style="font-size:10px;color:var(--mid-lt);background:var(--mist);padding:1px 5px;border-radius:4px;">${b.month.slice(5)}月</span>` : ''}
+                  <span style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${tag.name}</span>
+                  ${b.month ? `<span style="font-size:10px;color:var(--mid-lt);background:var(--mist);padding:1px 5px;border-radius:4px;flex-shrink:0;">${b.month.slice(5)}月</span>` : ''}
                 </div>
-                <div style="font-size:12px;color:${over?'var(--red)':'var(--mid)'};">
-                  <span style="font-weight:600;color:${color};">¥${fmt(spent)}</span>
-                  <span style="color:var(--mid-lt);"> / ¥${fmt(b.amount)}</span>
+                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                  <div style="font-size:12px;">
+                    <span style="font-weight:600;color:${color};">¥${fmt(spent)}</span>
+                    <span style="color:var(--mid-lt);"> / ¥${fmt(b.amount)}</span>
+                  </div>
+                  <span style="font-size:11px;font-weight:700;color:${color};min-width:34px;text-align:right;">${rawPct}%</span>
                 </div>
               </div>
               <div style="height:6px;border-radius:3px;background:var(--mist);overflow:hidden;">
@@ -221,6 +230,26 @@ async function renderContent(content, accounts, transactions, year, month, fromC
         }).filter(Boolean).join('');
 
         if (rows) {
+          const validCount = budgetEntries.filter(([tid]) => tags.find(t => t.id === tid)).length;
+          const totalPct   = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
+          const totalColor = totalSpent > totalBudget ? 'var(--red)' : totalPct >= 80 ? 'var(--gold)' : 'var(--sage)';
+          const totalRow   = validCount >= 2 ? `
+            <div style="border-top:1px solid var(--border);margin-top:4px;padding-top:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+                <span style="font-size:12px;font-weight:600;color:var(--mid);">合計</span>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <div style="font-size:12px;">
+                    <span style="font-weight:700;color:${totalColor};">¥${fmt(totalSpent)}</span>
+                    <span style="color:var(--mid-lt);"> / ¥${fmt(totalBudget)}</span>
+                  </div>
+                  <span style="font-size:12px;font-weight:700;color:${totalColor};min-width:34px;text-align:right;">${totalPct}%</span>
+                </div>
+              </div>
+              <div style="height:7px;border-radius:3px;background:var(--mist);overflow:hidden;">
+                <div style="height:100%;width:${Math.min(100,totalPct)}%;border-radius:3px;background:${totalColor};transition:width 0.4s;"></div>
+              </div>
+            </div>` : '';
+
           budgetHTML = `
             <div class="panel" style="margin-bottom:0;">
               <div class="panel-head">
@@ -229,7 +258,7 @@ async function renderContent(content, accounts, transactions, year, month, fromC
                   <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
               </div>
-              <div style="padding:4px 18px 16px;">${rows}</div>
+              <div style="padding:4px 18px 16px;">${rows}${totalRow}</div>
             </div>`;
         }
       }
