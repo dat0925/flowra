@@ -355,6 +355,14 @@ Notion API  (100件/リクエスト)
 - `syncInBackground` の catch でエラーが握り潰されていないか確認
 - エラーを画面に表示する（`err-detail` パターン）
 
+**記録タップが一部だけ無反応なとき:**
+- キャッシュとSupabaseの件数比較だけでは差分検知漏れが起きる → IDセット比較で確実に
+- イベントリスナーの重複登録を疑う → `data-*-bound` パターンで1回限り登録
+
+**検索結果が不正確なとき:**
+- IndexedDBのキャッシュ未完成が原因の場合はSupabase直接検索に切り替える
+- 当月表示: IndexedDB（高速）、全期間検索: Supabase直接（正確）の役割分担を維持
+
 **Supabase RLS「静かな失敗」:**
 ```js
 const { data, error } = await supabase.from('table').update(x).eq('id', id).select();
@@ -385,9 +393,17 @@ git show <hash>:path/to/file.css
 - チーム名変更後のUI反映（2026-05-30）
 - タグの並び替え（2026-06-02）
 - Notionインポート（3万件・差分インポート対応）（2026-06-01〜02）
-- 検索機能強化（全期間・タグ名対応）
+- 検索機能強化（全期間・タグ名対応・Supabase直接検索）
 - ホーム画面スピナーが止まらないバグ（2026-06-02）
 - 年月ピッカー・今月ボタン（2026-06-02）
+- 口座メモ欄（200文字・URL自動リンク）（2026-06-02）
+- 口座残高修正UI刷新（現在残高表示・差分フィードバック）（2026-06-02）
+- 総残高の表示/非表示切り替え（タップ即切替・総残高カードのみ）（2026-06-02）
+- 今月ボタンのレイアウトシフト解消（hidden→disabled+グレーアウト）（2026-06-02）
+- 保存/キャンセルボタンの誤タップ防止（gap追加・キャンセル小・保存大）（2026-06-02）
+- タグアイコン自動推定（キーワード部分一致）（2026-06-02）
+- タグカラー変更機能（設定画面・16色スウォッチ）（2026-06-02）
+- ホーム画面・記録一覧のタップ無反応バグ修正（2026-06-02）
 
 ### 🟢 次フェーズ候補
 
@@ -422,7 +438,58 @@ git show <hash>:path/to/file.css
 
 ## 変更履歴
 
-### 2026-06-02（本日）
+### 2026-06-02（セッション後半）
+
+- **fix**: 全期間検索をIndexedDB→Supabase直接に変更（`records.js` / `db.js`）
+  - 問題: fetchAllToCacheが完了するまで検索結果が不正確（インデックス中）
+  - 根本解決: キーワード検索時はSupabaseを直接叩く。IndexedDBは当月表示専用に整理
+  - `DB.searchTransactions(keyword, type)` を新規追加（memo/タグ名/口座名のOR検索・最大500件）
+
+- **fix**: 記録一覧のタップ無反応バグ修正（`records.js`）
+  - 原因: needsUpdate判定が件数比較のみ → 新規追加レコードが同件数の場合に検知漏れ
+  - 修正: IDセット比較（`freshIds.some(id => !cachedIds.has(id))`）で確実に差分検知
+
+- **fix**: ホーム画面の記録タップ無反応バグ修正（`dashboard.js`）
+  - 原因: renderDashboard再描画のたびにclickイベントが重複登録 → 古いclosureのfilteredを参照
+  - 修正: `data-click-bound` / `data-toggle-bound` で一度だけ登録する仕組みを追加
+  - 別原因: `setupBalanceToggle()` の呼び出し行が抜けていた → 追加
+
+- **feat**: 口座メモ欄追加（`accounts.js`）
+  - 200文字制限（maxlength + DB CHECK制約）
+  - リアルタイム文字数カウント（200文字到達で赤くなる）
+  - URL自動検出 → 「🔗 リンクを開く」リンク表示
+  - ⚠️ Supabase: `ALTER TABLE accounts ADD COLUMN notes text CHECK (char_length(notes) <= 200);` 実施済み
+
+- **feat**: 口座残高修正UI刷新（`accounts.js`）
+  - 現在残高をグレー背景で表示
+  - 修正後残高の入力欄を大きく（font-size:20px）
+  - リアルタイム差分表示（+¥XXX→緑 / −¥XXX→赤 / 変化なし→グレー）
+
+- **feat**: 総残高の表示/非表示切り替え（`dashboard.js`）
+  - 総残高カードをタップで `¥ ••••••` に切り替え
+  - 状態を `localStorage: flowra_balance_hidden` に保存
+  - 口座別残高・合計行は常時表示（総残高カードのみ非表示）
+
+- **fix**: 今月ボタンのレイアウトシフト解消（`router.js` / `index.html`）
+  - hidden → disabled + グレーアウト（opacity:0.35）に変更
+  - ボタンは常時表示でレイアウト固定
+
+- **fix**: 保存/キャンセルボタンの誤タップ防止（`css/style.css`）
+  - `gap: 10px` でボタン間に余白
+  - キャンセル: `min-width: 88px` の固定小サイズ
+  - 保存する: `flex: 1` で残り全幅を占有
+
+- **feat**: タグアイコン自動推定（`add-record.js`）
+  - KEYWORD_ICON_MAP: キーワード部分一致でアイコンを自動割り当て
+  - 「家事・住居費」→🏠、「水道光熱費」→🔥、「支払保険料」→🛡 など
+  - マッチしないタグはカラーラベルアイコン（デフォルト）
+
+- **feat**: タグカラー変更機能（`settings.js`）
+  - タグ編集シートに16色スウォッチを追加
+  - `renderTagColorPicker()` / `TAG_COLORS` を settings.js 内に定義
+  - 保存時に `DB.updateTag(id, { name, color })` でカラーも更新
+
+### 2026-06-02（セッション前半）
 
 - **fix**: ホーム画面スピナーが永遠に止まらないバグを修正（`dashboard.js`）
   - 原因1: `syncInBackground` のcatchでエラーを握り潰していた → エラー表示＋再読み込みボタンを追加
