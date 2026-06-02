@@ -74,8 +74,11 @@ flowra/
 
 ### `accounts`
 口座情報
-- `id`, `team_id`, `name`, `type`, `icon`, `color`, `balance`, `sort_order`, `is_archived`
+- `id`, `team_id`, `name`, `type`, `icon`, `color`, `balance`, `sort_order`, `is_archived`, `notes`, `is_private`, `created_by`
 - `sort_order` で並び順を管理（口座管理画面の↑↓ボタンで変更可能）
+- `notes`: メモ欄（200文字制限）。URLを含む場合は編集画面でリンク表示
+- `is_private`: trueの場合 `created_by` 本人のみ参照可能。記録ありの場合は公開→非公開への変更を禁止
+- `created_by`: 作成者のuuid。RLSで `is_private=true AND created_by != auth.uid()` の口座を非表示
 
 ### `transactions`
 収支記録
@@ -94,6 +97,13 @@ flowra/
 ### `comments`
 記録へのコメント
 - `id`, `transaction_id`, `body`, `created_by`, `created_at`
+
+### `budgets`
+タグ別予算管理
+- `id`, `team_id`, `tag_id`, `month`(text, NULL=毎月デフォルト, 'YYYY-MM'=月別上書き), `amount`, `created_at`
+- UNIQUE制約: `(team_id, tag_id, month)`
+- `month IS NULL` がデフォルト、`month = 'YYYY-MM'` が月別上書き
+- `getBudgets(month)` は両方取得して月別を優先するマップを返す
 
 ---
 
@@ -342,6 +352,9 @@ Notion API  (100件/リクエスト)
 | `bulkInsertTransactionTags(tagRows, progressCallback)` | タグ紐付けバッチ挿入（500件/回） |
 | `getAllTransactionKeys()` | 差分インポート用キーセット取得（全件） |
 | `fetchAllToCache(onProgress)` | 全件IndexedDB再構築（インポート後に使用） |
+| `getBudgets(month)` | 予算取得（デフォルト＋月別マージ済み `{tag_id: budget}` マップ） |
+| `upsertBudget(tagId, amount, month)` | 予算保存（amount=0で削除、month=nullでデフォルト） |
+| `getTransactionCountForAccount(id)` | 口座の取引件数（非公開切り替え可否判定用） |
 
 ---
 
@@ -404,24 +417,22 @@ git show <hash>:path/to/file.css
 - タグアイコン自動推定（キーワード部分一致）（2026-06-02）
 - タグカラー変更機能（設定画面・16色スウォッチ）（2026-06-02）
 - ホーム画面・記録一覧のタップ無反応バグ修正（2026-06-02）
+- 口座の非公開フラグ（is_private）実装（2026-06-02）
+- 予算管理機能（設定画面・ホーム進捗バー・月別上書き）（2026-06-02）
+- 記録検索のクリアボタン・件数バッジ（2026-06-02）
 
 ### 🟢 次フェーズ候補
 
-1. **予算管理機能**（最優先）
-   - タグごとに月の予算を設定
-   - ダッシュボードに「食費 予算3万 / 使用2.4万（80%）」と進捗表示
-   - AIサマリーの前提条件
-
-2. **AIサマリー**（予算管理実装後）
+1. **AIサマリー**（最優先・予算管理完了済み）
    - 「今月どう？」「先月と比べて何が増えた？」「節約できそうなところある？」
    - 3つの問いに絞ったUI（チャット形式ではなくボタン選択式）
-   - Flowraのデータ構造（金額・タグ・口座・日付）で答えられる問いのみ対象
+   - Flowraのデータ構造（金額・タグ・口座・日付・予算）で答えられる問いのみ対象
 
-3. **月次レポートシェア**
+2. **月次レポートシェア**
    - html2canvas + Web Share APIで「今月の家計まとめ」を画像化してSNSシェア
    - Flowraロゴ入り → バイラル効果
 
-4. **MIRRAテーブルの削除**
+3. **MIRRAテーブルの削除**
    - Supabaseに別アプリ（MIRRA）のテーブルが混在
    - 対象: `appointments`, `conversations`, `customers`, `karte`, `salons`
 
@@ -437,6 +448,45 @@ git show <hash>:path/to/file.css
 ---
 
 ## 変更履歴
+
+### 2026-06-02（セッション最終）
+
+- **feat**: 予算管理機能（`db.js` / `settings.js` / `dashboard.js`）
+  - `budgets` テーブル（Supabase）: `team_id`, `tag_id`, `month`(NULL=デフォルト), `amount`
+  - `DB.getBudgets(month)`: デフォルト＋月別上書きを解決して `{tag_id: budget}` マップで返す
+  - `DB.upsertBudget(tagId, amount, month)`: amount=0で削除、UNIQUE制約でupsert
+  - 設定画面: タグ管理の下に「予算管理」セクション。タグ別金額入力＋一括保存。「月別」ボタンで特定月の上書きシート（直近6ヶ月＋翌月）
+  - ホーム画面: 予算設定があるタグの進捗バーを `renderContent` 内で描画。80%以上→黄、超過→赤。「設定→」から設定画面へジャンプ
+  - ⚠️ SQL実行済み: `CREATE TABLE budgets` + RLSポリシー
+
+- **feat**: 口座の非公開フラグ（`accounts.js` / `db.js`）
+  - `accounts` テーブルに `is_private boolean DEFAULT false`, `created_by uuid` を追加
+  - 口座作成時に `is_private` トグル＋ `created_by` を自動付与
+  - 既存口座編集時: 記録が1件以上あれば公開→非公開の変更を禁止（件数表示）
+  - 非公開→公開は常に許可
+  - 口座一覧に「非公開」バッジ表示
+  - `DB.getTransactionCountForAccount(id)`: 口座の取引件数を取得
+  - ⚠️ SQL実行済み: `is_private`/`created_by`カラム追加、RLS更新、`is_accessible_account()` 関数追加
+
+- **feat**: 記録検索のクリアボタン・件数バッジ（`records.js`）
+  - 入力があるとき × ボタンが検索ボックス内右端に出現
+  - 検索結果件数を緑バッジで検索ボックス右横に表示（`N件`）
+
+- **fix**: 楽観的UI中に編集しようとしたUUIDエラーを防止（`edit-record.js`）
+  - 原因: 保存直後（数百ms以内）に編集を開くと `optimistic-` IDがSupabaseに送られUUIDエラー
+  - 修正: `openEditRecord` 冒頭でoptimistic-IDを検出し「保存中です」トーストで早期return
+
+- **fix**: `getTransactions` のtagsマッピングに `filter(t => t)` 追加（`db.js`）
+  - JOINが空振りしたnullタグが混入するケースの根本対策
+
+- **fix**: `edit-record.js` の `txTags` に `filter(t => t)` 追加
+  - タグ削除後の残骸nullで openEditRecord がクラッシュしていた問題を修正
+
+- **fix**: 記録一覧タップをイベントデリゲーション方式に変更（`records.js`）
+  - `_allTx` を都度参照することでクロージャの古いfilteredによる無反応バグを根絶
+
+- **fix**: 記録一覧の差分検知をIDセット比較に変更（`records.js`）
+  - 件数同一でも新規レコードがある場合に renderShell を再実行するよう修正
 
 ### 2026-06-02（セッション後半）
 
