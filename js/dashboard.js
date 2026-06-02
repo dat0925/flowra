@@ -298,7 +298,6 @@ async function renderContent(content, accounts, transactions, year, month, fromC
 
     content.innerHTML = `
       ${summaryHTML}
-      ${budgetHTML}
       <div id="ai-summary-panel" style="
           background:var(--ink);border-radius:16px;
           margin-top:12px;margin-bottom:12px;
@@ -346,6 +345,7 @@ async function renderContent(content, accounts, transactions, year, month, fromC
         <!-- ボタンクリック後の詳細回答 -->
         <div id="ai-answer" style="display:none;padding:0 16px 16px;"></div>
       </div>
+      ${budgetHTML}
       <div class="main-grid">
         <div class="panel">
           <div class="panel-head">
