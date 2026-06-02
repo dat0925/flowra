@@ -298,6 +298,32 @@ async function renderContent(content, accounts, transactions, year, month, fromC
     content.innerHTML = `
       ${summaryHTML}
       ${budgetHTML}
+      <div class="panel" id="ai-summary-panel" style="margin-bottom:0;">
+        <div class="panel-head">
+          <div class="panel-title" style="display:flex;align-items:center;gap:6px;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            AIに聞く
+          </div>
+        </div>
+        <div style="padding:0 14px 14px;display:flex;gap:6px;flex-wrap:wrap;">
+          <button class="btn-ai-q" data-q="monthly"
+            style="font-size:12px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--sage);
+              background:none;color:var(--sage);cursor:pointer;font-weight:500;white-space:nowrap;">
+            今月どう？
+          </button>
+          <button class="btn-ai-q" data-q="compare"
+            style="font-size:12px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border);
+              background:none;color:var(--mid);cursor:pointer;font-weight:500;white-space:nowrap;">
+            先月と比べて
+          </button>
+          <button class="btn-ai-q" data-q="saving"
+            style="font-size:12px;padding:6px 12px;border-radius:20px;border:1.5px solid var(--border);
+              background:none;color:var(--mid);cursor:pointer;font-weight:500;white-space:nowrap;">
+            節約ヒント
+          </button>
+        </div>
+        <div id="ai-answer" style="display:none;padding:0 16px 16px;"></div>
+      </div>
       <div class="main-grid">
         <div class="panel">
           <div class="panel-head">
@@ -327,6 +353,7 @@ async function renderContent(content, accounts, transactions, year, month, fromC
     import('./router.js').then(({ Router }) => Router.navigate('settings'));
   });
   setupBalanceToggle();
+  setupAiSummary(transactions, year, month);
 
   // 記録行タップ → 編集シート
   document.querySelectorAll('.tx-item[data-tx-id]').forEach(el => {
@@ -397,6 +424,119 @@ async function syncInBackground(year, month, hadCache) {
       }
     }
   }
+}
+
+const SUPABASE_URL = 'https://copyzpsyagscqrvkrwjo.supabase.co';
+const SUPABASE_ANON_KEY_AI = (() => {
+  // config.jsのkeyを再利用
+  const m = document.querySelector('script[src*="config"]');
+  return window._supabaseAnonKey || '';
+})();
+
+function setupAiSummary(transactions, year, month) {
+  const btns = document.querySelectorAll('.btn-ai-q');
+  const answerEl = document.getElementById('ai-answer');
+  if (!btns.length || !answerEl) return;
+
+  // タグ別支出集計
+  function getTagBreakdown(txList) {
+    const map = {};
+    txList.filter(t => t.type === 'expense').forEach(tx => {
+      (tx.tags || []).filter(t => t).forEach(tag => {
+        if (!map[tag.id]) map[tag.id] = { name: tag.name, amount: 0 };
+        map[tag.id].amount += tx.amount;
+      });
+    });
+    return Object.values(map);
+  }
+
+  btns.forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const q = btn.dataset.q;
+
+      // ボタンスタイル切り替え
+      btns.forEach(b => {
+        b.style.border = '1.5px solid var(--border)';
+        b.style.color = 'var(--mid)';
+        b.style.background = 'none';
+      });
+      btn.style.border = '1.5px solid var(--sage)';
+      btn.style.color = 'var(--sage)';
+      btn.style.background = 'var(--sage-bg)';
+
+      // ローディング表示
+      answerEl.style.display = 'block';
+      answerEl.innerHTML = `
+        <div style="display:flex;align-items:center;gap:8px;padding:8px 0;color:var(--mid);font-size:13px;">
+          <div style="width:14px;height:14px;border:2px solid var(--sage);border-top-color:transparent;
+            border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
+          考え中…
+        </div>`;
+
+      try {
+        // 先月データ取得
+        const prevM = month === 1 ? 12 : month - 1;
+        const prevY = month === 1 ? year - 1 : year;
+        const prevData = await DB.getTransactions({ year: prevY, month: prevM, pageSize: 1000 });
+        const prevTxs  = prevData.data || [];
+        const prevIncome  = prevTxs.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+        const prevExpense = prevTxs.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+        // 予算データ
+        const monthKey = year + '-' + String(month).padStart(2, '0');
+        const budgetMap = await DB.getBudgets(monthKey);
+        const spendByTag = {};
+        transactions.filter(t => t.type === 'expense').forEach(tx => {
+          (tx.tags || []).filter(t => t).forEach(tag => {
+            spendByTag[tag.id] = (spendByTag[tag.id] || 0) + tx.amount;
+          });
+        });
+        const budgets = Object.entries(budgetMap).map(([tagId, b]) => ({
+          name: b.tag_name || tagId,
+          amount: b.amount,
+          spent: spendByTag[tagId] || 0,
+        }));
+
+        const income  = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
+        const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+
+        // Edge Functionを呼ぶ
+        import('./config.js').then(async ({ supabase }) => {
+          const { data: { session } } = await supabase.auth.getSession();
+          const token = session?.access_token || '';
+
+          const res = await fetch(SUPABASE_URL + '/functions/v1/flowra-ai', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + token,
+              'apikey': token,
+            },
+            body: JSON.stringify({
+              question: q,
+              data: {
+                year, month,
+                income, expense,
+                tagBreakdown: getTagBreakdown(transactions),
+                budgets,
+                prevYear: prevY, prevMonth: prevM,
+                prevIncome, prevExpense,
+                prevTagBreakdown: getTagBreakdown(prevTxs),
+              },
+            }),
+          });
+
+          const json = await res.json();
+          if (json.error) throw new Error(json.error);
+
+          const answerText = json.answer.split('\n').join('<br>');
+          answerEl.innerHTML = '<div style="font-size:13px;line-height:1.75;color:var(--ink);background:var(--sage-bg);border-radius:12px;padding:12px 14px;">' + answerText + '</div>';
+        });
+      } catch (e) {
+        answerEl.innerHTML = `<div style="font-size:12px;color:var(--red);padding:4px 0;">エラー: ${e.message}</div>`;
+      }
+    });
+  });
 }
 
 function setupBalanceToggle() {
