@@ -198,6 +198,41 @@ function initTagDragSort(listEl, tags, onReorder) {
 }
 
 // ── タグ編集ボトムシート ──
+
+// タグカラースウォッチ
+const TAG_COLORS = [
+  '#7A9485', '#4A7C59', '#3B6FBF', '#7B5EA7',
+  '#C4602A', '#B8973E', '#B83232', '#2F5239',
+  '#5C8C72', '#6068A0', '#A05878', '#789050',
+  '#808080', '#A09040', '#9C8050', '#5870A0',
+];
+
+function renderTagColorPicker(containerId, selectedColor, onChange) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = TAG_COLORS.map(c => `
+    <button data-color="${c}" style="
+      width:28px;height:28px;border-radius:50%;background:${c};
+      border:${c === selectedColor ? '3px solid var(--ink)' : '2px solid transparent'};
+      box-shadow:${c === selectedColor ? '0 0 0 2px var(--stone),0 0 0 4px '+c : 'none'};
+      cursor:pointer;outline:none;transition:all 0.15s;flex-shrink:0;
+    "></button>
+  `).join('');
+  container.querySelectorAll('button[data-color]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('button[data-color]').forEach(b => {
+        const c = b.dataset.color;
+        b.style.border = '2px solid transparent';
+        b.style.boxShadow = 'none';
+      });
+      const c = btn.dataset.color;
+      btn.style.border = '3px solid var(--ink)';
+      btn.style.boxShadow = `0 0 0 2px var(--stone),0 0 0 4px ${c}`;
+      onChange(c);
+    });
+  });
+}
+
 function openTagEditSheet(tag, allTags) {
   Sound.playOpen();
 
@@ -231,6 +266,13 @@ function openTagEditSheet(tag, allTags) {
               style="font-size:16px;">
           </div>
         </div>
+        <div class="form-row no-tap" style="border-bottom:none;">
+          <div class="row-body" style="flex-direction:column;align-items:flex-start;gap:10px;">
+            <div class="row-label">カラー</div>
+            <div id="edit-tag-color-picker"
+              style="display:flex;flex-wrap:wrap;gap:8px;padding:4px 0;"></div>
+          </div>
+        </div>
       </div>
       <div id="edit-tag-error" style="display:none;font-size:11.5px;color:var(--red);margin:-8px 0 10px 2px;"></div>
 
@@ -252,6 +294,10 @@ function openTagEditSheet(tag, allTags) {
   sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
   document.getElementById('btn-close-tag-sheet')?.addEventListener('click', closeSheet);
 
+  // カラーピッカー初期化
+  let selectedTagColor = tag.color || '#7A9485';
+  renderTagColorPicker('edit-tag-color-picker', selectedTagColor, c => { selectedTagColor = c; });
+
   // 保存
   document.getElementById('btn-save-tag')?.addEventListener('click', async () => {
     const name     = document.getElementById('edit-tag-name').value.trim();
@@ -270,7 +316,7 @@ function openTagEditSheet(tag, allTags) {
     }
 
     try {
-      await DB.updateTag(tag.id, { name });
+      await DB.updateTag(tag.id, { name, color: selectedTagColor });
       await warmupAddRecord();
       Sound.playTap();
       closeSheet();
