@@ -516,6 +516,169 @@
       color: var(--mid);
     }
 
+    /* ── BUDGET SECTION ── */
+    .budget-section {
+      padding: 100px 24px;
+      background: var(--sage-bg);
+      overflow: hidden;
+    }
+
+    .budget-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 72px;
+      align-items: center;
+    }
+
+    @media (max-width: 720px) {
+      .budget-inner { grid-template-columns: 1fr; gap: 48px; }
+    }
+
+    .budget-copy .section-label { color: var(--sage-dk); }
+
+    .budget-copy .section-title { margin-bottom: 16px; }
+
+    .budget-copy .section-desc { margin-bottom: 32px; }
+
+    .budget-points {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .budget-point {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    .budget-point-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--sage);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* 予算UIモック */
+    .budget-ui {
+      background: var(--white);
+      border-radius: 24px;
+      padding: 24px 20px;
+      box-shadow: 0 20px 60px rgba(28,43,34,0.10);
+    }
+
+    .budget-ui-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .budget-ui-title {
+      font-family: 'Noto Serif JP', serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .budget-ui-month {
+      font-size: 12px;
+      color: var(--mid);
+      background: var(--stone);
+      padding: 4px 10px;
+      border-radius: 100px;
+    }
+
+    .budget-row {
+      margin-bottom: 16px;
+    }
+
+    .budget-row-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 7px;
+    }
+
+    .budget-row-label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--ink);
+    }
+
+    .budget-row-icon {
+      font-size: 14px;
+    }
+
+    .budget-row-amounts {
+      font-size: 12px;
+      color: var(--mid);
+    }
+
+    .budget-row-amounts strong {
+      color: var(--ink);
+      font-weight: 600;
+    }
+
+    .budget-bar-track {
+      width: 100%;
+      height: 8px;
+      background: var(--stone);
+      border-radius: 100px;
+      overflow: hidden;
+    }
+
+    .budget-bar-fill {
+      height: 100%;
+      border-radius: 100px;
+      transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+      width: 0;
+    }
+
+    .budget-bar-fill.safe   { background: var(--sage); }
+    .budget-bar-fill.warn   { background: var(--gold); }
+    .budget-bar-fill.over   { background: #B83232; }
+
+    .budget-row-pct {
+      font-size: 11px;
+      font-weight: 600;
+      margin-top: 4px;
+      text-align: right;
+    }
+    .budget-row-pct.safe { color: var(--sage); }
+    .budget-row-pct.warn { color: var(--gold); }
+    .budget-row-pct.over { color: #B83232; }
+
+    .budget-total-row {
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+      margin-top: 4px;
+    }
+
+    .budget-total-row .budget-row-label {
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    .budget-section-visible .budget-bar-fill {
+      /* アニメーション開始はJSで */
+    }
+
     /* ── HOW ── */
     .how-section {
       background: var(--ink);
@@ -963,6 +1126,11 @@
         <p class="feature-desc">食費・交通・娯楽など、自由にタグをカスタマイズ。支出の傾向がパッとわかります。</p>
       </div>
       <div class="feature-card">
+        <div class="feature-icon">🎯</div>
+        <div class="feature-name">予算管理</div>
+        <p class="feature-desc">タグごとに月予算を設定すると、ホーム画面に進捗バーが表示されます。80%超で黄色、オーバーで赤に変わります。</p>
+      </div>
+      <div class="feature-card">
         <div class="feature-icon">🔍</div>
         <div class="feature-name">全期間検索</div>
         <p class="feature-desc">メモ・タグ名で全期間の記録を瞬時に検索。「あの出費いくらだっけ？」がすぐ解決。</p>
@@ -972,6 +1140,105 @@
         <div class="feature-name">月スワイプ</div>
         <p class="feature-desc">スワイプで月を移動するカルーセル式UI。隣の月の記録をチラ見しながらスムーズに行き来できます。</p>
       </div>
+    </div>
+  </section>
+
+  <!-- BUDGET -->
+  <section class="budget-section" id="budget">
+    <div class="budget-inner">
+
+      <!-- コピー -->
+      <div class="budget-copy">
+        <span class="section-label">Budget</span>
+        <h2 class="section-title">記録して、<br>終わらない。</h2>
+        <p class="section-desc">タグごとに月の予算を設定すると、ホーム画面に進捗バーが表示されます。「今月の食費、あと何円？」が一目でわかります。</p>
+        <div class="budget-points">
+          <div class="budget-point">
+            <div class="budget-point-icon">📊</div>
+            <div>タグ別に予算を設定。毎月の基準値を決めると、支出の感覚が変わります。</div>
+          </div>
+          <div class="budget-point">
+            <div class="budget-point-icon">⚠️</div>
+            <div>80%を超えると黄色、オーバーすると赤に。ひと目で気づける色分け表示。</div>
+          </div>
+          <div class="budget-point">
+            <div class="budget-point-icon">📅</div>
+            <div>月ごとに予算を上書きできます。ボーナス月・旅行月など、イレギュラーにも対応。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- UIモック -->
+      <div class="budget-ui" id="budget-ui-mock">
+        <div class="budget-ui-header">
+          <div class="budget-ui-title">今月の予算</div>
+          <div class="budget-ui-month">2026年6月</div>
+        </div>
+
+        <div class="budget-row">
+          <div class="budget-row-head">
+            <div class="budget-row-label">
+              <span class="budget-row-icon">🍽️</span>食費
+            </div>
+            <div class="budget-row-amounts"><strong>¥38,200</strong> / ¥50,000</div>
+          </div>
+          <div class="budget-bar-track">
+            <div class="budget-bar-fill safe" data-pct="76"></div>
+          </div>
+          <div class="budget-row-pct safe">76%</div>
+        </div>
+
+        <div class="budget-row">
+          <div class="budget-row-head">
+            <div class="budget-row-label">
+              <span class="budget-row-icon">🚃</span>交通費
+            </div>
+            <div class="budget-row-amounts"><strong>¥17,400</strong> / ¥20,000</div>
+          </div>
+          <div class="budget-bar-track">
+            <div class="budget-bar-fill warn" data-pct="87"></div>
+          </div>
+          <div class="budget-row-pct warn">87%</div>
+        </div>
+
+        <div class="budget-row">
+          <div class="budget-row-head">
+            <div class="budget-row-label">
+              <span class="budget-row-icon">🎮</span>娯楽・趣味
+            </div>
+            <div class="budget-row-amounts"><strong>¥23,600</strong> / ¥20,000</div>
+          </div>
+          <div class="budget-bar-track">
+            <div class="budget-bar-fill over" data-pct="100"></div>
+          </div>
+          <div class="budget-row-pct over">118% 超過</div>
+        </div>
+
+        <div class="budget-row">
+          <div class="budget-row-head">
+            <div class="budget-row-label">
+              <span class="budget-row-icon">🛒</span>日用品
+            </div>
+            <div class="budget-row-amounts"><strong>¥8,900</strong> / ¥15,000</div>
+          </div>
+          <div class="budget-bar-track">
+            <div class="budget-bar-fill safe" data-pct="59"></div>
+          </div>
+          <div class="budget-row-pct safe">59%</div>
+        </div>
+
+        <div class="budget-row budget-total-row">
+          <div class="budget-row-head">
+            <div class="budget-row-label">合計</div>
+            <div class="budget-row-amounts"><strong>¥88,100</strong> / ¥105,000</div>
+          </div>
+          <div class="budget-bar-track">
+            <div class="budget-bar-fill safe" data-pct="84"></div>
+          </div>
+          <div class="budget-row-pct safe">84%</div>
+        </div>
+      </div>
+
     </div>
   </section>
 
@@ -1045,6 +1312,7 @@
         <li><div class="check">✓</div>収支の記録・編集（無制限）</li>
         <li><div class="check">✓</div>パートナーとの共有</li>
         <li><div class="check">✓</div>複数口座・タグ管理</li>
+        <li><div class="check">✓</div>タグ別予算管理・進捗バー</li>
         <li><div class="check">✓</div>全期間の検索</li>
         <li><div class="check">✓</div>PWA対応（ホーム画面に追加）</li>
         <li><div class="check">✓</div>広告なし</li>
@@ -1094,6 +1362,24 @@
       el.dataset.delay = i * 120;
       observer.observe(el);
     });
+
+    // 予算バー: スクロールインで幅アニメーション
+    const budgetObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.querySelectorAll('.budget-bar-fill').forEach((bar, i) => {
+            const pct = Math.min(parseInt(bar.dataset.pct, 10), 100);
+            setTimeout(() => {
+              bar.style.width = pct + '%';
+            }, i * 120);
+          });
+          budgetObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.3 });
+
+    const budgetMock = document.getElementById('budget-ui-mock');
+    if (budgetMock) budgetObserver.observe(budgetMock);
   </script>
 </body>
 </html>
