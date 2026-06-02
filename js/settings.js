@@ -236,9 +236,9 @@ async function renderBudgetList(tags) {
             </div>
             <div style="display:flex;align-items:center;gap:6px;">
               <span style="font-size:12px;color:var(--mid);">¥</span>
-              <input type="number" inputmode="numeric"
+              <input type="text" inputmode="numeric"
                 class="text-input budget-input" data-tag-id="${tag.id}"
-                value="${b ? b.amount : ''}"
+                value="${b ? Number(b.amount).toLocaleString() : ''}"
                 placeholder="未設定"
                 style="width:100px;text-align:right;font-size:14px;padding:4px 6px;">
               <button class="btn-budget-month" data-tag-id="${tag.id}"
@@ -261,7 +261,7 @@ async function renderBudgetList(tags) {
     try {
       for (const input of inputs) {
         const tagId = input.dataset.tagId;
-        const amount = parseInt(input.value || '0', 10);
+        const amount = parseInt((input.value || '0').replace(/,/g, ''), 10);
         await DB.upsertBudget(tagId, amount || 0, null);
       }
       showToast('✓ 予算を保存しました');
@@ -269,6 +269,17 @@ async function renderBudgetList(tags) {
     } catch(e) {
       showToast('エラー: ' + e.message);
     }
+  });
+
+  // 予算入力欄：フォーカス時にコンマ除去、blur時にコンマ付き表示
+  wrap.querySelectorAll('.budget-input').forEach(input => {
+    input.addEventListener('focus', () => {
+      input.value = input.value.replace(/,/g, '');
+    });
+    input.addEventListener('blur', () => {
+      const n = parseInt(input.value.replace(/,/g, '') || '0', 10);
+      input.value = n > 0 ? n.toLocaleString() : '';
+    });
   });
 
   // 月別上書きシート
@@ -305,7 +316,7 @@ function openBudgetMonthSheet(tag, defaultBudget) {
               <span style="font-size:14px;">${m.slice(0,4)}年${parseInt(m.slice(5))}月</span>
               <div style="display:flex;align-items:center;gap:6px;">
                 <span style="font-size:12px;color:var(--mid);">¥</span>
-                <input type="number" inputmode="numeric" class="text-input month-budget-input"
+                <input type="text" inputmode="numeric" class="text-input month-budget-input"
                   data-month="${m}" placeholder="デフォルト使用"
                   style="width:110px;text-align:right;font-size:14px;padding:4px 6px;">
               </div>
@@ -335,6 +346,15 @@ function openBudgetMonthSheet(tag, defaultBudget) {
     });
   });
 
+  // 月別入力欄のコンマ整形
+  sheet.querySelectorAll('.month-budget-input').forEach(input => {
+    input.addEventListener('focus', () => { input.value = input.value.replace(/,/g, ''); });
+    input.addEventListener('blur', () => {
+      const n = parseInt(input.value.replace(/,/g, '') || '0', 10);
+      input.value = n > 0 ? n.toLocaleString() : '';
+    });
+  });
+
   sheet.addEventListener('click', e => { if (e.target === sheet) { Sound.playClose(); sheet.remove(); } });
   document.getElementById('btn-close-month-budget')?.addEventListener('click', () => { Sound.playClose(); sheet.remove(); });
 
@@ -343,7 +363,7 @@ function openBudgetMonthSheet(tag, defaultBudget) {
       const inputs = sheet.querySelectorAll('.month-budget-input');
       for (const input of inputs) {
         const m      = input.dataset.month;
-        const amount = parseInt(input.value || '0', 10);
+        const amount = parseInt((input.value || '0').replace(/,/g, ''), 10);
         await DB.upsertBudget(tag.id, amount || 0, m);
       }
       showToast('✓ 月別予算を保存しました');
