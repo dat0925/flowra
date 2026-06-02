@@ -151,8 +151,8 @@ async function renderContent(content, accounts, transactions, year, month, fromC
         : '<span class="s-currency">¥</span><span class="s-number">' + fmt(total) + '</span>');
 
   const summaryHTML = `
-    <div class="summary-row">
-      <div class="s-card total" id="s-card-total" style="cursor:pointer;user-select:none;">
+    <div style="margin-bottom:14px;">
+      <div class="s-card total" id="s-card-total" style="cursor:pointer;user-select:none;margin-bottom:10px;">
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div class="s-card-label">総残高</div>
           <div id="btn-toggle-balance" style="font-size:11px;opacity:0.6;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,0.15);">
@@ -162,17 +162,17 @@ async function renderContent(content, accounts, transactions, year, month, fromC
         <div class="s-amount" id="s-total-amount">${totalDisp}</div>
         <div class="s-sub">全口座合計${fromCache ? ' <span style="font-size:10px;opacity:0.4;">●</span>' : ''}</div>
       </div>
-      <div class="s-card income-card">
-        <div class="s-card-label">今月の収入</div>
-        <div class="s-amount"><span class="s-currency">¥</span><span class="s-number">${fmt(income)}</span></div>
-        <div class="s-sub">&nbsp;</div>
-        <div class="s-accent-line"></div>
-      </div>
-      <div class="s-card expense-card">
-        <div class="s-card-label">今月の支出</div>
-        <div class="s-amount"><span class="s-currency">¥</span><span class="s-number">${fmt(expense)}</span></div>
-        <div class="s-sub">&nbsp;</div>
-        <div class="s-accent-line"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="s-card income-card">
+          <div class="s-card-label">今月の収入</div>
+          <div class="s-amount"><span class="s-currency">¥</span><span class="s-number" style="font-size:24px;">${fmt(income)}</span></div>
+          <div class="s-accent-line"></div>
+        </div>
+        <div class="s-card expense-card">
+          <div class="s-card-label">今月の支出</div>
+          <div class="s-amount"><span class="s-currency">¥</span><span class="s-number" style="font-size:24px;">${fmt(expense)}</span></div>
+          <div class="s-accent-line"></div>
+        </div>
       </div>
     </div>`;
 
