@@ -253,10 +253,33 @@ async function renderBudgetList(tags) {
           </div>
         </div>`;
     }).join('')}
+    <div id="budget-total-row" style="
+      display:flex;justify-content:space-between;align-items:center;
+      padding:10px 0;
+      border-top:1px solid var(--border);
+      margin-top:2px;">
+      <span style="font-size:13px;font-weight:600;color:var(--ink);">合計</span>
+      <span id="budget-total-amount" style="font-size:14px;font-weight:600;color:var(--ink);">¥0</span>
+    </div>
     <button id="btn-save-budgets" class="btn-primary" style="margin-top:8px;">
       <svg viewBox="0 0 24 24" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>
       予算を保存
     </button>`;
+
+  // 合計を計算して表示
+  function updateBudgetTotal() {
+    const inputs = wrap.querySelectorAll('.budget-input');
+    let total = 0;
+    inputs.forEach(input => {
+      const n = parseInt((input.value || '0').replace(/,/g, ''), 10);
+      if (!isNaN(n)) total += n;
+    });
+    const el = document.getElementById('budget-total-amount');
+    if (el) el.textContent = '¥' + total.toLocaleString('ja-JP');
+  }
+
+  // 初期合計を表示
+  updateBudgetTotal();
 
   // 保存
   document.getElementById('btn-save-budgets')?.addEventListener('click', async () => {
@@ -274,7 +297,7 @@ async function renderBudgetList(tags) {
     }
   });
 
-  // 予算入力欄：フォーカス時にコンマ除去、blur時にコンマ付き表示
+  // 予算入力欄：フォーカス時にコンマ除去、blur時にコンマ付き表示、input時に合計更新
   wrap.querySelectorAll('.budget-input').forEach(input => {
     input.addEventListener('focus', () => {
       input.value = input.value.replace(/,/g, '');
@@ -282,7 +305,9 @@ async function renderBudgetList(tags) {
     input.addEventListener('blur', () => {
       const n = parseInt(input.value.replace(/,/g, '') || '0', 10);
       input.value = n > 0 ? n.toLocaleString() : '';
+      updateBudgetTotal();
     });
+    input.addEventListener('input', updateBudgetTotal);
   });
 
   // 月別上書きシート
@@ -298,33 +323,45 @@ async function renderBudgetList(tags) {
 function openBudgetMonthSheet(tag, defaultBudget) {
   Sound.playOpen();
   const now = new Date();
-  // 直近6ヶ月 + 翌月を選択肢に
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  // 翌月 + 当月 + 過去5ヶ月
   const months = [];
-  for (let i = -1; i <= 5; i++) {
+  for (let i = 1; i >= -5; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
     months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
   }
 
+  const defaultAmt = defaultBudget ? Number(defaultBudget.amount).toLocaleString('ja-JP') : null;
+
   const sheet = document.createElement('div');
   sheet.style.cssText = 'position:fixed;inset:0;z-index:700;background:rgba(28,43,34,0.45);display:flex;align-items:flex-end;justify-content:center;';
   sheet.innerHTML = `
-    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:0 16px 36px;">
+    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:0 16px 36px;max-height:80vh;overflow-y:auto;">
       <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 16px;"></div>
       <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;margin-bottom:4px;">月別予算 — ${tag.name}</div>
-      <div style="font-size:12px;color:var(--mid-lt);margin-bottom:16px;">デフォルト: ${defaultBudget ? '¥'+fmt(defaultBudget.amount) : '未設定'}</div>
+      <div style="font-size:12px;color:var(--mid);margin-bottom:4px;line-height:1.6;">
+        特定の月だけ予算を変えたいときに入力します。<br>空欄の月はデフォルト予算（${defaultAmt ? '¥' + defaultAmt : '未設定'}）が使われます。
+      </div>
+      <div style="font-size:11px;color:var(--mid-lt);background:var(--sage-bg);border-radius:8px;padding:8px 10px;margin-bottom:14px;">
+        例）旅行の月だけ食費を多めに設定、ボーナス月に娯楽費を増やすなど
+      </div>
       <div class="form-section" style="margin-bottom:14px;">
-        ${months.map(m => `
+        ${months.map(m => {
+          const isCurrentMonth = m === currentMonthKey;
+          const label = m.slice(0,4) + '年' + parseInt(m.slice(5)) + '月' + (isCurrentMonth ? ' <span style="font-size:10px;color:var(--sage);background:var(--sage-bg);padding:1px 5px;border-radius:4px;margin-left:4px;">今月</span>' : '');
+          return `
           <div class="form-row no-tap" style="padding:8px 0;">
-            <div class="row-body" style="justify-content:space-between;">
-              <span style="font-size:14px;">${m.slice(0,4)}年${parseInt(m.slice(5))}月</span>
+            <div class="row-body" style="justify-content:space-between;align-items:center;">
+              <span style="font-size:14px;">${label}</span>
               <div style="display:flex;align-items:center;gap:6px;">
                 <span style="font-size:12px;color:var(--mid);">¥</span>
                 <input type="text" inputmode="numeric" class="text-input month-budget-input"
-                  data-month="${m}" placeholder="デフォルト使用"
+                  data-month="${m}" placeholder="${defaultAmt ? defaultAmt : '−'}"
                   style="width:110px;text-align:right;font-size:14px;padding:4px 6px;">
               </div>
             </div>
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
       </div>
       <button id="btn-save-month-budget" class="btn-primary" style="margin-bottom:10px;">保存</button>
       <button id="btn-close-month-budget" style="width:100%;padding:12px;background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;">キャンセル</button>
@@ -332,21 +369,16 @@ function openBudgetMonthSheet(tag, defaultBudget) {
 
   document.body.appendChild(sheet);
 
-  // 既存の月別予算を非同期で読み込む
-  DB.getBudgets(null).then(() => {
-    // 月別上書き分を取得
-    const teamId = DB.getTeamId();
-    // 各月の既存値を取得してinputに反映
-    months.forEach(async m => {
-      try {
-        const map = await DB.getBudgets(m);
-        const b   = map[tag.id];
-        if (b && b.month === m) {
-          const input = sheet.querySelector(`input[data-month="${m}"]`);
-          if (input) input.value = b.amount;
-        }
-      } catch(_) {}
-    });
+  // 既存の月別予算を取得してinputに反映
+  months.forEach(async m => {
+    try {
+      const map = await DB.getBudgets(m);
+      const b   = map[tag.id];
+      if (b && b.month === m) {
+        const input = sheet.querySelector('input[data-month="' + m + '"]');
+        if (input) input.value = Number(b.amount).toLocaleString('ja-JP');
+      }
+    } catch(_) {}
   });
 
   // 月別入力欄のコンマ整形
