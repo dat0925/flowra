@@ -127,9 +127,22 @@ function renderShell(transactions, year, month) {
         <button class="filter-tab" data-filter="income">収入</button>
         <button class="filter-tab" data-filter="transfer">振替</button>
       </div>
-      <div class="search-wrap">
-        <svg viewBox="0 0 24 24" class="search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" class="search-input" placeholder="メモ・口座・タグで検索（全期間）" id="records-search">
+      <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+        <div class="search-wrap" style="flex:1;min-width:0;">
+          <svg viewBox="0 0 24 24" class="search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="text" class="search-input" placeholder="メモ・口座・タグで検索" id="records-search">
+          <button id="btn-search-clear" hidden
+            style="background:none;border:none;padding:0 4px;cursor:pointer;color:var(--mid);
+              display:flex;align-items:center;flex-shrink:0;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div id="search-count-badge" hidden
+          style="font-size:12px;font-weight:600;color:var(--sage);background:var(--sage-bg);
+            border-radius:8px;padding:3px 8px;white-space:nowrap;flex-shrink:0;">
+        </div>
       </div>
     </div>
 
@@ -162,16 +175,30 @@ function renderShell(transactions, year, month) {
     requestAnimationFrame(() => renderList());
   });
 
-  document.getElementById('records-search')?.addEventListener('input', e => {
+  const searchInput = document.getElementById('records-search');
+  const clearBtn    = document.getElementById('btn-search-clear');
+
+  searchInput?.addEventListener('input', e => {
     searchQuery = e.target.value;
+    if (clearBtn) clearBtn.hidden = !searchQuery;
+    // 件数バッジは検索中は非表示
+    const badge = document.getElementById('search-count-badge');
+    if (badge) badge.hidden = true;
     clearTimeout(_searchDebounce);
     if (searchQuery.trim()) {
-      // 全期間検索は IndexedDB アクセスを伴うので 300ms デバウンス
       _searchDebounce = setTimeout(() => renderList(), 300);
     } else {
-      // クリア時は即座に当月表示へ戻す
       renderList();
     }
+  });
+
+  clearBtn?.addEventListener('click', () => {
+    if (searchInput) searchInput.value = '';
+    searchQuery = '';
+    clearBtn.hidden = true;
+    const badge = document.getElementById('search-count-badge');
+    if (badge) badge.hidden = true;
+    renderList();
   });
 }
 
@@ -226,10 +253,6 @@ async function renderList() {
     if (summaryEl) {
       summaryEl.innerHTML = `
         <div class="rsb-item">
-          <div class="rsb-label">全期間 ${filtered.length.toLocaleString()}件</div>
-        </div>
-        <div class="rsb-divider"></div>
-        <div class="rsb-item">
           <div class="rsb-label">収入計</div>
           <div class="rsb-amount income">¥${fmt(income)}</div>
         </div>
@@ -238,6 +261,12 @@ async function renderList() {
           <div class="rsb-label">支出計</div>
           <div class="rsb-amount expense">¥${fmt(expense)}</div>
         </div>`;
+      // 件数バッジを検索ボックス横に表示
+      const badge = document.getElementById('search-count-badge');
+      if (badge) {
+        badge.textContent = `${filtered.length.toLocaleString()}件`;
+        badge.hidden = false;
+      }
     }
   }
 
