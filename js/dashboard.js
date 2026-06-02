@@ -163,14 +163,20 @@ async function renderContent(content, accounts, transactions, year, month, fromC
         <div class="s-sub">全口座合計${fromCache ? ' <span style="font-size:10px;opacity:0.4;">●</span>' : ''}</div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div class="s-card income-card">
+        <div class="s-card income-card" style="overflow:hidden;">
           <div class="s-card-label">今月の収入</div>
-          <div class="s-amount"><span class="s-currency">¥</span><span class="s-number" style="font-size:24px;">${fmt(income)}</span></div>
+          <div class="s-amount" style="white-space:nowrap;overflow:hidden;">
+            <span class="s-currency">¥</span>
+            <span class="s-number" style="font-size:30px;">${fmt(income)}</span>
+          </div>
           <div class="s-accent-line"></div>
         </div>
-        <div class="s-card expense-card">
+        <div class="s-card expense-card" style="overflow:hidden;">
           <div class="s-card-label">今月の支出</div>
-          <div class="s-amount"><span class="s-currency">¥</span><span class="s-number" style="font-size:24px;">${fmt(expense)}</span></div>
+          <div class="s-amount" style="white-space:nowrap;overflow:hidden;">
+            <span class="s-currency">¥</span>
+            <span class="s-number" style="font-size:30px;">${fmt(expense)}</span>
+          </div>
           <div class="s-accent-line"></div>
         </div>
       </div>
@@ -299,51 +305,49 @@ async function renderContent(content, accounts, transactions, year, month, fromC
     content.innerHTML = `
       ${summaryHTML}
       <div id="ai-summary-panel" style="
-          background:var(--ink);border-radius:16px;
-          margin-top:12px;margin-bottom:12px;
-          overflow:hidden;">
+          background:var(--sage-bg);border:1.5px solid var(--sage-lt);
+          border-radius:16px;margin-top:10px;margin-bottom:10px;overflow:hidden;">
         <!-- ヘッダー: 自動一言表示エリア -->
-        <div style="padding:16px 18px 0;">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="2">
+        <div style="padding:14px 16px 0;">
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--sage)" stroke-width="2">
               <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
             </svg>
-            <span style="font-size:11px;font-weight:600;color:rgba(255,255,255,0.45);letter-spacing:0.05em;">AI アドバイス</span>
+            <span style="font-size:10px;font-weight:600;color:var(--sage);letter-spacing:0.08em;text-transform:uppercase;">AI アドバイス</span>
           </div>
-          <!-- 自動生成の一言 -->
-          <div id="ai-auto-answer" style="font-size:13px;line-height:1.75;color:rgba(255,255,255,0.9);
-            min-height:42px;margin-bottom:14px;">
-            <div style="display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.4);font-size:12px;">
-              <div style="width:12px;height:12px;border:1.5px solid rgba(255,255,255,0.3);
-                border-top-color:rgba(255,255,255,0.8);border-radius:50%;
+          <div id="ai-auto-answer" style="font-size:13px;line-height:1.75;color:var(--ink);
+            min-height:40px;margin-bottom:12px;">
+            <div style="display:flex;align-items:center;gap:6px;color:var(--mid-lt);font-size:12px;">
+              <div style="width:11px;height:11px;border:1.5px solid var(--sage-lt);
+                border-top-color:var(--sage);border-radius:50%;
                 animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
               分析中…
             </div>
           </div>
         </div>
         <!-- 詳しく聞くボタン群 -->
-        <div style="padding:0 14px 14px;display:flex;gap:6px;flex-wrap:wrap;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px;margin-top:0;">
+        <div style="padding:0 12px 12px;display:flex;gap:6px;flex-wrap:wrap;
+          border-top:1px solid var(--sage-lt);padding-top:10px;">
           <button class="btn-ai-q" data-q="monthly"
             style="font-size:11px;padding:5px 11px;border-radius:20px;
-              border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);
-              color:rgba(255,255,255,0.7);cursor:pointer;font-weight:500;white-space:nowrap;">
+              border:1px solid var(--sage-lt);background:none;
+              color:var(--sage);cursor:pointer;font-weight:500;white-space:nowrap;">
             今月どう？
           </button>
           <button class="btn-ai-q" data-q="compare"
             style="font-size:11px;padding:5px 11px;border-radius:20px;
-              border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);
-              color:rgba(255,255,255,0.7);cursor:pointer;font-weight:500;white-space:nowrap;">
+              border:1px solid var(--border);background:none;
+              color:var(--mid);cursor:pointer;font-weight:500;white-space:nowrap;">
             先月と比べて
           </button>
           <button class="btn-ai-q" data-q="saving"
             style="font-size:11px;padding:5px 11px;border-radius:20px;
-              border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.08);
-              color:rgba(255,255,255,0.7);cursor:pointer;font-weight:500;white-space:nowrap;">
+              border:1px solid var(--border);background:none;
+              color:var(--mid);cursor:pointer;font-weight:500;white-space:nowrap;">
             節約ヒント
           </button>
         </div>
-        <!-- ボタンクリック後の詳細回答 -->
-        <div id="ai-answer" style="display:none;padding:0 16px 16px;"></div>
+        <div id="ai-answer" style="display:none;padding:0 16px 14px;"></div>
       </div>
       ${budgetHTML}
       <div class="main-grid">
@@ -528,17 +532,17 @@ function setupAiSummary(transactions, year, month) {
       const q = btn.dataset.q;
 
       btns.forEach(b => {
-        b.style.border = '1px solid rgba(255,255,255,0.25)';
-        b.style.color  = 'rgba(255,255,255,0.7)';
-        b.style.background = 'rgba(255,255,255,0.08)';
+        b.style.border = '1px solid var(--border)';
+        b.style.color  = 'var(--mid)';
+        b.style.background = 'none';
       });
-      btn.style.border = '1px solid rgba(255,255,255,0.8)';
-      btn.style.color  = '#fff';
-      btn.style.background = 'rgba(255,255,255,0.18)';
+      btn.style.border = '1px solid var(--sage)';
+      btn.style.color  = 'var(--sage)';
+      btn.style.background = 'var(--sage-bg)';
 
       answerEl.style.display = 'block';
-      answerEl.innerHTML = '<div style="display:flex;align-items:center;gap:6px;color:rgba(255,255,255,0.4);font-size:12px;padding:4px 0 8px;">'
-        + '<div style="width:12px;height:12px;border:1.5px solid rgba(255,255,255,0.3);border-top-color:rgba(255,255,255,0.8);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>'
+      answerEl.innerHTML = '<div style="display:flex;align-items:center;gap:6px;color:var(--mid-lt);font-size:12px;padding:4px 0 8px;">'
+        + '<div style="width:11px;height:11px;border:1.5px solid var(--sage-lt);border-top-color:var(--sage);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>'
         + '考え中…</div>';
 
       try {
@@ -571,8 +575,8 @@ function setupAiSummary(transactions, year, month) {
           prevTagBreakdown: getTagBreakdown(prevTxs),
         });
 
-        answerEl.innerHTML = '<div style="font-size:13px;line-height:1.75;color:rgba(255,255,255,0.9);'
-          + 'border-top:1px solid rgba(255,255,255,0.1);padding-top:12px;">'
+        answerEl.innerHTML = '<div style="font-size:13px;line-height:1.75;color:var(--ink);'
+          + 'border-top:1px solid var(--sage-lt);padding-top:10px;">'
           + answer.split('\n').join('<br>') + '</div>';
       } catch (e) {
         answerEl.innerHTML = '<div style="font-size:12px;color:rgba(255,100,100,0.8);padding:4px 0;">エラー: ' + e.message + '</div>';
