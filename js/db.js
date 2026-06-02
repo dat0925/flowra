@@ -678,6 +678,63 @@ export const DB = {
   // フォアグラウンド復帰時に updated_at > 最終同期時刻 のみ取得
   // Realtime を使わないのは Disk IO 問題（Taskra の教訓）を避けるため
 
+  // ── 予算 ────────────────────────────────────────────
+
+  // 予算一覧取得（デフォルト + 指定月の上書き）
+  // month: 'YYYY-MM' または null（全件）
+  async getBudgets(month) {
+    const teamId = await this.getTeamId();
+    let query = supabase
+      .from('budgets')
+      .select('id, tag_id, month, amount')
+      .eq('team_id', teamId);
+    if (month) {
+      // デフォルト（month IS NULL）と指定月の両方を取得
+      query = query.or(`month.is.null,month.eq.${month}`);
+    } else {
+      query = query.is('month', null);
+    }
+    const { data, error } = await query;
+    if (error) throw error;
+    // 指定月の上書きを優先したマップを返す
+    const map = {};
+    (data || []).forEach(b => {
+      if (!map[b.tag_id] || b.month !== null) map[b.tag_id] = b;
+    });
+    return map; // { tag_id: budget }
+  },
+
+  // 予算をUpsert（デフォルト or 月別）
+  async upsertBudget(tagId, amount, month = null) {
+    const teamId = await this.getTeamId();
+    // 既存レコードを検索
+    let query = supabase.from('budgets')
+      .select('id')
+      .eq('team_id', teamId)
+      .eq('tag_id', tagId);
+    if (month) query = query.eq('month', month);
+    else       query = query.is('month', null);
+    const { data: existing } = await query.maybeSingle();
+
+    if (amount === 0 || amount === null) {
+      // 金額0は削除
+      if (existing) {
+        const { error } = await supabase.from('budgets').delete().eq('id', existing.id);
+        if (error) throw error;
+      }
+      return null;
+    }
+
+    const payload = { team_id: teamId, tag_id: tagId, amount, month };
+    let error;
+    if (existing) {
+      ({ error } = await supabase.from('budgets').update({ amount }).eq('id', existing.id));
+    } else {
+      ({ error } = await supabase.from('budgets').insert(payload));
+    }
+    if (error) throw error;
+  },
+
   async getDelta(since) {
     const teamId = await this.getTeamId();
     const { data, error } = await supabase
