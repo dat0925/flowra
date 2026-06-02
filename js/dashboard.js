@@ -11,6 +11,7 @@ import {
   getLastSync, setLastSync
 } from './cache.js';
 import { openEditRecord } from './edit-record.js';
+import { supabase }     from './config.js';
 
 const PAGE_SIZE = 50;
 
@@ -521,38 +522,18 @@ function setupAiSummary(transactions, year, month) {
         const income  = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
         const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
-        // Edge Functionを呼ぶ
-        import('./config.js').then(async ({ supabase }) => {
-          const { data: { session } } = await supabase.auth.getSession();
-          const token = session?.access_token || '';
-
-          const res = await fetch(SUPABASE_URL + '/functions/v1/flowra-ai', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer ' + token,
-              'apikey': token,
-            },
-            body: JSON.stringify({
-              question: q,
-              data: {
-                year, month,
-                income, expense,
-                tagBreakdown: getTagBreakdown(transactions),
-                budgets,
-                prevYear: prevY, prevMonth: prevM,
-                prevIncome, prevExpense,
-                prevTagBreakdown: getTagBreakdown(prevTxs),
-              },
-            }),
-          });
-
-          const json = await res.json();
-          if (json.error) throw new Error(json.error);
-
-          const answerText = json.answer.split('\n').join('<br>');
-          answerEl.innerHTML = '<div style="font-size:13px;line-height:1.75;color:var(--ink);background:var(--sage-bg);border-radius:12px;padding:12px 14px;">' + answerText + '</div>';
+        // Edge Functionを呼ぶ（callAI共通関数を使用）
+        const answer = await callAI(q, {
+          year, month, income, expense,
+          tagBreakdown: getTagBreakdown(transactions),
+          budgets,
+          prevYear: prevY, prevMonth: prevM,
+          prevIncome, prevExpense,
+          prevTagBreakdown: getTagBreakdown(prevTxs),
         });
+        answerEl.innerHTML = '<div style="font-size:13px;line-height:1.75;color:rgba(255,255,255,0.9);'
+          + 'border-top:1px solid rgba(255,255,255,0.1);padding-top:12px;">'
+          + answer.split('\n').join('<br>') + '</div>';
       } catch (e) {
         answerEl.innerHTML = `<div style="font-size:12px;color:var(--red);padding:4px 0;">エラー: ${e.message}</div>`;
       }
