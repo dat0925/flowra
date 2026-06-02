@@ -5,6 +5,7 @@ import { DB }        from './db.js';
 import { Sound }     from './sound.js';
 import { openModal, closeModal, showToast } from './utils.js';
 import { getCachedTransactions } from './cache.js';
+import { resolveTagIcon as _resolveTagIcon } from './tag-icons.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
