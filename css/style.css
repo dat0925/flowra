@@ -1315,22 +1315,80 @@ body.page-records #mobile-month-label {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 28px;
   text-align: left;
 }
 .ob-feature-item {
-  display: flex;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 28px 1fr 20px;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
+  padding: 14px 16px;
   background: var(--white);
-  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
   font-size: 14px;
   color: var(--ink);
   font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.2s, background 0.2s;
+  -webkit-tap-highlight-color: transparent;
 }
-.ob-feature-icon { font-size: 20px; flex-shrink: 0; }
+.ob-feature-item:active {
+  background: var(--sage-bg);
+}
+.ob-feature-item[aria-expanded="true"] {
+  border-color: var(--sage);
+  background: var(--sage-bg);
+}
+.ob-feature-icon {
+  font-size: 18px;
+  grid-column: 1;
+  grid-row: 1;
+  line-height: 1;
+}
+.ob-feature-label {
+  grid-column: 2;
+  grid-row: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.4;
+}
+.ob-feature-chevron {
+  grid-column: 3;
+  grid-row: 1;
+  color: var(--mid-lt);
+  flex-shrink: 0;
+  transition: transform 0.25s ease, color 0.2s;
+}
+.ob-feature-item[aria-expanded="true"] .ob-feature-chevron {
+  transform: rotate(180deg);
+  color: var(--sage);
+}
+.ob-feature-detail {
+  grid-column: 2 / 4;
+  grid-row: 2;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--mid);
+  line-height: 1.7;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease, margin-top 0.25s ease, opacity 0.25s ease;
+  opacity: 0;
+  margin-top: 0;
+}
+.ob-feature-item[aria-expanded="true"] .ob-feature-detail {
+  max-height: 120px;
+  opacity: 1;
+  margin-top: 8px;
+}
 
 /* ボタン */
 .ob-btn-primary { width: 100%; padding: 16px; border-radius: var(--radius); border: none; background: var(--sage); color: #fff; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.15s; margin-bottom: 10px; }

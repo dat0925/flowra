@@ -91,6 +91,19 @@ function showOnboarding(onComplete) {
   // ── Step 1: はじめる ──
   overlay.querySelector('#ob-next-1')?.addEventListener('click', () => goTo(2));
 
+  // ── Step 1: フィーチャーカード展開 ──
+  overlay.addEventListener('click', e => {
+    const card = e.target.closest('.ob-feature-item[data-feature]');
+    if (!card) return;
+    const isOpen = card.getAttribute('aria-expanded') === 'true';
+    // 他を閉じる
+    overlay.querySelectorAll('.ob-feature-item[data-feature]').forEach(c => {
+      c.setAttribute('aria-expanded', 'false');
+    });
+    // 同じカードなら閉じるだけ、別カードなら開く
+    if (!isOpen) card.setAttribute('aria-expanded', 'true');
+  });
+
   // ── Step 2: 口座選択 ──
   overlay.addEventListener('click', e => {
     const chip = e.target.closest('.ob-chip');
@@ -305,18 +318,24 @@ function buildHTML() {
         <h2 class="ob-title">2人のお金を、<br>もっとシンプルに。</h2>
         <p class="ob-desc">夫婦やパートナーと収支を共有して、<br>毎月のお金の流れを一緒に把握できます。</p>
         <div class="ob-feature-list">
-          <div class="ob-feature-item">
+          <button class="ob-feature-item" data-feature="0" aria-expanded="false">
             <span class="ob-feature-icon">📊</span>
-            <span>収支を記録してグラフで見える化</span>
-          </div>
-          <div class="ob-feature-item">
+            <span class="ob-feature-label">収支を記録してグラフで見える化</span>
+            <svg class="ob-feature-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <div class="ob-feature-detail">収入・支出・振替を記録すると、月ごとの収支グラフで傾向が一目でわかります。タグ別の予算管理にも対応しています。</div>
+          </button>
+          <button class="ob-feature-item" data-feature="1" aria-expanded="false">
             <span class="ob-feature-icon">👥</span>
-            <span>パートナーとリアルタイム共有</span>
-          </div>
-          <div class="ob-feature-item">
+            <span class="ob-feature-label">パートナーとリアルタイム共有</span>
+            <svg class="ob-feature-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <div class="ob-feature-detail">招待リンクを送るだけで、すぐに共有スタート。どちらが記録してもリアルタイムで反映されるので「知らなかった」がなくなります。</div>
+          </button>
+          <button class="ob-feature-item" data-feature="2" aria-expanded="false">
             <span class="ob-feature-icon">🏷️</span>
-            <span>タグで支出カテゴリを管理</span>
-          </div>
+            <span class="ob-feature-label">タグで支出カテゴリを管理</span>
+            <svg class="ob-feature-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+            <div class="ob-feature-detail">食費・交通・娯楽など自由にカスタマイズできます。タグごとに月予算も設定でき、使いすぎを色でお知らせします。</div>
+          </button>
         </div>
         <button class="ob-btn-primary" id="ob-next-1">はじめる</button>
         <p class="ob-step-hint">設定まで2〜3分です</p>
