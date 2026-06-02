@@ -72,11 +72,16 @@ export async function renderRecords() {
     _allTx = result.data;
 
     // キャッシュなしで初回の場合 or データ更新があった場合に再描画
-    const needsUpdate = cachedTxs.length === 0 || result.data.length !== cachedTxs.length;
+    // ※ 件数だけでなくIDセットも比較して確実に差分検知
+    const cachedIds = new Set(cachedTxs.map(t => t.id));
+    const freshIds  = result.data.map(t => t.id);
+    const needsUpdate = cachedTxs.length === 0
+      || result.data.length !== cachedTxs.length
+      || freshIds.some(id => !cachedIds.has(id));
     if (needsUpdate) {
       renderShell(result.data, year, month);
     } else {
-      // サマリーバーだけ静かに更新
+      // 差分なし: サマリーバーだけ静かに更新
       updateSummaryBar(summary);
     }
 
