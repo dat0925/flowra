@@ -65,6 +65,12 @@ function buildMetaHTML(tx, members) {
 }
 
 export async function openEditRecord(tx, onSave) {
+  // 楽観的UI中（仮ID）はまだ保存中なので編集不可
+  if (tx.id && String(tx.id).startsWith('optimistic-')) {
+    showToast('保存中です。少し待ってから開いてください');
+    return;
+  }
+
   // 最新の口座・タグを取得
   let accounts = [], tags = [], myRole = 'member', members = [];
   try {
