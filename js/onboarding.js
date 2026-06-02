@@ -404,22 +404,35 @@ function buildHTML() {
       <div class="ob-step" data-step="4">
         <div class="ob-step-num">STEP 3 / 3</div>
         <div class="ob-invite-illust">
-          <svg width="96" height="56" viewBox="0 0 96 56" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- 左のアバター -->
-            <circle cx="18" cy="18" r="11" fill="#EEF5F1" stroke="#4A7C59" stroke-width="1.8"/>
-            <circle cx="18" cy="14" r="4" fill="#4A7C59"/>
-            <path d="M9 28c0-5 4-8 9-8s9 3 9 8" stroke="#4A7C59" stroke-width="1.8" stroke-linecap="round"/>
-            <!-- 右のアバター -->
-            <circle cx="78" cy="18" r="11" fill="#EEF5F1" stroke="#6FA882" stroke-width="1.8"/>
-            <circle cx="78" cy="14" r="4" fill="#6FA882"/>
-            <path d="M69 28c0-5 4-8 9-8s9 3 9 8" stroke="#6FA882" stroke-width="1.8" stroke-linecap="round"/>
-            <!-- 中央の接続矢印 -->
-            <line x1="33" y1="18" x2="63" y2="18" stroke="#B0C4BB" stroke-width="1.5" stroke-dasharray="3 3"/>
-            <circle cx="48" cy="18" r="6" fill="#4A7C59"/>
-            <path d="M45 18h6M51 15l3 3-3 3" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-            <!-- ラベル -->
-            <text x="18" y="48" text-anchor="middle" font-family="'Noto Sans JP',sans-serif" font-size="9" fill="#7A9485">あなた</text>
-            <text x="78" y="48" text-anchor="middle" font-family="'Noto Sans JP',sans-serif" font-size="9" fill="#7A9485">パートナー</text>
+          <svg width="140" height="140" viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- 背景円 -->
+            <circle cx="70" cy="70" r="66" fill="#EEF5F1"/>
+
+            <!-- 輝線（上部） -->
+            <line x1="70" y1="18" x2="70" y2="10" stroke="#4A7C59" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="57" y1="21" x2="53" y2="14" stroke="#4A7C59" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="83" y1="21" x2="87" y2="14" stroke="#4A7C59" stroke-width="2.5" stroke-linecap="round"/>
+
+            <!-- 左の人物 -->
+            <circle cx="32" cy="52" r="11" stroke="#1C2B22" stroke-width="3" fill="none"/>
+            <path d="M10 88c0-12 10-20 22-20s22 8 22 20" stroke="#1C2B22" stroke-width="3" stroke-linecap="round" fill="none"/>
+
+            <!-- 右の人物 -->
+            <circle cx="108" cy="52" r="11" stroke="#1C2B22" stroke-width="3" fill="none"/>
+            <path d="M86 88c0-12 10-20 22-20s22 8 22 20" stroke="#1C2B22" stroke-width="3" stroke-linecap="round" fill="none"/>
+
+            <!-- リンクアイコン（中央・傾き） -->
+            <g transform="translate(70,72) rotate(-30)">
+              <rect x="-22" y="-13" width="44" height="26" rx="13" fill="#4A7C59"/>
+              <!-- 左リング -->
+              <circle cx="-8" cy="0" r="7" stroke="white" stroke-width="2.8" fill="none"/>
+              <!-- 右リング -->
+              <circle cx="8" cy="0" r="7" stroke="white" stroke-width="2.8" fill="none"/>
+              <!-- 中央の繋ぎ -->
+              <rect x="-4" y="-4" width="8" height="8" fill="#4A7C59"/>
+              <line x1="-4" y1="-3.5" x2="4" y2="-3.5" stroke="white" stroke-width="1.2"/>
+              <line x1="-4" y1="3.5" x2="4" y2="3.5" stroke="white" stroke-width="1.2"/>
+            </g>
           </svg>
         </div>
         <h2 class="ob-title">パートナーを<br>招待しましょう</h2>
