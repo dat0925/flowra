@@ -80,7 +80,7 @@ export async function openEditRecord(tx, onSave) {
   const isViewer = myRole === 'viewer';
 
   // sort_orderで並べて主タグが先頭になるようにする
-  const txTags = (tx.tags || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  const txTags = (tx.tags || []).filter(t => t).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   let state = {
     type:         tx.type,
     amount:       String(tx.amount),
