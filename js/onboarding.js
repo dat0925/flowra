@@ -11,12 +11,18 @@ async function ensureTeam(maxWaitMs = 10000) {
   let elapsed = 0;
   while (elapsed < maxWaitMs) {
     try {
+      // セッション切れ対策: 毎回セッションを確認してから取得
+      const { data: { session } } = await import('./config.js').then(m => m.supabase.auth.getSession());
+      if (!session) throw new Error('セッションが切れています。再ログインしてください。');
       const teamId = await DB.getOwnTeamId();
       if (teamId) {
         DB.setActiveTeamId(teamId);
         return teamId;
       }
-    } catch (_) {}
+    } catch (e) {
+      // JWTエラーはリトライせず即throw
+      if (e.message && (e.message.includes('JWT') || e.message.includes('セッション'))) throw e;
+    }
     await new Promise(r => setTimeout(r, interval));
     elapsed += interval;
   }
@@ -130,18 +136,31 @@ function showOnboarding(onComplete) {
     try {
       await ensureTeam();
       const toCreate = [...selected].map(idx => ACCOUNT_PRESETS[parseInt(idx)]);
-      createdAccounts = await Promise.all(
-        toCreate.map((p, i) =>
-          DB.createAccount({ name: p.name, type: p.type, icon: p.icon, color: p.color, balance: 0, sort_order: i })
-        )
-      );
+      // Promise.all の並列実行によるRLS競合を避けるため直列で実行
+      createdAccounts = [];
+      for (let i = 0; i < toCreate.length; i++) {
+        const p = toCreate[i];
+        btn.textContent = '保存中… ' + (i + 1) + ' / ' + toCreate.length;
+        const account = await DB.createAccount({
+          name: p.name, type: p.type, icon: p.icon, color: p.color,
+          balance: 0, sort_order: i
+        });
+        createdAccounts.push(account);
+      }
       // Step3: 口座セレクトを動的に埋める
       _populateAccountSelect(overlay, createdAccounts);
       goTo(3);
     } catch (e) {
       btn.disabled = false;
       btn.textContent = selected.size + '件で次へ';
-      alert('保存に失敗しました。画面を再読み込みしてお試しください。');
+      console.error('[onboarding] createAccount error:', e);
+      const msg = e.message || '';
+      const isAuth = msg.includes('JWT') || msg.includes('auth') || msg.includes('session');
+      if (isAuth) {
+        alert('ログインセッションが切れました。ページを再読み込みしてもう一度お試しください。');
+      } else {
+        alert('保存に失敗しました。もう一度タップしてお試しください。');
+      }
     }
   });
 
