@@ -1380,7 +1380,7 @@ body.page-records #mobile-month-label {
 .ob-shake { animation: ob-shake 0.4s ease; border-color: var(--red) !important; }
 
 /* 招待ステップ（Step4） */
-.ob-invite-illust { font-size: 52px; margin-bottom: 16px; }
+.ob-invite-illust { margin-bottom: 20px; line-height: 0; }
 .ob-invite-url-box {
   width: 100%;
   background: var(--white);
