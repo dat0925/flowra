@@ -137,6 +137,22 @@ function renderShell(transactions, year, month) {
 
   renderList();
 
+  // ── イベントデリゲーション（1回だけ登録・_allTxを都度参照） ──
+  // 個別登録はrenderListのたびに重複するためここで一元管理
+  const listElDelegate = document.getElementById('records-list');
+  listElDelegate?.addEventListener('click', e => {
+    const item = e.target.closest('.tx-item[data-tx-id]');
+    if (!item) return;
+    const tx = _allTx.find(t => t.id === item.dataset.txId);
+    if (tx) openEditRecord(tx, () => {
+      import('./router.js').then(({ MonthState: ms }) => {
+        DB.getTransactions({ year: ms.year, month: ms.month, pageSize: 500 })
+          .then(r => { _allTx = r.data; renderList(); })
+          .catch(() => {});
+      });
+    });
+  });
+
   document.getElementById('filter-tabs')?.addEventListener('click', e => {
     const btn = e.target.closest('.filter-tab');
     if (!btn) return;
@@ -275,19 +291,7 @@ async function renderList() {
       `).join('')}
     </div>`;
 
-  // ── 記録行タップ → 編集シート ───────────
-  listEl.querySelectorAll('.tx-item[data-tx-id]').forEach(el => {
-    el.addEventListener('click', () => {
-      const tx = filtered.find(t => t.id === el.dataset.txId);
-      if (tx) openEditRecord(tx, () => {
-        import('./router.js').then(({ MonthState: ms }) => {
-          DB.getTransactions({ year: ms.year, month: ms.month, pageSize: 500 })
-            .then(r => { _allTx = r.data; renderList(); })
-            .catch(() => {});
-        });
-      });
-    });
-  });
+  // クリックはrenderShellのイベントデリゲーションで処理
 }
 
 // 保存後に_allTxに追加してリストを差し込む（再描画なし）
