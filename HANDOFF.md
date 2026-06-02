@@ -48,6 +48,7 @@ flowra/
     ├── accounts.js     # 口座管理
     ├── settings.js     # 設定画面
     ├── import-notion.js # Notionインポート
+    ├── tag-icons.js    # タグアイコン定義（ICON_REGISTRY 20種・resolveTagIcon）
     ├── onboarding.js   # 初回オンボーディング
     ├── sound.js        # 操作音
     ├── utils.js        # 共通ユーティリティ（openModal/closeModal等）
@@ -93,6 +94,8 @@ flowra/
 ### `tags`
 カテゴリタグ
 - `id`, `team_id`, `name`, `color`, `icon`, `sort_order`
+- `icon`: アイコンキー文字列（`food`, `car`, `medical` など `TAG_ICON_REGISTRY` のキー）。NULLの場合はキーワード自動推定にフォールバック
+- ⚠️ SQL実行済み: `ALTER TABLE tags ADD COLUMN icon text;`
 
 ### `comments`
 記録へのコメント
@@ -355,6 +358,7 @@ Notion API  (100件/リクエスト)
 | `getBudgets(month)` | 予算取得（デフォルト＋月別マージ済み `{tag_id: budget}` マップ） |
 | `upsertBudget(tagId, amount, month)` | 予算保存（amount=0で削除、month=nullでデフォルト） |
 | `getTransactionCountForAccount(id)` | 口座の取引件数（非公開切り替え可否判定用） |
+| `searchTransactions(keyword, type)` | Supabase直接キーワード検索（memo/タグ名/口座名OR・最大500件） |
 
 ---
 
@@ -389,6 +393,17 @@ git log --oneline
 git show <hash>:path/to/file.css
 ```
 
+**テンプレートリテラルのネスト（絶対禁止）:**
+```js
+// NG: ブラウザによっては動作しない
+html = `<div>${condition ? `<span>${val}</span>` : `<span>none</span>`}</div>`
+
+// OK: 変数に切り出してから挿入
+const inner = condition ? '<span>' + val + '</span>' : '<span>none</span>';
+html = `<div>${inner}</div>`;
+```
+pushする前に必ず `node --input-type=module < file.js` で構文チェックすること。
+
 ---
 
 ## SupabaseのRLS「静かな失敗」パターン
@@ -420,6 +435,9 @@ git show <hash>:path/to/file.css
 - 口座の非公開フラグ（is_private）実装（2026-06-02）
 - 予算管理機能（設定画面・ホーム進捗バー・月別上書き）（2026-06-02）
 - 記録検索のクリアボタン・件数バッジ（2026-06-02）
+- タグアイコン手動設定機能（設定画面・20種類ピッカー・タグ一覧にアイコン表示）（2026-06-02）
+- 予算入力コンマ表示（フォーカスで除去・blur時に再フォーマット）（2026-06-02）
+- 予算ホーム画面に%表示・2タグ以上で総合計行（2026-06-02）
 
 ### 🟢 次フェーズ候補
 
@@ -448,6 +466,34 @@ git show <hash>:path/to/file.css
 ---
 
 ## 変更履歴
+
+### 2026-06-02（タグアイコン・予算UI改善）
+
+- **feat**: タグアイコン手動設定機能（`settings.js` / `add-record.js` / `tag-icons.js`）
+  - 新規ファイル `js/tag-icons.js`: `ICON_REGISTRY`（20種）と `resolveTagIcon(tag)` を定義
+  - `settings.js`: タグ編集シートにアイコングリッド（5列×4行）を追加。選択中アイコンは緑ハイライト。「自動推定に戻す」ボタンでリセット
+  - `settings.js`: タグ一覧にアイコン/色ドットを表示（`TAG_ICON_REGISTRY` をモジュール内に直接定義）
+  - `add-record.js`: `tag.icon` キーが設定済みならそちらを優先、未設定はキーワード自動推定にフォールバック
+  - 保存時に `DB.updateTag(id, { name, color, icon })` でアイコンキーも更新
+  - ⚠️ SQL実行済み: `ALTER TABLE tags ADD COLUMN icon text;`
+  - デフォルトアイコンの違和感5箇所を修正: 食費→フォーク＆ナイフ、通信費→電話ハンドセット、保険→十字、税金→ビル、交際費→人々
+
+- **feat**: 予算入力のコンマ表示（`settings.js`）
+  - `type="text"` に変更して `toLocaleString()` でコンマ付き表示
+  - フォーカス時にコンマ除去、blur時に再フォーマット
+  - 月別シートも同様に対応
+  - 保存時は `replace(/,/g, '')` でコンマ除去してから `parseInt`
+
+- **feat**: 予算ホーム画面の改善（`dashboard.js`）
+  - 各バー右端に `%` テキストを追加（色分け: 80%以上→黄、超過→赤）
+  - 2タグ以上のとき総合計バー（予算合計・実績合計・%）を下部に表示
+  - `totalBudget` / `totalSpent` を集計して表示
+
+- **fix**: 構文エラーによる起動不能バグを修正（`settings.js`）
+  - 原因: テンプレートリテラル内でのネスト（`\`...\${...\`...\`}...\``）がブラウザで動作しない
+  - 修正: テンプレートリテラルを文字列連結方式に変更
+  - 教訓: **テンプレートリテラルのネストは禁止**。必ず変数に切り出してから挿入すること
+  - 教訓: **pushする前に `node --input-type=module < file.js` で構文チェック必須**
 
 ### 2026-06-02（セッション最終）
 
