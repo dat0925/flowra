@@ -404,32 +404,13 @@ function buildHTML() {
       <div class="ob-step" data-step="4">
         <div class="ob-step-num">STEP 3 / 3</div>
         <div class="ob-invite-illust">
-          <svg width="160" height="120" viewBox="0 0 160 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <!-- 背景円（中央・少し上） -->
-            <circle cx="80" cy="56" r="44" fill="#EEF5F1"/>
-
-            <!-- 輝線（上） -->
-            <line x1="80" y1="8"  x2="80" y2="2"  stroke="#4A7C59" stroke-width="2.2" stroke-linecap="round"/>
-            <line x1="66" y1="11" x2="63" y2="5"  stroke="#4A7C59" stroke-width="2.2" stroke-linecap="round"/>
-            <line x1="94" y1="11" x2="97" y2="5"  stroke="#4A7C59" stroke-width="2.2" stroke-linecap="round"/>
-
-            <!-- 左の人物（円の外左） -->
-            <circle cx="22" cy="44" r="10" stroke="#1C2B22" stroke-width="2.5" fill="none"/>
-            <path d="M4 80c0-10 8-17 18-17s18 7 18 17" stroke="#1C2B22" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-
-            <!-- 右の人物（円の外右） -->
-            <circle cx="138" cy="44" r="10" stroke="#1C2B22" stroke-width="2.5" fill="none"/>
-            <path d="M120 80c0-10 8-17 18-17s18 7 18 17" stroke="#1C2B22" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-
-            <!-- 中央リンクアイコン（背景円の上） -->
-            <g transform="translate(80,58) rotate(-25)">
-              <rect x="-20" y="-11" width="40" height="22" rx="11" fill="#4A7C59"/>
-              <circle cx="-7" cy="0" r="5.5" stroke="white" stroke-width="2.2" fill="none"/>
-              <circle cx="7"  cy="0" r="5.5" stroke="white" stroke-width="2.2" fill="none"/>
-              <rect x="-3.5" y="-3.5" width="7" height="7" fill="#4A7C59"/>
-              <line x1="-3.5" y1="-3" x2="3.5" y2="-3" stroke="white" stroke-width="1"/>
-              <line x1="-3.5" y1="3"  x2="3.5" y2="3"  stroke="white" stroke-width="1"/>
-            </g>
+          <svg width="96" height="64" viewBox="0 0 96 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <!-- 左の人物 -->
+            <circle cx="28" cy="18" r="10" fill="#4A7C59"/>
+            <path d="M8 54c0-11 9-18 20-18s20 7 20 18" fill="#4A7C59"/>
+            <!-- 右の人物 -->
+            <circle cx="68" cy="18" r="10" fill="#6FA882"/>
+            <path d="M48 54c0-11 9-18 20-18s20 7 20 18" fill="#6FA882"/>
           </svg>
         </div>
         <h2 class="ob-title">パートナーを<br>招待しましょう</h2>
