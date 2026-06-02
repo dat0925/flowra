@@ -299,7 +299,8 @@ async function renderContent(content, accounts, transactions, year, month, fromC
       ${summaryHTML}
       ${budgetHTML}
       <div id="ai-summary-panel" style="
-          background:var(--ink);border-radius:16px;margin-bottom:0;
+          background:var(--ink);border-radius:16px;
+          margin-top:12px;margin-bottom:12px;
           overflow:hidden;">
         <!-- ヘッダー: 自動一言表示エリア -->
         <div style="padding:16px 18px 0;">
