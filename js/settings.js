@@ -78,13 +78,21 @@ function renderTagList(tags) {
         </svg>
       </div>
       <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
-        <div style="width:10px;height:10px;border-radius:50%;background:${t.color || 'var(--sage)'};flex-shrink:0;"></div>
+        ${ico
+        ? `<div style="width:28px;height:28px;border-radius:8px;background:${ico.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="${ico.stroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${ico.path}"/></svg>
+           </div>`
+        : `<div style="width:28px;height:28px;border-radius:8px;background:${t.color || 'var(--sage)'}22;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+             <div style="width:10px;height:10px;border-radius:50%;background:${t.color || 'var(--sage)'};"></div>
+           </div>`
+      }
         <span style="font-size:14px;font-weight:500;">${t.name}</span>
       </div>
       <svg viewBox="0 0 24 24" width="14" height="14" style="color:var(--mid-lt);flex-shrink:0;cursor:pointer;" class="tag-edit-chevron">
         <polyline points="9 18 15 12 9 6"/>
       </svg>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   // シェブロンタップ → 編集シート
   wrap.querySelectorAll('.tag-item').forEach(row => {
@@ -375,6 +383,37 @@ function openBudgetMonthSheet(tag, defaultBudget) {
   });
 }
 
+
+// ── タグアイコン定義（settings.js内完結） ────────────────
+const TAG_ICON_REGISTRY = {
+  food:       { label:'食費',     bg:'#E8F2ED', stroke:'#5C8C72', path:'M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z' },
+  dining:     { label:'外食',     bg:'#E8F5EE', stroke:'#4A8C6A', path:'M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z' },
+  daily:      { label:'日用品',   bg:'#EEF0F2', stroke:'#6A7A8A', path:'M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96C5 16.1 6.9 18 9 18h12v-2H9.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63H19c.75 0 1.41-.41 1.75-1.03l3.58-6.49A1 1 0 0023.43 5H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z' },
+  home:       { label:'住居',     bg:'#F0EDE8', stroke:'#8C7A5C', path:'M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z' },
+  utility:    { label:'光熱水道', bg:'#F2EEE0', stroke:'#9C8040', path:'M17 8C8 10 5.9 16.17 3.82 19.5c1.17.74 2.63 1 4.18.62C9 22.57 11.26 24 14 24c4.97 0 9-5.46 9-10 0-2.48-1.28-4.83-2-6h-4z' },
+  phone:      { label:'通信費',   bg:'#ECEEF8', stroke:'#6068A0', path:'M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z' },
+  subscription:{ label:'サブスク',bg:'#EEE8F5', stroke:'#7A60A0', path:'M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-9l6 4.5-6 4.5z' },
+  bus:        { label:'交通費',   bg:'#E8F5F0', stroke:'#508C78', path:'M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10zm3.5 1c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-6H6V6h12v5z' },
+  car:        { label:'車',       bg:'#EEF2E0', stroke:'#789050', path:'M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z' },
+  medical:    { label:'医療',     bg:'#F5E8E8', stroke:'#A05858', path:'M19 3H5c-1.1 0-1.99.9-1.99 2L3 19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 11h-4v4h-4v-4H6v-4h4V6h4v4h4v4z' },
+  insurance:  { label:'保険',     bg:'#F5F0E8', stroke:'#9C8050', path:'M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z' },
+  education:  { label:'教育',     bg:'#E8EEF8', stroke:'#5870A0', path:'M12 3L1 9l4 2.18V17h2v-4.82L9 13.4V17c0 1.1 1.34 2 3 2s3-.9 3-2v-3.6l5-2.22V17h2V9L12 3z' },
+  hobby:      { label:'娯楽趣味', bg:'#EDE8F8', stroke:'#7058A8', path:'M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9zm0 16c-3.86 0-7-3.14-7-7s3.14-7 7-7 7 3.14 7 7-3.14 7-7 7zm1-11h-2v3H8v2h3v3h2v-3h3v-2h-3z' },
+  fashion:    { label:'服・美容', bg:'#F8E8F0', stroke:'#A05878', path:'M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z' },
+  salary:     { label:'給与',     bg:'#E8F5ED', stroke:'#4A8C6A', path:'M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z' },
+  baby:       { label:'子育て',   bg:'#FFF0E8', stroke:'#C07840', path:'M12 2c1.1 0 2 .9 2 2s-.9 2-2 2-2-.9-2-2 .9-2 2-2zm9 7h-6v13h-2v-6h-2v6H9V9H3V7h18v2z' },
+  tax:        { label:'税金',     bg:'#EEE8F0', stroke:'#806890', path:'M20 6h-2.18c.07-.44.18-.88.18-1.36C18 2.51 15.5 0 12 0S6 2.51 6 4.64c0 .48.11.92.18 1.36H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2z' },
+  travel:     { label:'旅行',     bg:'#E8F0F8', stroke:'#4870A0', path:'M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z' },
+  gift:       { label:'交際費',   bg:'#F8EEF0', stroke:'#A06878', path:'M20 6h-2.18c.07-.44.18-.88.18-1.36C18 2.51 15.5 0 12 0S6 2.51 6 4.64c0 .48.11.92.18 1.36H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2z' },
+  pocket:     { label:'小遣い',   bg:'#F5F0E0', stroke:'#A09040', path:'M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z' },
+  other:      { label:'その他',   bg:'#EEF0EE', stroke:'#6A8A6A', path:'M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z' },
+};
+
+function getTagIcon(tag) {
+  if (tag && tag.icon && TAG_ICON_REGISTRY[tag.icon]) return TAG_ICON_REGISTRY[tag.icon];
+  return null;
+}
+
 // タグカラースウォッチ
 const TAG_COLORS = [
   '#7A9485', '#4A7C59', '#3B6FBF', '#7B5EA7',
@@ -486,7 +525,7 @@ function openTagEditSheet(tag, allTags) {
   let selectedTagIcon = tag.icon || null;
   const iconPickerEl = document.getElementById('edit-tag-icon-picker');
   if (iconPickerEl) {
-    iconPickerEl.innerHTML = Object.entries(ICON_REGISTRY).map(([key, ico]) => `
+    iconPickerEl.innerHTML = Object.entries(TAG_ICON_REGISTRY).map(([key, ico]) => `
       <button data-icon-key="${key}" title="${ico.label}"
         style="display:flex;flex-direction:column;align-items:center;gap:4px;
           padding:8px 4px;border-radius:12px;border:2px solid ${key === selectedTagIcon ? 'var(--sage)' : 'transparent'};
@@ -504,7 +543,7 @@ function openTagEditSheet(tag, allTags) {
         selectedTagIcon = btn.dataset.iconKey;
         iconPickerEl.querySelectorAll('button[data-icon-key]').forEach(b => {
           const k = b.dataset.iconKey;
-          const ico = ICON_REGISTRY[k];
+          const ico = TAG_ICON_REGISTRY[k];
           b.style.border = k === selectedTagIcon ? '2px solid var(--sage)' : '2px solid transparent';
           b.style.background = k === selectedTagIcon ? 'var(--sage-bg)' : ico.bg;
         });
@@ -516,7 +555,7 @@ function openTagEditSheet(tag, allTags) {
     selectedTagIcon = null;
     iconPickerEl?.querySelectorAll('button[data-icon-key]').forEach(b => {
       b.style.border = '2px solid transparent';
-      b.style.background = ICON_REGISTRY[b.dataset.iconKey]?.bg || 'var(--mist)';
+      b.style.background = TAG_ICON_REGISTRY[b.dataset.iconKey]?.bg || 'var(--mist)';
     });
   });
 
