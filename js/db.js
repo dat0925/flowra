@@ -259,7 +259,7 @@ export const DB = {
 
     const rows = (data || []).map(tx => ({
       ...tx,
-      tags: (tx.transaction_tags || []).map(tt => tt.tag)
+      tags: (tx.transaction_tags || []).map(tt => tt.tag).filter(t => t)
     }));
 
     return {
