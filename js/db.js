@@ -128,13 +128,26 @@ export const DB = {
 
   async createAccount(payload) {
     const teamId = await this.getTeamId();
+    const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await supabase
       .from('accounts')
-      .insert({ ...payload, team_id: teamId })
+      .insert({ ...payload, team_id: teamId, created_by: user.id })
       .select()
       .single();
     if (error) throw error;
     return data;
+  },
+
+  // 口座に紐づく取引件数を取得（非公開切り替え可否の判定用）
+  async getTransactionCountForAccount(accountId) {
+    const teamId = await this.getTeamId();
+    const { count, error } = await supabase
+      .from('transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('team_id', teamId)
+      .or(`account_id.eq.${accountId},to_account_id.eq.${accountId}`);
+    if (error) throw error;
+    return count || 0;
   },
 
   async updateAccount(id, payload) {
