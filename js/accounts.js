@@ -161,10 +161,30 @@ async function renderAccountsContent(content, accounts) {
                 </div>
               </div>
             </div>
-            <div class="form-row no-tap" style="border-bottom:none;">
+            <div class="form-row no-tap">
               <div class="row-body">
                 <div class="row-label" style="margin-bottom:10px;">カラー</div>
                 <div id="new-color-picker" class="color-picker"></div>
+              </div>
+            </div>
+            <div class="form-row no-tap" style="border-bottom:none;">
+              <div class="row-body" style="justify-content:space-between;">
+                <div>
+                  <div class="row-label">非公開</div>
+                  <div style="font-size:11px;color:var(--mid-lt);margin-top:2px;">自分だけが見られる口座</div>
+                </div>
+                <label style="position:relative;display:inline-block;width:44px;height:26px;flex-shrink:0;">
+                  <input type="checkbox" id="new-acct-private" style="opacity:0;width:0;height:0;">
+                  <span id="new-acct-private-track" style="
+                    position:absolute;inset:0;border-radius:13px;
+                    background:var(--border);transition:background 0.2s;cursor:pointer;
+                  "></span>
+                  <span id="new-acct-private-thumb" style="
+                    position:absolute;left:3px;top:3px;width:20px;height:20px;
+                    border-radius:50%;background:#fff;transition:transform 0.2s;
+                    box-shadow:0 1px 3px rgba(0,0,0,0.2);pointer-events:none;
+                  "></span>
+                </label>
               </div>
             </div>
           </div>
@@ -178,6 +198,20 @@ async function renderAccountsContent(content, accounts) {
     // カラーピッカー初期化（追加フォーム）
     let selectedColor = 'stone';
     renderColorPicker('new-color-picker', selectedColor, id => { selectedColor = id; });
+
+    // 非公開トグル
+    const newPrivateChk   = document.getElementById('new-acct-private');
+    const newPrivateTrack = document.getElementById('new-acct-private-track');
+    const newPrivateThumb = document.getElementById('new-acct-private-thumb');
+    function updateNewPrivateToggle() {
+      const on = newPrivateChk?.checked;
+      if (newPrivateTrack) newPrivateTrack.style.background = on ? 'var(--sage)' : 'var(--border)';
+      if (newPrivateThumb) newPrivateThumb.style.transform  = on ? 'translateX(18px)' : 'translateX(0)';
+    }
+    newPrivateChk?.addEventListener('change', updateNewPrivateToggle);
+    newPrivateTrack?.addEventListener('click', () => {
+      if (newPrivateChk) { newPrivateChk.checked = !newPrivateChk.checked; updateNewPrivateToggle(); }
+    });
 
     // 残高入力：先頭ゼロを除去（新規作成）
     document.getElementById('new-acct-balance')?.addEventListener('input', e => {
@@ -199,7 +233,8 @@ async function renderAccountsContent(content, accounts) {
       const balance = type === 'credit' ? -Math.abs(rawBalance) : rawBalance;
       if (!name) { showToast('口座名を入力してください'); return; }
       try {
-        await DB.createAccount({ name, type, balance, color: selectedColor });
+        const isPrivate = document.getElementById('new-acct-private')?.checked || false;
+        await DB.createAccount({ name, type, balance, color: selectedColor, is_private: isPrivate });
         showToast('✓ 口座を追加しました');
         renderAccounts();
       } catch (e) { showToast('エラー: ' + e.message); }
@@ -443,10 +478,33 @@ function openEditModal(acct) {
             </div>
           </div>
         </div>
-        <div class="form-row no-tap" style="border-bottom:none;">
+        <div class="form-row no-tap">
           <div class="row-body">
             <div class="row-label" style="margin-bottom:10px;">カラー</div>
             <div id="edit-color-picker" class="color-picker"></div>
+          </div>
+        </div>
+        <div class="form-row no-tap" style="border-bottom:none;">
+          <div class="row-body" style="justify-content:space-between;">
+            <div>
+              <div class="row-label" id="edit-private-label">非公開</div>
+              <div id="edit-private-desc" style="font-size:11px;color:var(--mid-lt);margin-top:2px;">自分だけが見られる口座</div>
+            </div>
+            <label style="position:relative;display:inline-block;width:44px;height:26px;flex-shrink:0;">
+              <input type="checkbox" id="edit-acct-private" ${acct.is_private ? 'checked' : ''}
+                style="opacity:0;width:0;height:0;">
+              <span id="edit-acct-private-track" style="
+                position:absolute;inset:0;border-radius:13px;
+                background:${acct.is_private ? 'var(--sage)' : 'var(--border)'};
+                transition:background 0.2s;cursor:pointer;
+              "></span>
+              <span id="edit-acct-private-thumb" style="
+                position:absolute;left:3px;top:3px;width:20px;height:20px;
+                border-radius:50%;background:#fff;transition:transform 0.2s;
+                box-shadow:0 1px 3px rgba(0,0,0,0.2);pointer-events:none;
+                transform:${acct.is_private ? 'translateX(18px)' : 'translateX(0)'};
+              "></span>
+            </label>
           </div>
         </div>
       </div>
@@ -496,6 +554,36 @@ function openEditModal(acct) {
     editColor = id;
     updatePreview();
   });
+
+  // 非公開トグル
+  const editPrivateChk   = document.getElementById('edit-acct-private');
+  const editPrivateTrack = document.getElementById('edit-acct-private-track');
+  const editPrivateThumb = document.getElementById('edit-acct-private-thumb');
+  function updateEditPrivateToggle() {
+    const on = editPrivateChk?.checked;
+    if (editPrivateTrack) editPrivateTrack.style.background = on ? 'var(--sage)' : 'var(--border)';
+    if (editPrivateThumb) editPrivateThumb.style.transform  = on ? 'translateX(18px)' : 'translateX(0)';
+  }
+
+  // 記録件数をチェックして「公開→非公開」を禁止
+  DB.getTransactionCountForAccount(acct.id).then(count => {
+    const hasRecords = count > 0;
+    const isCurrentlyPublic = !acct.is_private;
+    if (hasRecords && isCurrentlyPublic) {
+      // 公開 + 記録あり → 非公開への変更を禁止
+      if (editPrivateChk)   { editPrivateChk.disabled = true; editPrivateChk.style.cursor = 'not-allowed'; }
+      if (editPrivateTrack) editPrivateTrack.style.cursor = 'not-allowed';
+      const descEl = document.getElementById('edit-private-desc');
+      if (descEl) descEl.textContent = `記録が ${count.toLocaleString()} 件あるため変更できません`;
+    } else {
+      editPrivateTrack?.addEventListener('click', () => {
+        if (editPrivateChk && !editPrivateChk.disabled) {
+          editPrivateChk.checked = !editPrivateChk.checked;
+          updateEditPrivateToggle();
+        }
+      });
+    }
+  }).catch(() => {});
 
   // 名前・種別変更でプレビュー更新
   document.getElementById('edit-acct-name')?.addEventListener('input', updatePreview);
@@ -566,7 +654,10 @@ function openEditModal(acct) {
     const notes   = (document.getElementById('edit-acct-notes')?.value || '').slice(0, 200);
     if (!name) { showToast('口座名を入力してください'); return; }
     try {
-      await DB.updateAccount(acct.id, { name, type, balance, color: editColor, notes });
+      const isPrivate = document.getElementById('edit-acct-private')?.checked || false;
+      // 公開→非公開への変更は記録なしの場合のみ許可（UIで制御済みだが念のため）
+      const privatePayload = (!acct.is_private && isPrivate) ? { is_private: true } : { is_private: acct.is_private };
+      await DB.updateAccount(acct.id, { name, type, balance, color: editColor, notes, ...privatePayload });
       closeModal();
       showToast('✓ 変更を保存しました');
       renderAccounts();
