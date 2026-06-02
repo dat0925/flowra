@@ -37,6 +37,7 @@ function tagsHTML(tags) {
 let currentFilter  = 'all';
 let searchQuery    = '';
 let _allTx         = [];   // 当月トランザクション
+let _searchResults = [];   // 全期間検索結果（タップ用）
 let _searchDebounce = null; // デバウンスタイマー
 let _searchGen     = 0;    // 競合防止カウンター（古い非同期結果を破棄）
 
@@ -46,6 +47,7 @@ export async function renderRecords() {
 
   currentFilter  = 'all';
   searchQuery    = '';
+  _searchResults = [];
   _searchGen++;          // 月切替時に進行中の検索を無効化
 
   // ── STEP 1: キャッシュから即表示 ──
@@ -156,7 +158,9 @@ function renderShell(transactions, year, month) {
   listElDelegate?.addEventListener('click', e => {
     const item = e.target.closest('.tx-item[data-tx-id]');
     if (!item) return;
-    const tx = _allTx.find(t => t.id === item.dataset.txId);
+    // 検索中は_searchResults、当月表示は_allTxから探す
+    const pool = searchQuery.trim() ? _searchResults : _allTx;
+    const tx = pool.find(t => t.id === item.dataset.txId);
     if (tx) openEditRecord(tx, () => {
       import('./router.js').then(({ MonthState: ms }) => {
         DB.getTransactions({ year: ms.year, month: ms.month, pageSize: 500 })
@@ -195,6 +199,7 @@ function renderShell(transactions, year, month) {
   clearBtn?.addEventListener('click', () => {
     if (searchInput) searchInput.value = '';
     searchQuery = '';
+    _searchResults = [];
     clearBtn.hidden = true;
     const badge = document.getElementById('search-count-badge');
     if (badge) badge.hidden = true;
@@ -228,6 +233,7 @@ async function renderList() {
     try {
       const results = await DB.searchTransactions(q, currentFilter);
       if (myGen !== _searchGen) return;
+      _searchResults = results;
       filtered = results;
     } catch (e) {
       if (myGen !== _searchGen) return;
