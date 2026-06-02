@@ -9,6 +9,54 @@ import { getCachedTags, putTags } from './cache.js';
 import { warmupAddRecord } from './add-record.js';
 import { showOnboardingForReplay } from './onboarding.js';
 
+// サブページを全画面でオーバーレイ表示
+function openSubPage(title, renderFn) {
+  // 既存があれば削除
+  document.getElementById('settings-subpage')?.remove();
+
+  const page = document.createElement('div');
+  page.id = 'settings-subpage';
+  page.style.cssText = [
+    'position:fixed;inset:0;z-index:500;',
+    'background:var(--stone);',
+    'display:flex;flex-direction:column;',
+    'animation:slideInRight 0.25s ease;',
+  ].join('');
+
+  page.innerHTML = [
+    '<div style="display:flex;align-items:center;gap:12px;padding:16px 16px 12px;',
+    'border-bottom:1px solid var(--border);background:var(--stone);flex-shrink:0;">',
+    '<button id="btn-subpage-back" style="background:none;border:none;cursor:pointer;',
+    'display:flex;align-items:center;gap:4px;color:var(--sage);font-size:14px;font-weight:500;padding:4px 0;">',
+    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">',
+    '<polyline points="15 18 9 12 15 6"/></svg>設定</button>',
+    '<span style="font-size:16px;font-weight:600;color:var(--ink);">' + title + '</span>',
+    '</div>',
+    '<div id="subpage-content" style="flex:1;overflow-y:auto;padding:16px 0 40px;"></div>',
+  ].join('');
+
+  document.body.appendChild(page);
+
+  // スライドインアニメーション用CSS（未追加なら追加）
+  if (!document.getElementById('subpage-style')) {
+    const s = document.createElement('style');
+    s.id = 'subpage-style';
+    s.textContent = '@keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}';
+    document.head.appendChild(s);
+  }
+
+  const container = document.getElementById('subpage-content');
+  renderFn(container);
+
+  document.getElementById('btn-subpage-back')?.addEventListener('click', () => {
+    Sound.playClose();
+    page.style.animation = 'none';
+    page.style.transform = 'translateX(100%)';
+    page.style.transition = 'transform 0.2s ease';
+    setTimeout(() => { page.remove(); renderSettings(); }, 200);
+  });
+}
+
 export async function renderSettings() {
   const content = document.getElementById('page-content');
 
@@ -737,22 +785,32 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
     </div>
     ` : ''}
 
-    <!-- タグ管理 -->
+    <!-- タグ管理・予算管理（別画面へ） -->
     <div class="panel" style="margin-bottom:16px;">
-      <div class="panel-head">
-        <div class="panel-title">タグ管理</div>
-        <div class="panel-link" id="btn-add-tag-open">
-          ＋ 追加
+      <div class="form-row" id="btn-open-tag-page" style="cursor:pointer;">
+        <div class="row-icon" style="background:var(--sage-bg);">
+          <svg viewBox="0 0 24 24" style="stroke:var(--sage);width:15px;height:15px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;">
+            <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
+            <line x1="7" y1="7" x2="7.01" y2="7"/>
+          </svg>
         </div>
+        <div class="row-body">
+          <div class="row-value">タグ管理</div>
+          <div class="row-label" id="tag-count-label">—</div>
+        </div>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--mid-lt)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
-      <div id="tag-list-wrap"></div>
-    </div>
-
-    <!-- 予算管理 -->
-    <div class="panel" style="margin-bottom:16px;">
-      <div class="panel-head"><div class="panel-title">予算管理</div></div>
-      <div id="budget-list-wrap" style="padding:0 18px 12px;">
-        <div style="font-size:12px;color:var(--mid-lt);padding:12px 0 4px;">読み込み中…</div>
+      <div class="form-row" id="btn-open-budget-page" style="cursor:pointer;border-bottom:none;">
+        <div class="row-icon" style="background:#E8F0F8;">
+          <svg viewBox="0 0 24 24" style="stroke:#4870A0;width:15px;height:15px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;">
+            <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
+          </svg>
+        </div>
+        <div class="row-body">
+          <div class="row-value">予算管理</div>
+          <div class="row-label" id="budget-count-label">—</div>
+        </div>
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--mid-lt)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
     </div>
 
@@ -784,8 +842,43 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
     </div>`;
 
   // タグリスト描画
-  renderTagList(tags);
-  renderBudgetList(tags);
+  // タグ件数ラベルを更新
+  const tagCountEl = document.getElementById('tag-count-label');
+  if (tagCountEl) tagCountEl.textContent = tags.length + '個';
+
+  // 予算件数ラベル（非同期で取得）
+  const budgetCountEl = document.getElementById('budget-count-label');
+  if (budgetCountEl) {
+    DB.getBudgets(null).then(map => {
+      const n = Object.keys(map).length;
+      budgetCountEl.textContent = n > 0 ? n + '個設定済み' : '未設定';
+    }).catch(() => { budgetCountEl.textContent = ''; });
+  }
+
+  // タグ管理ページへ
+  document.getElementById('btn-open-tag-page')?.addEventListener('click', () => {
+    Sound.playOpen();
+    openSubPage('タグ管理', (container) => {
+      container.innerHTML = '<div id="tag-list-wrap"></div>';
+      renderTagList(tags);
+      // ＋追加ボタン
+      const addBtn = document.createElement('button');
+      addBtn.className = 'btn-primary';
+      addBtn.style.cssText = 'margin:12px 16px 0;width:calc(100% - 32px);';
+      addBtn.innerHTML = '＋ タグを追加';
+      addBtn.addEventListener('click', () => document.getElementById('btn-add-tag-open')?.click());
+      container.appendChild(addBtn);
+    });
+  });
+
+  // 予算管理ページへ
+  document.getElementById('btn-open-budget-page')?.addEventListener('click', () => {
+    Sound.playOpen();
+    openSubPage('予算管理', (container) => {
+      container.innerHTML = '<div id="budget-list-wrap" style="padding:0 16px 12px;"><div style="font-size:12px;color:var(--mid-lt);padding:12px 0;">読み込み中…</div></div>';
+      renderBudgetList(tags);
+    });
+  });
 
   // 自分のチームのメンバーリスト
   renderMembersList(ownMembers, user);
