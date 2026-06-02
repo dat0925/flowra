@@ -70,28 +70,24 @@ function renderTagList(tags) {
     return;
   }
 
-  wrap.innerHTML = tags.map(t => `
-    <div class="tag-item" data-tag-id="${t.id}">
-      <div class="drag-handle" style="width:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--mid-lt);touch-action:none;cursor:grab;padding:8px 4px;">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8">
-          <line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="18" x2="16" y2="18"/>
-        </svg>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">
-        ${ico
-        ? `<div style="width:28px;height:28px;border-radius:8px;background:${ico.bg};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="${ico.stroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${ico.path}"/></svg>
-           </div>`
-        : `<div style="width:28px;height:28px;border-radius:8px;background:${t.color || 'var(--sage)'}22;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-             <div style="width:10px;height:10px;border-radius:50%;background:${t.color || 'var(--sage)'};"></div>
-           </div>`
-      }
-        <span style="font-size:14px;font-weight:500;">${t.name}</span>
-      </div>
-      <svg viewBox="0 0 24 24" width="14" height="14" style="color:var(--mid-lt);flex-shrink:0;cursor:pointer;" class="tag-edit-chevron">
-        <polyline points="9 18 15 12 9 6"/>
-      </svg>
-    </div>`;
+  wrap.innerHTML = tags.map(t => {
+    const ico = getTagIcon(t);
+    const c   = t.color || '#7A9485';
+    const dotOrIcon = ico
+      ? '<div style="width:28px;height:28px;border-radius:8px;background:' + ico.bg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
+        + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="' + ico.stroke + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="' + ico.path + '"/></svg></div>'
+      : '<div style="width:28px;height:28px;border-radius:8px;background:' + c + '33;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
+        + '<div style="width:10px;height:10px;border-radius:50%;background:' + c + ';"></div></div>';
+    return '<div class="tag-item" data-tag-id="' + t.id + '">'
+      + '<div class="drag-handle" style="width:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--mid-lt);touch-action:none;cursor:grab;padding:8px 4px;">'
+      + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="1" fill="currentColor"/><circle cx="15" cy="7" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="17" r="1" fill="currentColor"/><circle cx="15" cy="17" r="1" fill="currentColor"/></svg>'
+      + '</div>'
+      + '<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
+      + dotOrIcon
+      + '<span style="font-size:14px;">' + t.name + '</span>'
+      + '</div>'
+      + '<svg viewBox="0 0 24 24" width="14" height="14" style="color:var(--mid-lt);flex-shrink:0;cursor:pointer;" class="tag-edit-chevron"><polyline points="9 18 15 12 9 6"/></svg>'
+      + '</div>';
   }).join('');
 
   // シェブロンタップ → 編集シート
