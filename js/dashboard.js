@@ -130,7 +130,7 @@ export async function renderDashboard() {
 }
 
 // キャッシュ or 最新データで画面を描画
-function renderContent(content, accounts, transactions, year, month, fromCache = false) {
+async function renderContent(content, accounts, transactions, year, month, fromCache = false) {
   resetPaging();
   _page    = 1;
   _hasMore = transactions.length >= PAGE_SIZE;
@@ -175,6 +175,66 @@ function renderContent(content, accounts, transactions, year, month, fromCache =
       </div>
     </div>`;
 
+    // 予算進捗を取得して表示
+    let budgetHTML = '';
+    try {
+      const monthKey = `${year}-${String(month).padStart(2,'0')}`;
+      const [budgetMap, tags] = await Promise.all([
+        DB.getBudgets(monthKey),
+        import('./cache.js').then(({ getCachedTags }) => getCachedTags())
+      ]);
+      const budgetEntries = Object.entries(budgetMap);
+      if (budgetEntries.length > 0) {
+        // タグIDで支出合計を集計
+        const spendByTag = {};
+        transactions.filter(t => t.type === 'expense').forEach(tx => {
+          (tx.tags || []).filter(t => t).forEach(tag => {
+            spendByTag[tag.id] = (spendByTag[tag.id] || 0) + tx.amount;
+          });
+        });
+
+        const rows = budgetEntries.map(([tagId, b]) => {
+          const tag   = tags.find(t => t.id === tagId);
+          if (!tag) return '';
+          const spent = spendByTag[tagId] || 0;
+          const pct   = Math.min(100, Math.round((spent / b.amount) * 100));
+          const over  = spent > b.amount;
+          const color = over ? 'var(--red)' : pct >= 80 ? 'var(--gold)' : 'var(--sage)';
+          return `
+            <div style="margin-bottom:12px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span style="width:8px;height:8px;border-radius:50%;background:${tag.color||'var(--sage)'};flex-shrink:0;display:inline-block;"></span>
+                  <span style="font-size:13px;font-weight:500;">${tag.name}</span>
+                  ${b.month ? `<span style="font-size:10px;color:var(--mid-lt);background:var(--mist);padding:1px 5px;border-radius:4px;">${b.month.slice(5)}月</span>` : ''}
+                </div>
+                <div style="font-size:12px;color:${over?'var(--red)':'var(--mid)'};">
+                  <span style="font-weight:600;color:${color};">¥${fmt(spent)}</span>
+                  <span style="color:var(--mid-lt);"> / ¥${fmt(b.amount)}</span>
+                </div>
+              </div>
+              <div style="height:6px;border-radius:3px;background:var(--mist);overflow:hidden;">
+                <div style="height:100%;width:${pct}%;border-radius:3px;background:${color};transition:width 0.4s;"></div>
+              </div>
+              ${over ? `<div style="font-size:10px;color:var(--red);margin-top:3px;text-align:right;">¥${fmt(spent-b.amount)} オーバー</div>` : ''}
+            </div>`;
+        }).filter(Boolean).join('');
+
+        if (rows) {
+          budgetHTML = `
+            <div class="panel" style="margin-bottom:0;">
+              <div class="panel-head">
+                <div class="panel-title">今月の予算</div>
+                <div class="panel-link" id="link-budget-setting">設定
+                  <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+              </div>
+              <div style="padding:4px 18px 16px;">${rows}</div>
+            </div>`;
+        }
+      }
+    } catch(e) { /* 予算取得失敗は無視 */ }
+
     // 口座一覧
     const acctHTML = accounts.map((a,i) => `
       ${i > 0 ? '<div class="acct-divider"></div>' : ''}
@@ -208,6 +268,7 @@ function renderContent(content, accounts, transactions, year, month, fromCache =
 
     content.innerHTML = `
       ${summaryHTML}
+      ${budgetHTML}
       <div class="main-grid">
         <div class="panel">
           <div class="panel-head">
@@ -232,6 +293,9 @@ function renderContent(content, accounts, transactions, year, month, fromCache =
 
   document.getElementById('link-acct-manage')?.addEventListener('click', () => {
     import('./router.js').then(({ Router }) => Router.navigate('accounts'));
+  });
+  document.getElementById('link-budget-setting')?.addEventListener('click', () => {
+    import('./router.js').then(({ Router }) => Router.navigate('settings'));
   });
   setupBalanceToggle();
 
