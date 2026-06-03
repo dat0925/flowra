@@ -952,7 +952,22 @@ async function showSuggest(onSave, onReady, accounts, tags) {
           <div style="font-size:16px;font-weight:600;color:var(--ink);">記録を追加</div>
         </div>
         ${categoryGridWithDirect}
-        ${categoryGridWithDirect && suggestHTML ? '<div style="display:flex;align-items:center;gap:8px;margin:12px 16px 4px;"><div style="flex:1;height:1px;background:var(--border);"></div><span style="font-size:11px;color:var(--mid-lt);">最近の記録</span><div style="flex:1;height:1px;background:var(--border);"></div></div>' : ''}
+        <!-- ⚡ 今すぐ入力CTA -->
+        <div style="padding:10px 16px 4px;">
+          <button id="suggest-new-btn"
+            style="width:100%;padding:14px 16px;border-radius:14px;border:none;
+            background:var(--sage);color:#fff;cursor:pointer;
+            display:flex;align-items:center;justify-content:center;gap:8px;">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            </svg>
+            <span style="font-size:15px;font-weight:700;">今すぐ入力</span>
+          </button>
+          <div style="text-align:center;font-size:11px;color:var(--mid-lt);margin-top:6px;">
+            カテゴリは後から選べます
+          </div>
+        </div>
+        ${suggestHTML ? '<div style="display:flex;align-items:center;gap:8px;margin:12px 16px 4px;"><div style="flex:1;height:1px;background:var(--border);"></div><span style="font-size:11px;color:var(--mid-lt);">最近の記録</span><div style="flex:1;height:1px;background:var(--border);"></div></div>' : ''}
         ${suggestHTML}
       </div>
       <!-- 下部固定キャンセルボタン -->
