@@ -102,6 +102,8 @@ export async function renderSettings() {
   ]);
   if (cachedTags.length > 0) {
     renderSettingsContent(content, user, null, null, cachedTags, [], []);
+    // パートナー共有エリアにスケルトンを表示（CLSを防ぐ）
+    renderMembersListSkeleton();
   } else {
     content.innerHTML = '<div class="spinner"></div>';
   }
@@ -990,6 +992,18 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
 }
 
 // ── メンバーリスト描画（自分のチーム用）──
+function renderMembersListSkeleton() {
+  const wrap = document.getElementById('members-list');
+  if (!wrap) return;
+  // スケルトン: メンバー行と同じ高さのプレースホルダー
+  wrap.innerHTML = '<div style="display:flex;align-items:center;gap:10px;padding:12px 16px;">'
+    + '<div style="width:36px;height:36px;border-radius:50%;background:var(--mist);flex-shrink:0;"></div>'
+    + '<div style="flex:1;">'
+    + '<div style="width:40%;height:12px;border-radius:6px;background:var(--mist);margin-bottom:8px;"></div>'
+    + '<div style="width:24%;height:10px;border-radius:6px;background:var(--mist);"></div>'
+    + '</div></div>';
+}
+
 function renderMembersList(members, currentUser) {
   const wrap = document.getElementById('members-list');
   if (!wrap) return;
