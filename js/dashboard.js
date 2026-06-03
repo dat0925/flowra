@@ -477,13 +477,20 @@ function setupAiSummary(transactions, year, month) {
   }
 
   // Edge Function呼び出し（使用回数チェック付き）
+  let _limitShownThisSession = false; // セッション中1回だけシートを表示
+
   async function callAI(question, data) {
-    // プランチェック（premiumプランは無制限）
-    const isPremium = await DB.isPremiumplan().catch(() => false);
-    if (!isPremium) {
+    // プランチェック（premium・adminは無制限）
+    const plan = await DB.getUserPlan().catch(() => 'free');
+    const isUnlimited = plan === 'premium' || plan === 'admin';
+
+    if (!isUnlimited) {
       const usage = await DB.getAiUsageThisMonth().catch(() => 0);
       if (usage >= DB.FREE_AI_LIMIT) {
-        showUpgradeSheet();
+        if (!_limitShownThisSession) {
+          _limitShownThisSession = true;
+          showUpgradeSheet();
+        }
         throw new Error('LIMIT_REACHED');
       }
     }
@@ -502,8 +509,8 @@ function setupAiSummary(transactions, year, month) {
     const json = await res.json();
     if (json.error) throw new Error(json.error);
 
-    // 成功したらカウントアップ
-    if (!isPremium) DB.incrementAiUsage().catch(() => {});
+    // 成功したらカウントアップ（free のみ）
+    if (!isUnlimited) DB.incrementAiUsage().catch(() => {});
 
     return json.answer;
   }
