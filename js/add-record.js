@@ -121,13 +121,26 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
           ${tags.map(tag => {
             const icon = resolveTagIcon(tag) || { bg: DEFAULT_BG, stroke: DEFAULT_STROKE, path: DEFAULT_PATH };
+            const selectedArr = [...state.selectedTags];
             const isSelected = state.selectedTags.has(tag.id);
+            const isPrimary = isSelected && selectedArr[0] === tag.id;
+            // 主タグ: 濃い緑枠＋「主」バッジ / サブタグ: 薄い枠＋チェックマーク / 未選択: 透明枠
+            const borderColor = isPrimary ? 'var(--sage)' : (isSelected ? 'var(--sage-lt)' : 'transparent');
+            const bgColor = isSelected ? 'var(--sage-bg)' : icon.bg;
+            const badge = isPrimary
+              ? '<span style="position:absolute;top:-5px;right:-5px;background:var(--sage);color:#fff;'
+                + 'font-size:9px;font-weight:700;padding:1px 5px;border-radius:5px;line-height:1.6;'
+                + 'letter-spacing:0.03em;">主</span>'
+              : (isSelected
+                ? '<span style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;'
+                  + 'background:var(--sage-lt);display:flex;align-items:center;justify-content:center;">'
+                  + '<svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>'
+                : '');
             return '<button class="ar-tag-btn' + (isSelected ? ' ar-tag-selected' : '') + '" data-tag-id="' + tag.id + '"'
               + ' style="display:flex;flex-direction:column;align-items:center;gap:5px;'
-              + 'padding:10px 4px 8px;border-radius:12px;border:2px solid ' + (isSelected ? 'var(--sage)' : 'transparent') + ';'
-              + 'background:' + (isSelected ? 'var(--sage-bg)' : icon.bg) + ';cursor:pointer;transition:all 0.12s;position:relative;">'
-              + (isSelected ? '<span style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:var(--sage);display:flex;align-items:center;justify-content:center;">'
-                + '<svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>' : '')
+              + 'padding:10px 4px 8px;border-radius:12px;border:2px solid ' + borderColor + ';'
+              + 'background:' + bgColor + ';cursor:pointer;transition:all 0.12s;position:relative;">'
+              + badge
               + '<svg viewBox="0 0 24 24" width="22" height="22" fill="none"'
               + ' stroke="' + (isSelected ? 'var(--sage)' : icon.stroke) + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
               + '<path d="' + icon.path + '"/></svg>'
