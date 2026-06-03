@@ -44,10 +44,15 @@
     .admin-header {
       background: var(--ink);
       color: #fff;
-      padding: 14px 24px;
+      padding: 12px 16px;
       display: flex;
       align-items: center;
       justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      flex-wrap: wrap;
+      gap: 8px;
     }
     .admin-header-title {
       font-family: 'Noto Serif JP', serif;
@@ -201,16 +206,16 @@
 <div id="admin-app">
   <div class="admin-header">
     <div class="admin-header-title">Flow<span>ra</span> Admin</div>
-    <div style="display:flex;align-items:center;gap:12px;">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
       <a href="https://flowra.taskra.jp" target="_blank"
-        style="font-size:12px;color:var(--sage-lt);text-decoration:none;
-          padding:5px 12px;border:1px solid rgba(111,168,130,0.4);border-radius:8px;">
+        style="font-size:11px;color:var(--sage-lt);text-decoration:none;
+          padding:4px 10px;border:1px solid rgba(111,168,130,0.4);border-radius:8px;white-space:nowrap;">
         アプリ ↗
       </a>
       <a href="https://flowra.taskra.jp/lp/" target="_blank"
-        style="font-size:12px;color:var(--sage-lt);text-decoration:none;
-          padding:5px 12px;border:1px solid rgba(111,168,130,0.4);border-radius:8px;">
-        サービスサイト ↗
+        style="font-size:11px;color:var(--sage-lt);text-decoration:none;
+          padding:4px 10px;border:1px solid rgba(111,168,130,0.4);border-radius:8px;white-space:nowrap;">
+        LP ↗
       </a>
       <div class="admin-user-badge" id="admin-user-email">—</div>
     </div>
@@ -380,9 +385,9 @@
       <div style="overflow-x:auto;">
         <table class="user-table">
           <thead><tr>
-            <th>メールアドレス</th>
-            <th>プラン</th>
-            <th>有効期限</th>
+            <th style="white-space:nowrap;">メールアドレス</th>
+            <th style="white-space:nowrap;">プラン</th>
+            <th style="white-space:nowrap;">有効期限</th>
             <th></th>
           </tr></thead>
           <tbody>
