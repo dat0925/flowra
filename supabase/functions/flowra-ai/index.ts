@@ -104,3 +104,4 @@ ${budgets.length ? `予算設定:\n${budgets.map((b: any) => `  ${b.name}: ¥${b
     });
   }
 });
+// deployed Wed Jun  3 22:31:13 UTC 2026
