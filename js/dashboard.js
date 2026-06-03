@@ -599,6 +599,8 @@ function setupAiSummary(transactions, year, month) {
       prevYear: month === 1 ? year - 1 : year,
       prevMonth: month === 1 ? 12 : month - 1,
       prevIncome: 0, prevExpense: 0, prevTagBreakdown: [],
+      todayDate: new Date().getDate(),
+      daysInMonth: new Date(year, month, 0).getDate(),
     }).then(answer => {
       clearTimeout(tid);
       const el = document.getElementById('ai-auto-answer');
@@ -664,6 +666,8 @@ function setupAiSummary(transactions, year, month) {
           })),
           prevYear: prevY, prevMonth: prevM, prevIncome, prevExpense,
           prevTagBreakdown: getTagBreakdown(prevTxs),
+          todayDate: new Date().getDate(),
+          daysInMonth: new Date(year, month, 0).getDate(),
         });
 
         answerEl.innerHTML = '<div style="font-size:13px;line-height:1.75;color:var(--ink);'
