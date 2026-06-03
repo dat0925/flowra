@@ -15,6 +15,9 @@ import { supabase }     from './config.js';
 
 const PAGE_SIZE = 50;
 
+// AIアドバイスのメモリキャッシュ（SPA内ナビゲーション間で保持）
+let _aiAdviceCache = null; // { answer, question, ts, year, month }
+
 // 口座タイプ別アイコン
 const ACCT_ICON = {
   cash:   { bg: '#F0EDE8', stroke: '#7A9485', path: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/>' },
@@ -693,10 +696,8 @@ function setupAiSummary(transactions, year, month) {
           tsElUpdate.style.display = 'block';
           tsElUpdate.textContent = label + ' のアドバイス';
         }
-        // sessionStorageにキャッシュ
-        try {
-          sessionStorage.setItem(cacheKey, JSON.stringify({ answer, question: q, ts: now.toISOString() }));
-        } catch(_) {}
+        // モジュール変数にキャッシュ
+        _aiAdviceCache = { answer, question: q, ts: now.toISOString(), year, month };
         // 残り回数バッジを更新
         DB.getUserPlan().catch(() => 'free').then(async plan => {
           if (plan === 'premium' || plan === 'admin') return;
