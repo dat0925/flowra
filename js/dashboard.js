@@ -159,7 +159,7 @@ async function renderContent(content, accounts, transactions, year, month, fromC
         <div style="display:flex;align-items:center;justify-content:space-between;">
           <div class="s-card-label">総残高</div>
           <div id="btn-toggle-balance" style="font-size:11px;opacity:0.6;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,0.15);">
-            ${hidden ? '表示' : '隠す'}
+            ${hidden ? '表示' : '残高・収入を隠す'}
           </div>
         </div>
         <div class="s-amount" id="s-total-amount">${totalDisp}</div>
