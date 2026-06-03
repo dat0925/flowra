@@ -19,6 +19,7 @@ serve(async (req) => {
       prevIncome = 0, prevExpense = 0, prevTagBreakdown = [],
       todayDate,        // 例: 3  (何日時点か)
       daysInMonth,      // 例: 30
+      fixedCostTags = [], // 過去3ヶ月の推移から固定費と推定されたタグ名の配列
     } = data;
 
     const today    = todayDate  ?? new Date().getDate();
@@ -32,22 +33,25 @@ serve(async (req) => {
       ? `今日は${month}月${today}日で月の中盤（約${elapsed}%経過）。現時点のペースをもとにコメントすること。`
       : `今日は${month}月${today}日で月末に近い（約${elapsed}%経過）。月全体の傾向をコメントしてよい。`;
 
-    const tagLines = tagBreakdown.map((t: any) =>
-      `  ${t.name}: ¥${t.amount.toLocaleString()}${
-        budgets.find((b: any) => b.tagId === t.tagId)
-          ? `（予算¥${budgets.find((b: any) => b.tagId === t.tagId).amount.toLocaleString()}）`
-          : ""
-      }`
-    ).join("\n");
+    const tagLines = tagBreakdown.map((t: any) => {
+      const isFixed = fixedCostTags.includes(t.name);
+      const budgetInfo = budgets.find((b: any) => b.tagId === t.tagId);
+      const label = (isFixed ? "（固定費）" : "") + (budgetInfo ? `（予算¥${budgetInfo.amount.toLocaleString()}）` : "");
+      return `  ${t.name}: ¥${t.amount.toLocaleString()}${label}`;
+    }).join("\n");
 
     const prevTagLines = prevTagBreakdown.map((t: any) =>
       `  ${t.name}: ¥${t.amount.toLocaleString()}`
     ).join("\n");
 
+    const fixedCostNote = fixedCostTags.length > 0
+      ? `\n- 支出内訳に「（固定費）」と付いているタグは毎月ほぼ一定で本人が変えにくい支出のため、節約提案や改善提案の対象にしない。食費・交際費・娯楽費など変動費・裁量支出に絞って提案すること。`
+      : "";
+
     const systemPrompt = `あなたは家計アドバイザーです。夫婦・カップルの家計データを見て、短く・具体的・ポジティブなアドバイスをします。
 - 回答は2〜3文以内。箇条書き不可。数字を使って具体的に。
 - 月途中なら月全体の評価・予測をしない。現時点の傾向だけ述べる。
-- 収入がある月はそれを踏まえてコメントする（収入を無視して赤字と言わない）。
+- 収入がある月はそれを踏まえてコメントする（収入を無視して赤字と言わない）。${fixedCostNote}
 - 日本語で答える。`;
 
     const prompts: Record<string, string> = {

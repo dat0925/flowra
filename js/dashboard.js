@@ -507,6 +507,43 @@ function setupAiSummary(transactions, year, month) {
     return Object.values(map);
   }
 
+  // 過去3ヶ月のデータから固定費タグを推定
+  // 毎月±20%以内のブレで継続して発生しているタグを固定費とみなす
+  async function estimateFixedCostTags(currentYear, currentMonth) {
+    try {
+      const months = [];
+      for (let i = 1; i <= 3; i++) {
+        let m = currentMonth - i;
+        let y = currentYear;
+        if (m <= 0) { m += 12; y -= 1; }
+        months.push({ year: y, month: m });
+      }
+      const results = await Promise.all(
+        months.map(({ year, month }) => DB.getTransactions({ year, month, pageSize: 500 }))
+      );
+      // タグ別に各月の金額を収集
+      const tagAmounts = {};
+      results.forEach(r => {
+        const breakdown = getTagBreakdown(r.data || []);
+        breakdown.forEach(({ name, amount }) => {
+          if (!tagAmounts[name]) tagAmounts[name] = [];
+          tagAmounts[name].push(amount);
+        });
+      });
+      // 3ヶ月すべてに登場 かつ 最大/最小の比が1.4以内 → 固定費と推定
+      const fixedTags = new Set();
+      Object.entries(tagAmounts).forEach(([name, amounts]) => {
+        if (amounts.length < 2) return;
+        const max = Math.max(...amounts);
+        const min = Math.min(...amounts);
+        if (min > 0 && max / min <= 1.4) fixedTags.add(name);
+      });
+      return fixedTags;
+    } catch {
+      return new Set();
+    }
+  }
+
   // Edge Function呼び出し（使用回数チェック付き）
   let _limitShownThisSession = false;
 
@@ -710,6 +747,9 @@ function setupAiSummary(transactions, year, month) {
         const income  = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
         const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
+        // 固定費推定（過去3ヶ月から）
+        const fixedTags = await estimateFixedCostTags(year, month);
+
         const answer = await callAI(q, {
           year, month, income, expense,
           tagBreakdown: getTagBreakdown(transactions),
@@ -720,6 +760,7 @@ function setupAiSummary(transactions, year, month) {
           prevTagBreakdown: getTagBreakdown(prevTxs),
           todayDate: new Date().getDate(),
           daysInMonth: new Date(year, month, 0).getDate(),
+          fixedCostTags: Array.from(fixedTags),
         });
 
         // 回答をai-auto-answerに表示（answerElは非表示に）
