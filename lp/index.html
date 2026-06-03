@@ -744,13 +744,13 @@
       color: rgba(255,255,255,0.45);
     }
 
-    /* ── COUPLE ── */
-    .couple-section {
+    /* ── PREMIUM ── */
+    .premium-section {
       padding: 100px 24px;
       background: var(--warm);
     }
 
-    .couple-inner {
+    .premium-inner {
       max-width: 960px;
       margin: 0 auto;
       display: grid;
@@ -760,11 +760,11 @@
     }
 
     @media (max-width: 680px) {
-      .couple-inner { grid-template-columns: 1fr; gap: 40px; }
+      .premium-inner { grid-template-columns: 1fr; gap: 40px; }
       .float-card-1, .float-card-2 { display: none; }
     }
 
-    .couple-visual {
+    .premium-visual {
       display: flex;
       gap: 12px;
     }
@@ -904,7 +904,7 @@
     }
     .pricing-btn:active { opacity: 0.75; }
     .pricing-btn-free   { background: var(--stone); color: var(--ink); border: 1.5px solid var(--border); }
-    .pricing-btn-couple { background: var(--sage); color: #fff; border: none; }
+    .pricing-btn-premium { background: var(--sage); color: #fff; border: none; }
 
     /* ── FREE BADGE ── */
     .free-section {
@@ -1365,9 +1365,9 @@
     </div>
   </section>
 
-  <!-- COUPLE -->
-  <section class="couple-section">
-    <div class="couple-inner">
+  <!-- PREMIUM -->
+  <section class="premium-section">
+    <div class="premium-inner">
       <div>
         <span class="section-label">Sharing</span>
         <h2 class="section-title">ふたりで<br>管理するから<br>続けられる。</h2>
@@ -1377,7 +1377,7 @@
           自然にお金の話ができるようになります。
         </p>
       </div>
-      <div class="couple-visual">
+      <div class="premium-visual">
         <div class="avatar-card">
           <div class="avatar-circle" style="background:var(--sage);">T</div>
           <div class="avatar-name">あなた</div>
@@ -1427,10 +1427,10 @@
         </a>
       </div>
 
-      <!-- Couple -->
+      <!-- Premium -->
       <div class="pricing-card pricing-card-featured">
         <div class="pricing-badge">おすすめ</div>
-        <div class="pricing-plan-name">Couple</div>
+        <div class="pricing-plan-name">Premium</div>
         <div class="pricing-price-wrap">
           <span class="pricing-price">¥398</span>
           <span class="pricing-per">/ 月</span>
@@ -1443,8 +1443,8 @@
           <li class="ok">新機能への優先アクセス</li>
           <li class="ok">開発チームへの要望受付</li>
         </ul>
-        <a href="mailto:support@taskra.jp?subject=Coupleプラン申込" class="pricing-btn pricing-btn-couple">
-          Coupleプランに申し込む
+        <a href="mailto:support@taskra.jp?subject=Premiumプラン申込" class="pricing-btn pricing-btn-premium">
+          Premiumプランに申し込む
         </a>
         <div style="font-size:11px;color:var(--sage-lt);margin-top:10px;">
           メールで申し込み後、手動で有効化します

@@ -478,9 +478,9 @@ function setupAiSummary(transactions, year, month) {
 
   // Edge Function呼び出し（使用回数チェック付き）
   async function callAI(question, data) {
-    // プランチェック（coupleプランは無制限）
-    const isCouple = await DB.isCoupleplan().catch(() => false);
-    if (!isCouple) {
+    // プランチェック（premiumプランは無制限）
+    const isPremium = await DB.isPremiumplan().catch(() => false);
+    if (!isPremium) {
       const usage = await DB.getAiUsageThisMonth().catch(() => 0);
       if (usage >= DB.FREE_AI_LIMIT) {
         showUpgradeSheet();
@@ -503,7 +503,7 @@ function setupAiSummary(transactions, year, month) {
     if (json.error) throw new Error(json.error);
 
     // 成功したらカウントアップ
-    if (!isCouple) DB.incrementAiUsage().catch(() => {});
+    if (!isPremium) DB.incrementAiUsage().catch(() => {});
 
     return json.answer;
   }
@@ -524,7 +524,7 @@ function setupAiSummary(transactions, year, month) {
           color:var(--ink);margin-bottom:10px;">今月のAI回数を使い切りました</div>
         <div style="font-size:14px;color:var(--mid);line-height:1.7;margin-bottom:8px;">
           無料プランは月${DB.FREE_AI_LIMIT}回まで利用できます。<br>
-          Coupleプランで無制限に使えます。
+          Premiumプランで無制限に使えます。
         </div>
         <div style="font-size:12px;color:var(--mid-lt);margin-bottom:28px;">
           来月になるとリセットされます
@@ -533,7 +533,7 @@ function setupAiSummary(transactions, year, month) {
         <div style="background:var(--white);border-radius:18px;padding:20px;margin-bottom:16px;
           border:1.5px solid var(--sage-lt);">
           <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:var(--sage);
-            margin-bottom:6px;">COUPLE PLAN</div>
+            margin-bottom:6px;">PREMIUM PLAN</div>
           <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;margin-bottom:4px;">
             <span style="font-family:'Noto Serif JP',serif;font-size:32px;font-weight:700;
               color:var(--ink);">¥398</span>
@@ -554,10 +554,10 @@ function setupAiSummary(transactions, year, month) {
               <span style="color:var(--sage);font-weight:700;">✓</span> 新機能への優先アクセス
             </li>
           </ul>
-          <button onclick="window.open('mailto:support@taskra.jp?subject=Coupleプラン申込','_blank')"
+          <button onclick="window.open('mailto:support@taskra.jp?subject=Premiumプラン申込','_blank')"
             style="width:100%;padding:15px;border-radius:14px;border:none;background:var(--sage);
             color:#fff;font-size:15px;font-weight:600;cursor:pointer;">
-            Coupleプランに申し込む
+            Premiumプランに申し込む
           </button>
         </div>
 

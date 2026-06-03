@@ -777,7 +777,7 @@ export const DB = {
     if (error) console.warn('[DB] increment_ai_usage failed:', error.message);
   },
 
-  // ユーザーのプランを取得（'free' | 'couple'）
+  // ユーザーのプランを取得（'free' | 'premium'）
   async getUserPlan() {
     const { data: { user } } = await supabase.auth.getUser();
     const { data, error } = await supabase
@@ -791,9 +791,9 @@ export const DB = {
     return data.plan;
   },
 
-  // Coupleプランかどうか（AI制限判定用）
-  async isCoupleplan() {
+  // Premiumプランかどうか（AI制限判定用）
+  async isPremiumplan() {
     const plan = await this.getUserPlan();
-    return plan === 'couple';
+    return plan === 'premium';
   },
 };
