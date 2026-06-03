@@ -1057,7 +1057,7 @@ body.page-records #mobile-month-label {
   transition: box-shadow 0.2s;
   /* 負マージンを廃止。page-contentのpadding-topはJS側で制御 */
   margin: 0 -28px;
-  padding: 24px 16px 0;
+  padding: 8px 16px 0;
   background: var(--stone);
   position: sticky;
   top: 0;
