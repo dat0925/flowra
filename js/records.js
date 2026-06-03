@@ -105,45 +105,51 @@ function renderShell(transactions, year, month) {
   const balance = income - expense;
 
   content.innerHTML = `
-    <div class="records-summary-bar" id="records-summary">
-      <div class="rsb-item">
-        <div class="rsb-label">収入</div>
-        <div class="rsb-amount income">¥${fmt(income)}</div>
-      </div>
-      <div class="rsb-divider"></div>
-      <div class="rsb-item">
-        <div class="rsb-label">支出</div>
-        <div class="rsb-amount expense">¥${fmt(expense)}</div>
-      </div>
-      <div class="rsb-divider"></div>
-      <div class="rsb-item">
-        <div class="rsb-label">収支</div>
-        <div class="rsb-amount ${balance>=0?'income':'expense'}">${balance>=0?'+':'−'}¥${fmt(Math.abs(balance))}</div>
-      </div>
-    </div>
-
-    <div class="records-filter-bar">
-      <div class="filter-tabs" id="filter-tabs">
-        <button class="filter-tab active" data-filter="all">すべて</button>
-        <button class="filter-tab" data-filter="expense">支出</button>
-        <button class="filter-tab" data-filter="income">収入</button>
-        <button class="filter-tab" data-filter="transfer">振替</button>
-      </div>
-      <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
-        <div class="search-wrap" style="flex:1;min-width:0;">
-          <svg viewBox="0 0 24 24" class="search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" class="search-input" placeholder="メモ・口座・タグで検索" id="records-search">
-          <button id="btn-search-clear" hidden
-            style="background:none;border:none;padding:0 4px;cursor:pointer;color:var(--mid);
-              display:flex;align-items:center;flex-shrink:0;">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-            </svg>
-          </button>
+    <div id="records-sticky" style="
+      position:sticky;top:0;z-index:10;
+      background:var(--stone);
+      padding-bottom:2px;
+    ">
+      <div class="records-summary-bar" id="records-summary">
+        <div class="rsb-item">
+          <div class="rsb-label">収入</div>
+          <div class="rsb-amount income">¥${fmt(income)}</div>
         </div>
-        <div id="search-count-badge" hidden
-          style="font-size:12px;font-weight:600;color:var(--sage);background:var(--sage-bg);
-            border-radius:8px;padding:3px 8px;white-space:nowrap;flex-shrink:0;">
+        <div class="rsb-divider"></div>
+        <div class="rsb-item">
+          <div class="rsb-label">支出</div>
+          <div class="rsb-amount expense">¥${fmt(expense)}</div>
+        </div>
+        <div class="rsb-divider"></div>
+        <div class="rsb-item">
+          <div class="rsb-label">収支</div>
+          <div class="rsb-amount ${balance>=0?'income':'expense'}">${balance>=0?'+':'−'}¥${fmt(Math.abs(balance))}</div>
+        </div>
+      </div>
+
+      <div class="records-filter-bar">
+        <div class="filter-tabs" id="filter-tabs">
+          <button class="filter-tab active" data-filter="all">すべて</button>
+          <button class="filter-tab" data-filter="expense">支出</button>
+          <button class="filter-tab" data-filter="income">収入</button>
+          <button class="filter-tab" data-filter="transfer">振替</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+          <div class="search-wrap" style="flex:1;min-width:0;">
+            <svg viewBox="0 0 24 24" class="search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input type="text" class="search-input" placeholder="メモ・口座・タグで検索" id="records-search">
+            <button id="btn-search-clear" hidden
+              style="background:none;border:none;padding:0 4px;cursor:pointer;color:var(--mid);
+                display:flex;align-items:center;flex-shrink:0;">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+              </svg>
+            </button>
+          </div>
+          <div id="search-count-badge" hidden
+            style="font-size:12px;font-weight:600;color:var(--sage);background:var(--sage-bg);
+              border-radius:8px;padding:3px 8px;white-space:nowrap;flex-shrink:0;">
+          </div>
         </div>
       </div>
     </div>
@@ -151,6 +157,17 @@ function renderShell(transactions, year, month) {
     <div id="records-list"></div>`;
 
   renderList();
+
+  // スクロールで影を付ける
+  const pageContent = document.getElementById('page-content');
+  const stickyEl    = document.getElementById('records-sticky');
+  if (pageContent && stickyEl) {
+    const onScroll = () => {
+      stickyEl.classList.toggle('scrolled', pageContent.scrollTop > 4);
+    };
+    pageContent.removeEventListener('scroll', onScroll);
+    pageContent.addEventListener('scroll', onScroll, { passive: true });
+  }
 
   // ── イベントデリゲーション（1回だけ登録・_allTxを都度参照） ──
   // 個別登録はrenderListのたびに重複するためここで一元管理
