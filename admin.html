@@ -339,6 +339,16 @@
     document.getElementById('stat-total').textContent = '—'; // auth.usersは直接取得不可
   }
 
+  // ── メール一括取得ヘルパー ──
+  async function getEmailsByUserIds(userIds) {
+    const map = {};
+    await Promise.all(userIds.map(async uid => {
+      const { data } = await supabase.rpc('get_email_by_user_id', { p_user_id: uid });
+      if (data) map[uid] = data;
+    }));
+    return map;
+  }
+
   // ── プラン保有ユーザー一覧 ──
   async function loadUserList() {
     const { data, error } = await supabase
@@ -352,30 +362,28 @@
       return;
     }
 
+    const emailMap = await getEmailsByUserIds(data.map(u => u.user_id));
+
     el.innerHTML = `
       <div style="overflow-x:auto;">
         <table class="user-table">
           <thead><tr>
-            <th>User ID</th>
+            <th>メールアドレス</th>
             <th>プラン</th>
             <th>有効期限</th>
-            <th>更新日</th>
             <th></th>
           </tr></thead>
           <tbody>
             ${data.map(u => `
               <tr>
-                <td style="font-family:monospace;font-size:11px;color:var(--mid);">
-                  ${u.user_id.slice(0, 8)}…
+                <td style="font-size:12px;color:var(--ink);">
+                  ${emailMap[u.user_id] || u.user_id.slice(0, 8) + '…'}
                 </td>
                 <td>
                   <span class="plan-badge plan-${u.plan}">${u.plan}</span>
                 </td>
                 <td style="font-size:12px;color:var(--mid);">
                   ${u.expires_at ? new Date(u.expires_at).toLocaleDateString('ja-JP') : '無期限'}
-                </td>
-                <td style="font-size:12px;color:var(--mid-lt);">
-                  ${new Date(u.updated_at).toLocaleDateString('ja-JP')}
                 </td>
                 <td>
                   <button class="admin-btn btn-danger" data-uid="${u.user_id}"
@@ -407,23 +415,26 @@
       return;
     }
 
+    // user_idからメールを一括取得
+    const emailMap = await getEmailsByUserIds(data.map(u => u.user_id));
+
     el.innerHTML = `
       <div style="overflow-x:auto;">
         <table class="user-table">
           <thead><tr>
-            <th>User ID</th>
+            <th>メールアドレス</th>
             <th>使用回数</th>
             <th>残り（Free）</th>
           </tr></thead>
           <tbody>
-            ${data.map((u, i) => {
+            ${data.map(u => {
               const remaining = Math.max(0, 5 - u.count);
               const pct = Math.min(100, (u.count / 5) * 100);
               const color = u.count >= 5 ? '#B83232' : u.count >= 4 ? '#B8973E' : '#4A7C59';
               return `
                 <tr>
-                  <td style="font-family:monospace;font-size:11px;color:var(--mid);">
-                    ${u.user_id.slice(0, 8)}…
+                  <td style="font-size:12px;color:var(--ink);">
+                    ${emailMap[u.user_id] || u.user_id.slice(0,8) + '…'}
                   </td>
                   <td>
                     <div style="display:flex;align-items:center;gap:8px;">
