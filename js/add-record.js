@@ -945,30 +945,63 @@ async function showSuggest(onSave, onReady, accounts, tags) {
       </div>
     </div>`;
 
+  // ── 新設計の提案画面 ──
+  // 「金額が最初」の動線：フォームを即開く。最近の記録は上部にコンパクトに表示。
+  // タグ選択は提案画面から削除（フォーム内で選べる）
+
+  const recentHTML = recent.length === 0 ? '' : `
+    <div style="padding:0 16px 8px;">
+      <div style="font-size:11px;color:var(--mid-lt);margin-bottom:8px;letter-spacing:0.05em;">最近の記録からコピー</div>
+      ${recent.slice(0, 4).map(tx => `
+        <button class="suggest-tx-btn" data-tx-id="${tx.id}"
+          style="width:100%;display:flex;align-items:center;gap:10px;
+          padding:10px 12px;border-radius:10px;border:none;background:var(--stone);
+          cursor:pointer;margin-bottom:6px;text-align:left;transition:background 0.12s;">
+          <span style="font-size:13px;color:${typeColor[tx.type]};font-weight:600;width:12px;">${typeIcon[tx.type]}</span>
+          <span style="flex:1;min-width:0;">
+            <span style="font-size:14px;font-weight:500;color:var(--ink);display:block;
+              white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              ${tx.memo || '（メモなし）'}
+            </span>
+            <span style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+              ${tx.tags && tx.tags.find(t => t)
+                ? `<span style="font-size:10px;font-weight:600;color:var(--sage-dk);background:var(--sage-bg);padding:1px 6px;border-radius:4px;">${tx.tags.find(t => t).name}</span>`
+                : ''
+              }
+              <span style="font-size:11px;color:var(--mid-lt);">${acctName(tx.account_id)}</span>
+            </span>
+          </span>
+          <span style="font-size:15px;font-weight:600;color:${typeColor[tx.type]};white-space:nowrap;">
+            ¥${Number(tx.amount).toLocaleString('ja-JP')}
+          </span>
+        </button>
+      `).join('')}
+    </div>`;
+
   modalContent.innerHTML = `
     <div style="display:flex;flex-direction:column;height:100%;">
-      <div style="flex:1;overflow-y:auto;padding:16px 0 8px;">
-        <div style="padding:0 16px 14px;">
+      <div style="flex:1;overflow-y:auto;padding:20px 0 8px;">
+        <div style="padding:0 16px 16px;">
           <div style="font-size:16px;font-weight:600;color:var(--ink);">記録を追加</div>
+          <div style="font-size:12px;color:var(--mid-lt);margin-top:4px;">金額から入力、タグは後で選べます</div>
         </div>
-        ${categoryGridWithDirect}
-        <!-- ⚡ 今すぐ入力CTA -->
-        <div style="padding:10px 16px 4px;">
+
+        <!-- メインCTA：金額入力を即開く -->
+        <div style="padding:0 16px 20px;">
           <button id="suggest-quick-btn"
-            style="width:100%;padding:14px 16px;border-radius:14px;border:none;
+            style="width:100%;padding:18px 16px;border-radius:16px;border:none;
             background:var(--sage);color:#fff;cursor:pointer;
-            display:flex;align-items:center;justify-content:center;gap:8px;">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+            display:flex;align-items:center;justify-content:center;gap:10px;
+            box-shadow:0 4px 12px rgba(74,124,89,0.3);">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>
             </svg>
-            <span style="font-size:15px;font-weight:700;">今すぐ入力</span>
+            <span style="font-size:16px;font-weight:700;">支出を記録する</span>
           </button>
-          <div style="text-align:center;font-size:11px;color:var(--mid-lt);margin-top:6px;">
-            カテゴリは後から選べます
-          </div>
         </div>
-        ${suggestHTML ? '<div style="display:flex;align-items:center;gap:8px;margin:12px 16px 4px;"><div style="flex:1;height:1px;background:var(--border);"></div><span style="font-size:11px;color:var(--mid-lt);">最近の記録</span><div style="flex:1;height:1px;background:var(--border);"></div></div>' : ''}
-        ${suggestHTML}
+
+        <!-- 最近の記録（コンパクト） -->
+        ${recentHTML}
       </div>
       <!-- 下部固定キャンセルボタン -->
       <div style="flex-shrink:0;padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom));
@@ -1019,7 +1052,34 @@ async function showSuggest(onSave, onReady, accounts, tags) {
     });
   });
 
-  // サジェストアイテムをタップ
+  // 最近の記録コピーボタン（新設計）
+  document.querySelectorAll('.suggest-tx-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const dummy = document.getElementById('ios-focus-trick');
+      dummy?.focus();
+      const txId = btn.dataset.txId;
+      const tx = all.find(t => t.id === txId);
+      if (!tx) return;
+      const memo = tx.memo ? tx.memo + '（複製）' : '（複製）';
+      const state = {
+        type:        tx.type,
+        amount:      String(tx.amount),
+        date:        new Date().toISOString().slice(0, 10),
+        accountId:   tx.account_id,
+        toAccountId: tx.to_account_id || '',
+        memo,
+        url:         tx.url || '',
+        isUnsettled: false,
+        selectedTags: (tx.tags || []).map(t => t.id),
+      };
+      overlay.removeEventListener('click', onOverlayClick);
+      overlay.hidden = true;
+      document.body.style.overflow = '';
+      renderAddRecord(onSave, null, state);
+    });
+  });
+
+  // サジェストアイテムをタップ（旧クラス・後方互換）
   document.querySelectorAll('.suggest-item').forEach(btn => {
     btn.addEventListener('click', () => {
       // ユーザー操作タイミングでiOSキーボード権限を取得
