@@ -1,5 +1,9 @@
 // ─────────────────────────────────────
 //  add-record.js  記録追加モーダル
+//  設計方針: 金額入力ファースト
+//  +ボタン → 金額入力フォームが即表示
+//  最近の記録は上部にコンパクト表示（横スクロール）
+//  タグ選択はフォーム内
 // ─────────────────────────────────────
 import { DB }        from './db.js';
 import { Sound }     from './sound.js';
@@ -26,7 +30,6 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
   let tags     = _tags     ?? [];
 
   if (_accounts === null) {
-    // 初回のみ非同期取得（以降はウォームアップ済み）
     try {
       [accounts, tags] = await Promise.all([DB.getAccounts(), DB.getTags()]);
       _accounts = accounts;
@@ -36,7 +39,6 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       return;
     }
   } else {
-    // バックグラウンドで最新データに更新
     Promise.all([DB.getAccounts(), DB.getTags()])
       .then(([a, t]) => { _accounts = a; _tags = t; })
       .catch(() => {});
@@ -55,7 +57,6 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     isRecurring:  false,
     selectedTags: new Set(),
     ...initialState,
-    // selectedTagsはSetで上書き
     selectedTags: initialState.selectedTags
       ? new Set(initialState.selectedTags)
       : new Set(),
@@ -65,6 +66,12 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     return accounts.find(a => a.id === id)?.name || '選択してください';
   }
 
+  function resolveTagIcon(tagOrName) {
+    if (typeof tagOrName === 'string') return _resolveTagIcon({ name: tagOrName });
+    return _resolveTagIcon(tagOrName);
+  }
+
+  // ── メインフォームを描画 ─────────────────────────
   function render() {
     const isTransfer = state.type === 'transfer';
 
@@ -97,41 +104,44 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
         </div>
       </div>`;
 
-    const tagsHTML = `
+    // タグエリア（コンパクトなチップ形式）
+    const DEFAULT_BG = '#EEF0EE';
+    const DEFAULT_STROKE = '#6A8A6A';
+    const DEFAULT_PATH = 'M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16z';
+
+    const tagsHTML = tags.length === 0 ? `
       <div class="form-section">
-        <div style="display:flex;align-items:center;gap:6px;padding:11px 18px 4px;">
-          <span style="font-size:12px;color:var(--mid);font-weight:500;">タグ</span>
-          <button id="btn-tag-help"
-            style="width:18px;height:18px;border-radius:50%;border:1.5px solid var(--mid-lt);background:none;
-            display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);font-size:10px;font-weight:700;line-height:1;flex-shrink:0;">
-            ?
-          </button>
+        <div style="padding:12px 18px;font-size:12.5px;color:var(--mid-lt);display:flex;align-items:center;gap:6px;">
+          タグがありません
+          <span id="btn-go-tags" style="color:var(--sage);cursor:pointer;font-weight:500;text-decoration:underline;">設定で追加 →</span>
         </div>
-        <div class="tags-wrap" style="padding-top:6px;">
-          ${tags.length === 0
-            ? `<div style="font-size:12.5px;color:var(--mid-lt);padding:4px 0 8px;display:flex;align-items:center;gap:6px;">
-                タグがありません
-                <span id="btn-go-tags" style="color:var(--sage);cursor:pointer;font-weight:500;text-decoration:underline;">設定で追加 →</span>
-               </div>`
-            : (() => {
-                const selectedArr = [...state.selectedTags];
-                return tags.map(t => {
-                  const isSelected = state.selectedTags.has(t.id);
-                  const isPrimary = isSelected && selectedArr[0] === t.id;
-                  return `<div class="tag-chip ${isSelected ? 'on' : 'off'}" data-tag-id="${t.id}" style="position:relative;">
-                    ${isPrimary ? '<span class="primary-badge" style="position:absolute;top:-5px;right:-5px;background:var(--sage-dk);color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;font-weight:600;">主</span>' : ''}
-                    ${t.name}
-                  </div>`;
-                }).join('');
-              })()
-          }
+      </div>` : `
+      <div class="form-section" style="padding:10px 14px 14px;">
+        <div style="font-size:11px;color:var(--mid);font-weight:500;margin-bottom:8px;padding:0 4px;">カテゴリ（任意）</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+          ${tags.map(tag => {
+            const icon = resolveTagIcon(tag) || { bg: DEFAULT_BG, stroke: DEFAULT_STROKE, path: DEFAULT_PATH };
+            const isSelected = state.selectedTags.has(tag.id);
+            return '<button class="ar-tag-btn' + (isSelected ? ' ar-tag-selected' : '') + '" data-tag-id="' + tag.id + '"'
+              + ' style="display:flex;flex-direction:column;align-items:center;gap:5px;'
+              + 'padding:10px 4px 8px;border-radius:12px;border:2px solid ' + (isSelected ? 'var(--sage)' : 'transparent') + ';'
+              + 'background:' + (isSelected ? 'var(--sage-bg)' : icon.bg) + ';cursor:pointer;transition:all 0.12s;position:relative;">'
+              + (isSelected ? '<span style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:var(--sage);display:flex;align-items:center;justify-content:center;">'
+                + '<svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>' : '')
+              + '<svg viewBox="0 0 24 24" width="22" height="22" fill="none"'
+              + ' stroke="' + (isSelected ? 'var(--sage)' : icon.stroke) + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
+              + '<path d="' + icon.path + '"/></svg>'
+              + '<span style="font-size:10px;color:' + (isSelected ? 'var(--sage-dk)' : 'var(--ink)') + ';font-weight:' + (isSelected ? '600' : '500') + ';'
+              + 'text-align:center;line-height:1.3;word-break:keep-all;">' + tag.name + '</span>'
+              + '</button>';
+          }).join('')}
         </div>
       </div>`;
 
     const html = `
       <div style="padding:0 14px 4px;">
         <div class="modal-handle" style="margin:0 auto 14px;"></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">記録を追加</div>
           <button id="btn-close-modal" style="width:30px;height:30px;border-radius:50%;background:var(--mist);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">
             <svg viewBox="0 0 24 24" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -151,7 +161,6 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
         </div>
 
         <div class="amount-card ${state.type}">
-          <!-- ホームと同じ構造：ラベル→金額→式 -->
           <div class="amount-card-label">金額</div>
           <div class="amount-row">
             <div class="amount-row-inner">
@@ -164,9 +173,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
                 spellcheck="false">${state.amount ? Number(state.amount).toLocaleString('ja-JP') : ''}</div>
             </div>
           </div>
-          <!-- 式表示：サブテキスト（ホームの「全口座合計」と同じ位置） -->
           <div id="calc-expr" class="amount-card-sub"></div>
-          <!-- 電卓ボタン -->
           <div style="display:flex;gap:6px;margin-top:12px;">
             <button id="calc-ac-btn"
               style="flex:1;padding:7px 0;border-radius:8px;border:none;
@@ -214,15 +221,6 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
               <input class="text-input" id="memo-input" type="text" placeholder="メモを入力（任意）" value="${state.memo}">
             </div>
           </div>
-          <div class="form-row no-tap">
-            <div class="row-icon" style="background:#F0EDE8;">
-              <svg viewBox="0 0 24 24" style="stroke:var(--mid)"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-            </div>
-            <div class="row-body">
-              <div class="row-label">URL</div>
-              <input class="text-input" id="url-input" type="url" placeholder="https://... （任意）" value="${state.url}">
-            </div>
-          </div>
         </div>
 
         ${tagsHTML}
@@ -248,17 +246,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
               <div class="toggle-knob"></div>
             </div>
           </div>
-          ${!localStorage.getItem('flowra-unsettled-seen') ? `
-          <div id="unsettled-onboarding" style="margin-top:8px;padding:10px 12px;
-            background:var(--gold-bg);border-radius:10px;border-left:3px solid var(--gold);">
-            <div style="font-size:12px;color:var(--ink);line-height:1.6;">
-              友人への立替や共有費用など、後で精算が必要な支出につけるフラグです。
-              記録一覧で未精算のものだけ絞り込めます。
-            </div>
-          </div>` : ''}
         </div>
-
-        <!-- 保存・キャンセルはキーボード上部のsave-barに移動 -->
       </div>`;
 
     const modalContent = document.getElementById('modal-content');
@@ -269,12 +257,10 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
   }
 
   function bindEvents() {
-    // 閉じる
     document.getElementById('btn-close-modal')?.addEventListener('click', closeModal);
     document.getElementById('btn-cancel')?.addEventListener('click', closeModal);
 
-    // save-bar（キーボード上部固定バー）を表示
-    // cloneNodeでイベントをリセットしてから再バインド（累積防止）
+    // save-bar
     const saveBar = document.getElementById('save-bar');
     if (saveBar) {
       saveBar.hidden = false;
@@ -295,55 +281,6 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       }
     }
 
-    // タグ ヘルプツールチップ
-    document.getElementById('btn-tag-help')?.addEventListener('click', e => {
-      e.stopPropagation();
-      const existing = document.getElementById('tag-tooltip');
-      if (existing) { existing.remove(); return; }
-
-      const tooltip = document.createElement('div');
-      tooltip.id = 'tag-tooltip';
-      tooltip.style.cssText = `
-        position:fixed;z-index:9999;
-        background:var(--ink);color:#fff;
-        font-size:12.5px;line-height:1.7;
-        padding:14px 16px;border-radius:12px;
-        max-width:260px;
-        box-shadow:0 8px 24px rgba(0,0,0,0.25);
-      `;
-      tooltip.innerHTML = `
-        <div style="font-weight:600;margin-bottom:6px;color:var(--sage-lt);">タグとは？</div>
-        記録に分類ラベルをつける機能です。<br>
-        <br>
-        <span style="color:var(--gold);">できること</span><br>
-        ・記録一覧でタグ絞り込み<br>
-        ・食費・交通費など自由に作成<br>
-        ・1件の記録に複数タグ付与可<br>
-        <br>
-        <span style="opacity:0.5;font-size:11px;">設定 → タグ管理から追加できます</span>
-        <button id="btn-tooltip-close" style="display:block;margin-top:10px;width:100%;padding:7px;border-radius:8px;border:none;background:rgba(255,255,255,0.1);color:#fff;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-size:12px;">
-          閉じる
-        </button>`;
-
-      // ボタンの位置に合わせて表示
-      const rect = e.target.getBoundingClientRect();
-      const top  = rect.bottom + 8;
-      const left = Math.min(rect.left, window.innerWidth - 280);
-      tooltip.style.top  = `${top}px`;
-      tooltip.style.left = `${left}px`;
-
-      document.body.appendChild(tooltip);
-
-      document.getElementById('btn-tooltip-close')?.addEventListener('click', () => tooltip.remove());
-      // 外タップで閉じる
-      setTimeout(() => {
-        document.addEventListener('click', function handler() {
-          tooltip.remove();
-          document.removeEventListener('click', handler);
-        }, { once: true });
-      }, 100);
-    });
-
     // タグなし → 設定へ
     document.getElementById('btn-go-tags')?.addEventListener('click', () => {
       closeModal();
@@ -355,19 +292,16 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       document.getElementById('btn-' + type)?.addEventListener('click', () => {
         state.type = type;
         render();
-        bindTags();
       });
     });
 
     // ── 金額 + インライン電卓 ──────────────────
-    // 計算状態
-    let calcLeft = '';   // 左辺の値
-    let calcOp   = '';   // 演算子
+    let calcLeft = '';
+    let calcOp   = '';
 
     const amountInput = document.getElementById('amount-input');
     const exprEl      = document.getElementById('calc-expr');
 
-    // キャレットを末尾に移動
     function moveCursorToEnd(el) {
       el.focus();
       const range = document.createRange();
@@ -378,13 +312,11 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       sel.addRange(range);
     }
 
-    // 桁数に応じてフォントサイズを調整（ホーム画面の金額表示34pxに合わせる）
     function adjustFontSize(digits) {
       if (digits <= 9) amountInput.style.fontSize = '34px';
       else             amountInput.style.fontSize = '28px';
     }
 
-    // 数値をコンマ付きで表示
     function displayAmount(raw) {
       const n = parseInt(String(raw).replace(/,/g,''), 10);
       if (!isNaN(n) && n > 0) {
@@ -398,26 +330,22 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       }
     }
 
-    // 計算式表示を更新
     function updateExpr() {
       if (calcLeft && calcOp) {
-        exprEl.textContent = `¥${Number(calcLeft).toLocaleString('ja-JP')} ${calcOp}`;
+        exprEl.textContent = '¥' + Number(calcLeft).toLocaleString('ja-JP') + ' ' + calcOp;
       } else {
         exprEl.textContent = '';
       }
     }
 
-    // 初期表示時にフォントサイズを設定
     const initDigits = (state.amount || '').length;
     if (initDigits > 0) adjustFontSize(initDigits);
 
-    // contenteditable入力ハンドラ
+    let waitingForNextInput = false;
     amountInput?.addEventListener('input', () => {
       let raw = amountInput.textContent.replace(/,/g,'').replace(/[^0-9]/g,'');
-      // 演算子押下後の最初の入力でクリア
       if (waitingForNextInput) {
         waitingForNextInput = false;
-        // 最後の1文字だけ残す
         raw = raw.slice(-1);
         amountInput.textContent = raw;
       }
@@ -433,21 +361,15 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       }
     });
 
-    // Enterキーで改行させない
     amountInput?.addEventListener('keydown', e => {
       if (e.key === 'Enter') e.preventDefault();
     });
 
-    // 演算子ボタン
-    let waitingForNextInput = false; // 次の入力でクリアするフラグ
     document.querySelectorAll('.calc-op-btn').forEach(btn => {
-      // mousedownでフォーカスを奪わない（キーボードを閉じない）
       btn.addEventListener('mousedown', e => e.preventDefault());
       btn.addEventListener('click', () => {
         const currentVal = state.amount || '0';
         if (!currentVal || currentVal === '0') return;
-
-        // 前の計算が未完なら先に計算する
         if (calcLeft && calcOp) {
           const result = calculate(Number(calcLeft), Number(currentVal), calcOp);
           displayAmount(result);
@@ -457,32 +379,25 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
         }
         calcOp = btn.dataset.op;
         updateExpr();
-
-        // 即クリアせず「次の入力が来たらクリア」フラグを立てる
         waitingForNextInput = true;
-        // キーボードが出ていない場合は自動で表示
         moveCursorToEnd(amountInput);
         Sound.playTap();
       });
     });
 
-    // ＝ボタン：計算結果を表示、式はそのまま残す
     document.getElementById('calc-eq-btn')?.addEventListener('mousedown', e => e.preventDefault());
     document.getElementById('calc-eq-btn')?.addEventListener('click', () => {
       if (!calcLeft || !calcOp) return;
       const right = Number(state.amount || '0');
       const result = calculate(Number(calcLeft), right, calcOp);
-      // 式を残すため exprEl のテキストを計算式として固定表示
-      const exprText = `¥${Number(calcLeft).toLocaleString('ja-JP')} ${calcOp} ¥${Number(right).toLocaleString('ja-JP')} ＝ ¥${result.toLocaleString('ja-JP')}`;
+      const exprText = '¥' + Number(calcLeft).toLocaleString('ja-JP') + ' ' + calcOp + ' ¥' + Number(right).toLocaleString('ja-JP') + ' ＝ ¥' + result.toLocaleString('ja-JP');
       displayAmount(result);
       calcLeft = '';
       calcOp   = '';
-      // updateExprは呼ばない（式を残す）
       exprEl.textContent = exprText;
       Sound.playTap();
     });
 
-    // ACボタン（全クリア）
     document.getElementById('calc-ac-btn')?.addEventListener('mousedown', e => e.preventDefault());
     document.getElementById('calc-ac-btn')?.addEventListener('click', () => {
       calcLeft = '';
@@ -493,16 +408,12 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       Sound.playTap();
     });
 
-    // 日付
     document.getElementById('date-input')?.addEventListener('change', e => {
       state.date = e.target.value;
     });
 
-    // メモ（過去のメモから候補を表示）
+    // メモ候補
     const memoInput = document.getElementById('memo-input');
-    const memoWrap = memoInput?.closest('.form-row') || memoInput?.parentElement;
-
-    // 候補コンテナを作成
     const memoSuggest = document.createElement('div');
     memoSuggest.id = 'memo-suggest';
     memoSuggest.style.cssText = `
@@ -514,7 +425,6 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     memoInput?.parentElement?.style && (memoInput.parentElement.style.position = 'relative');
     memoInput?.parentElement?.appendChild(memoSuggest);
 
-    // 過去のメモ一覧を取得（重複除去・空除外）
     let pastMemos = [];
     getCachedTransactions().then(txs => {
       const seen = new Set();
@@ -528,12 +438,12 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       if (!q) { memoSuggest.style.display = 'none'; return; }
       const matched = pastMemos.filter(m => m.includes(q)).slice(0, 5);
       if (matched.length === 0) { memoSuggest.style.display = 'none'; return; }
-      memoSuggest.innerHTML = matched.map(m => `
-        <div class="memo-suggest-item" style="padding:10px 14px;font-size:13.5px;
-          color:var(--ink);cursor:pointer;border-bottom:1px solid var(--border);
-          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-          ${m}
-        </div>`).join('');
+      memoSuggest.innerHTML = matched.map(m =>
+        '<div class="memo-suggest-item" style="padding:10px 14px;font-size:13.5px;'
+        + 'color:var(--ink);cursor:pointer;border-bottom:1px solid var(--border);'
+        + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
+        + m + '</div>'
+      ).join('');
       memoSuggest.querySelectorAll('.memo-suggest-item').forEach((item, i) => {
         item.addEventListener('mousedown', e => {
           e.preventDefault();
@@ -542,7 +452,6 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
           memoSuggest.style.display = 'none';
         });
       });
-      // 位置をinputの下に設定
       const rect = memoInput.getBoundingClientRect();
       const parentRect = memoInput.parentElement.getBoundingClientRect();
       memoSuggest.style.top = (rect.bottom - parentRect.top + 2) + 'px';
@@ -555,21 +464,14 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       state.memo = e.target.value;
       showMemoSuggest(e.target.value);
     });
-
     memoInput?.addEventListener('blur', () => {
       setTimeout(() => { memoSuggest.style.display = 'none'; }, 150);
     });
-
     memoInput?.addEventListener('focus', e => {
       if (e.target.value) showMemoSuggest(e.target.value);
     });
 
-    // URL
-    document.getElementById('url-input')?.addEventListener('input', e => {
-      state.url = e.target.value;
-    });
-
-    // 口座選択（ドロップダウン代わりにprompt）
+    // 口座選択
     document.getElementById('btn-acct')?.addEventListener('click', () => {
       showAccountPicker('account_id', id => { state.accountId = id; render(); });
     });
@@ -580,32 +482,21 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       showAccountPicker('to', id => { state.toAccountId = id; render(); });
     });
 
-    // タグ（render後に再バインドできるよう関数化）
-    function bindTags() {
-      document.querySelectorAll('.tag-chip[data-tag-id]').forEach(chip => {
-        chip.addEventListener('click', () => {
-          const id = chip.dataset.tagId;
-          if (state.selectedTags.has(id)) {
-            state.selectedTags.delete(id);
-            chip.className = 'tag-chip off';
-          } else {
-            // 主タグは1つだけ（先頭に追加）
-            state.selectedTags.add(id);
-            chip.className = 'tag-chip on';
-          }
-          // 選択状態を全チップに反映（インラインstyleをリセットして確実に適用）
-          document.querySelectorAll('.tag-chip[data-tag-id]').forEach(c => {
-            const isOn = state.selectedTags.has(c.dataset.tagId);
-            c.className = 'tag-chip ' + (isOn ? 'on' : 'off');
-            c.style.background = '';
-            c.style.color = '';
-            c.style.borderColor = '';
-          });
-          Sound.playTap();
-        });
+    // タグチップ（グリッド）
+    document.querySelectorAll('.ar-tag-btn[data-tag-id]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.tagId;
+        if (state.selectedTags.has(id)) {
+          state.selectedTags.delete(id);
+        } else {
+          state.selectedTags.add(id);
+        }
+        Sound.playTap();
+        // グリッドだけ再描画（スクロール位置を維持するため最小限の更新）
+        render();
+        // フォーカスをamount-inputに戻さない（タグ選択後はそのまま）
       });
-    }
-    bindTags();
+    });
 
     // 未精算トグル
     document.getElementById('toggle-unsettled')?.addEventListener('click', function() {
@@ -614,31 +505,20 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       Sound.playTap();
     });
 
-    // 未精算オンボーディング：3秒後に「見た」フラグを立てる
-    const onboarding = document.getElementById('unsettled-onboarding');
-    if (onboarding) {
-      setTimeout(() => {
-        localStorage.setItem('flowra-unsettled-seen', '1');
-      }, 3000);
-    }
-
-    // ？ツールチップ
     document.getElementById('unsettled-help')?.addEventListener('click', e => {
       e.stopPropagation();
       showToast('友人への立替など後で精算が必要な支出につけるフラグです');
     });
 
-    // 保存
     document.getElementById('btn-save')?.addEventListener('click', save);
   }
 
   function showAccountPicker(which, callback) {
-    // 口座タイプ別アイコンパス
     const TYPE_PATH = {
       cash:   '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/>',
       bank:   '<path d="M3 22V8l9-6 9 6v14H3z"/><path d="M9 22V12h6v10"/>',
       ic:     '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 6h6M9 10h6"/>',
-          credit: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
+      credit: '<rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>',
       savings: '<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
       point:  '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
       other:  '<rect x="2" y="5" width="20" height="14" rx="2"/>',
@@ -676,7 +556,6 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
         </div>`;
     }).join('');
 
-    // 既存モーダルの上に重ねるサブシート
     const sheetId = 'acct-picker-sheet';
     document.getElementById(sheetId)?.remove();
 
@@ -690,7 +569,6 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     sheet.innerHTML = `
       <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;
         display:flex;flex-direction:column;max-height:75vh;">
-        <!-- 固定ヘッダー -->
         <div style="flex-shrink:0;">
           <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 0;"></div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;">
@@ -701,7 +579,6 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
             </button>
           </div>
         </div>
-        <!-- スクロール可能なリスト -->
         <div style="overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 14px 32px;">
           <div style="background:#fff;border-radius:14px;overflow:hidden;border:1px solid var(--border);">
             ${itemsHTML}
@@ -710,12 +587,8 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       </div>`;
 
     document.body.appendChild(sheet);
-
-    // 閉じる
     document.getElementById('btn-close-picker')?.addEventListener('click', () => sheet.remove());
     sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
-
-    // 口座タップ
     sheet.querySelectorAll('.acct-picker-item').forEach(el => {
       el.addEventListener('click', () => {
         const id = el.dataset.id;
@@ -751,13 +624,11 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       is_unsettled:  state.isUnsettled,
     };
 
-    // ── 楽観的UI更新 ──
-    // onSave にペイロードを渡してDOM差し込みだけ行う（再描画なし）
-    const acctName = accounts.find(a => a.id === state.accountId)?.name || '';
+    const acctNameVal = accounts.find(a => a.id === state.accountId)?.name || '';
     const optimisticTx = {
       ...payload,
       id:       'optimistic-' + Date.now(),
-      _acctName: acctName,
+      _acctName: acctNameVal,
     };
 
     Sound.playSave();
@@ -766,17 +637,14 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     closeModal();
     if (onSave) onSave(optimisticTx);
 
-    // バックグラウンドで実際に保存
     try {
       const { upsertTransactions } = await import('./cache.js');
       const tagIds = [...state.selectedTags];
       const tx = await DB.createTransaction(payload, tagIds);
 
-      // タグ情報をキャッシュに正しく保存（tags: [] で上書きしない）
       const cachedTags = tags.filter(t => tagIds.includes(t.id));
       await upsertTransactions([{ ...tx, tags: cachedTags }]);
 
-      // 仮IDの行を正式IDに差し替え
       const tmpEl = document.querySelector('[data-tx-id="' + optimisticTx.id + '"]');
       if (tmpEl) tmpEl.dataset.txId = tx.id;
     } catch (err) {
@@ -785,31 +653,41 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     }
   }
 
-  // initialStateが空（新規入力）の時はサジェストを表示
-  const isNew = Object.keys(initialState).length === 0;
+  // ── エントリポイント ──
+  // _skipSuggestがある（カテゴリタップ・直接入力）か、
+  // 編集モード（initialStateに値がある）の場合はフォームを直接開く
+  const isNew = Object.keys(initialState).filter(k => k !== '_skipSuggest').length === 0;
   const skipSuggest = initialState._skipSuggest;
-  if (isNew || skipSuggest) {
-    if (!skipSuggest) {
-      await showSuggest(onSave, onReady, accounts, tags);
-      return;
-    }
+
+  if (!isNew || skipSuggest) {
+    // 編集・コピー・カテゴリ選択後 → フォーム直接表示
+    openModal('');
+    render();
+  } else {
+    // 新規（+ボタン） → サジェスト画面を表示
+    await showSuggest(onSave, onReady, accounts, tags);
+    return;
   }
 
-  openModal('');
-  render();
-
-  // アニメーションをリセットして再トリガー（サジェストから遷移時にanimationendが発火しない問題対策）
   const sheet = document.getElementById('modal-add-record');
   if (sheet) {
     sheet.style.animation = 'none';
-    sheet.offsetHeight; // reflow
+    sheet.offsetHeight;
     sheet.style.animation = '';
   }
 
-  // モーダルアニメーション完了後にカーソルを金額欄へ
   const doFocus = () => {
     setTimeout(() => {
-      (() => { const el = document.getElementById('amount-input'); if(el){ el.focus(); const r=document.createRange(),s=window.getSelection(); r.selectNodeContents(el); r.collapse(false); s.removeAllRanges(); s.addRange(r); } })();
+      const el = document.getElementById('amount-input');
+      if (el) {
+        el.focus();
+        const r = document.createRange();
+        const s = window.getSelection();
+        r.selectNodeContents(el);
+        r.collapse(false);
+        s.removeAllRanges();
+        s.addRange(r);
+      }
       if (onReady) onReady();
     }, 200);
   };
@@ -820,204 +698,112 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
   }
 }
 
-// ── サジェスト画面 ──
+// ── サジェスト画面（金額入力ファースト） ─────────────────
 async function showSuggest(onSave, onReady, accounts, tags) {
-  // 直近トランザクションから重複排除して5件取得
   const all = await getCachedTransactions();
-  // メモ+金額+typeで重複排除（同じ内容の直近1件だけ残す）
+
+  // 直近の記録から重複排除して4件取得
   const seen = new Set();
   const recent = [];
   for (const tx of all) {
-    if (tx.type === 'transfer') continue; // 移動は除外
-    const key = `${tx.type}|${tx.amount}|${tx.memo || ''}|${tx.account_id}`;
+    if (tx.type === 'transfer') continue;
+    const key = tx.type + '|' + tx.amount + '|' + (tx.memo || '') + '|' + tx.account_id;
     if (!seen.has(key)) {
       seen.add(key);
       recent.push(tx);
-      if (recent.length >= 5) break;
+      if (recent.length >= 4) break;
     }
   }
 
-  const typeIcon = { income: '↑', expense: '↓' };
   const typeColor = { income: 'var(--sage)', expense: 'var(--red)' };
+  const typeLabel = { income: '収入', expense: '支出' };
   const acctName = (id) => accounts.find(a => a.id === id)?.name || '';
 
-  const suggestHTML = recent.length === 0 ? '' : `
-    <div style="padding:0 20px 4px;">
-      <div style="font-size:11px;color:var(--mid-lt);margin-bottom:8px;letter-spacing:0.05em;">最近の記録から選ぶ</div>
-      ${recent.map(tx => `
-        <button class="suggest-item" data-id="${tx.id}"
-          style="width:100%;display:flex;align-items:center;gap:12px;
-          padding:10px 12px;border-radius:10px;border:none;background:var(--stone);
-          cursor:pointer;margin-bottom:6px;text-align:left;transition:background 0.12s;">
-          <span style="font-size:13px;color:${typeColor[tx.type]};font-weight:600;width:12px;">${typeIcon[tx.type]}</span>
-          <span style="flex:1;min-width:0;">
-            <span style="font-size:14px;font-weight:500;color:var(--ink);display:block;
-              white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-              ${tx.memo || '（メモなし）'}
-            </span>
-            <span style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
-              ${tx.tags && tx.tags.find(t => t)
-                ? `<span style="font-size:10px;font-weight:600;color:var(--sage-dk);background:var(--sage-bg);padding:1px 6px;border-radius:4px;">${tx.tags.find(t => t).name}</span>`
-                : ''
-              }
-              <span style="font-size:11px;color:var(--mid-lt);">${acctName(tx.account_id)}</span>
-            </span>
-          </span>
-          <span style="font-size:15px;font-weight:600;color:${typeColor[tx.type]};white-space:nowrap;">
-            ¥${Number(tx.amount).toLocaleString('ja-JP')}
-          </span>
-        </button>
-      `).join('')}
-      <div style="display:flex;align-items:center;gap:8px;margin:12px 0 8px;">
-        <div style="flex:1;height:1px;background:var(--border);"></div>
-        <span style="font-size:11px;color:var(--mid-lt);">または新規入力</span>
-        <div style="flex:1;height:1px;background:var(--border);"></div>
-      </div>
-    </div>`;
+  // 最近の記録（横スクロールカード）
+  const recentHTML = recent.length === 0 ? '' :
+    '<div style="padding:0 16px 16px;">'
+    + '<div style="font-size:11px;color:var(--mid-lt);margin-bottom:8px;letter-spacing:0.05em;">最近の記録からコピー</div>'
+    + '<div style="display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;'
+    + 'scrollbar-width:none;">'
+    + recent.map(tx => {
+        const tagName = tx.tags && tx.tags.find(t => t) ? tx.tags.find(t => t).name : '';
+        const color = typeColor[tx.type] || 'var(--mid)';
+        return '<button class="ar-recent-btn" data-tx-id="' + tx.id + '"'
+          + ' style="flex-shrink:0;width:140px;padding:12px;border-radius:12px;border:1.5px solid var(--border);'
+          + 'background:var(--stone);cursor:pointer;text-align:left;transition:background 0.12s;">'
+          + '<div style="font-size:15px;font-weight:700;color:' + color + ';margin-bottom:4px;">'
+          + '¥' + Number(tx.amount).toLocaleString('ja-JP') + '</div>'
+          + '<div style="font-size:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;">'
+          + (tx.memo || '（メモなし）') + '</div>'
+          + '<div style="display:flex;align-items:center;gap:4px;">'
+          + (tagName ? '<span style="font-size:10px;color:var(--sage-dk);background:var(--sage-bg);padding:1px 5px;border-radius:4px;font-weight:600;">' + tagName + '</span>' : '')
+          + '<span style="font-size:10px;color:var(--mid-lt);">' + acctName(tx.account_id) + '</span>'
+          + '</div>'
+          + '</button>';
+      }).join('')
+    + '</div>'
+    + '</div>';
 
-  // カテゴリアイコン定義
-  // tag-icons.jsの共有resolveTagIconをラップ（tagオブジェクト対応）
-  function resolveTagIcon(tagOrName) {
-    if (typeof tagOrName === 'string') return _resolveTagIcon({ name: tagOrName });
-    return _resolveTagIcon(tagOrName);
-  }
-
-  // カテゴリグリッドHTML生成（全タグを表示、アイコン定義があるものはアイコン付き）
-  const DEFAULT_BG = '#EEF0EE';
-  const DEFAULT_STROKE = '#6A8A6A';
-  const DEFAULT_PATH = 'M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16z';
-
-  const categoryGridHTML = tags.length === 0 ? '' : `
-    <div style="padding:0 16px 4px;">
-      <div style="font-size:11px;color:var(--mid-lt);margin-bottom:10px;letter-spacing:0.05em;">カテゴリから始める</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
-        ${tags.map(tag => {
-          const icon = resolveTagIcon(tag) || { bg: DEFAULT_BG, stroke: DEFAULT_STROKE, path: DEFAULT_PATH };
-          return `<button class="suggest-cat-btn" data-tag-id="${tag.id}"
-            style="display:flex;flex-direction:column;align-items:center;gap:6px;
-            padding:12px 4px 10px;border-radius:14px;border:none;background:${icon.bg};
-            cursor:pointer;transition:opacity 0.12s;">
-            <svg viewBox="0 0 24 24" width="26" height="26" fill="none"
-              stroke="${icon.stroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="${icon.path}"/>
-            </svg>
-            <span style="font-size:11px;color:var(--ink);font-weight:500;
-              text-align:center;line-height:1.3;word-break:keep-all;">${tag.name}</span>
-          </button>`;
-        }).join('')}
-      </div>
-    </div>`;
-
-  // モーダルにサジェスト+カテゴリ+新規入力ボタンを表示
   const overlay = document.getElementById('modal-overlay');
   const modalContent = document.getElementById('modal-content');
-  // 直接入力セル（グリッドの最後）
-  const directInputCell = `<button id="suggest-new-btn"
-    style="display:flex;flex-direction:column;align-items:center;gap:6px;
-    padding:12px 4px 10px;border-radius:14px;border:1.5px dashed var(--border);
-    background:none;cursor:pointer;transition:opacity 0.12s;">
-    <svg viewBox="0 0 24 24" width="26" height="26" fill="none"
-      stroke="var(--mid)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-    </svg>
-    <span style="font-size:11px;color:var(--mid);font-weight:500;text-align:center;line-height:1.3;">直接入力</span>
-  </button>`;
-
-  // グリッドに直接入力セルを追記
-  const categoryGridWithDirect = tags.length === 0 ? '' : `
-    <div style="padding:0 16px 4px;">
-      <div style="font-size:11px;color:var(--mid-lt);margin-bottom:10px;letter-spacing:0.05em;">カテゴリから始める</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
-        ${tags.map(tag => {
-          const icon = resolveTagIcon(tag) || { bg: DEFAULT_BG, stroke: DEFAULT_STROKE, path: DEFAULT_PATH };
-          return '<button class="suggest-cat-btn" data-tag-id="' + tag.id + '"'
-            + ' style="display:flex;flex-direction:column;align-items:center;gap:6px;'
-            + 'padding:12px 4px 10px;border-radius:14px;border:none;background:' + icon.bg + ';'
-            + 'cursor:pointer;transition:opacity 0.12s;">'
-            + '<svg viewBox="0 0 24 24" width="26" height="26" fill="none"'
-            + ' stroke="' + icon.stroke + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
-            + '<path d="' + icon.path + '"/></svg>'
-            + '<span style="font-size:11px;color:var(--ink);font-weight:500;'
-            + 'text-align:center;line-height:1.3;word-break:keep-all;">' + tag.name + '</span>'
-            + '</button>';
-        }).join('')}
-        ${directInputCell}
-      </div>
-    </div>`;
-
-  // ── 新設計の提案画面 ──
-  // 「金額が最初」の動線：フォームを即開く。最近の記録は上部にコンパクトに表示。
-  // タグ選択は提案画面から削除（フォーム内で選べる）
-
-  const recentHTML = recent.length === 0 ? '' : `
-    <div style="padding:0 16px 8px;">
-      <div style="font-size:11px;color:var(--mid-lt);margin-bottom:8px;letter-spacing:0.05em;">最近の記録からコピー</div>
-      ${recent.slice(0, 4).map(tx => `
-        <button class="suggest-tx-btn" data-tx-id="${tx.id}"
-          style="width:100%;display:flex;align-items:center;gap:10px;
-          padding:10px 12px;border-radius:10px;border:none;background:var(--stone);
-          cursor:pointer;margin-bottom:6px;text-align:left;transition:background 0.12s;">
-          <span style="font-size:13px;color:${typeColor[tx.type]};font-weight:600;width:12px;">${typeIcon[tx.type]}</span>
-          <span style="flex:1;min-width:0;">
-            <span style="font-size:14px;font-weight:500;color:var(--ink);display:block;
-              white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-              ${tx.memo || '（メモなし）'}
-            </span>
-            <span style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
-              ${tx.tags && tx.tags.find(t => t)
-                ? `<span style="font-size:10px;font-weight:600;color:var(--sage-dk);background:var(--sage-bg);padding:1px 6px;border-radius:4px;">${tx.tags.find(t => t).name}</span>`
-                : ''
-              }
-              <span style="font-size:11px;color:var(--mid-lt);">${acctName(tx.account_id)}</span>
-            </span>
-          </span>
-          <span style="font-size:15px;font-weight:600;color:${typeColor[tx.type]};white-space:nowrap;">
-            ¥${Number(tx.amount).toLocaleString('ja-JP')}
-          </span>
-        </button>
-      `).join('')}
-    </div>`;
 
   modalContent.innerHTML = `
     <div style="display:flex;flex-direction:column;height:100%;">
-      <div style="flex:1;overflow-y:auto;padding:20px 0 8px;">
-        <div style="padding:0 16px 16px;">
-          <div style="font-size:16px;font-weight:600;color:var(--ink);">記録を追加</div>
-          <div style="font-size:12px;color:var(--mid-lt);margin-top:4px;">金額から入力、タグは後で選べます</div>
+      <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-top:16px;">
+
+        <!-- ハンドル + タイトル -->
+        <div style="padding:0 16px 20px;">
+          <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 16px;"></div>
+          <div style="font-family:'Noto Serif JP',serif;font-size:18px;font-weight:600;color:var(--ink);">記録を追加</div>
+          <div style="font-size:12px;color:var(--mid-lt);margin-top:4px;">金額を入力してすぐ保存できます</div>
         </div>
 
-        <!-- メインCTA：金額入力を即開く -->
+        <!-- メインCTA -->
         <div style="padding:0 16px 20px;">
-          <button id="suggest-quick-btn"
-            style="width:100%;padding:18px 16px;border-radius:16px;border:none;
+          <button id="ar-quick-btn"
+            style="width:100%;padding:20px 16px;border-radius:18px;border:none;
             background:var(--sage);color:#fff;cursor:pointer;
-            display:flex;align-items:center;justify-content:center;gap:10px;
-            box-shadow:0 4px 12px rgba(74,124,89,0.3);">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5">
-              <line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>
+            display:flex;align-items:center;justify-content:space-between;
+            box-shadow:0 4px 16px rgba(74,124,89,0.3);transition:opacity 0.12s;">
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,255,255,0.2);
+                display:flex;align-items:center;justify-content:center;">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                  <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+              </div>
+              <div style="text-align:left;">
+                <div style="font-size:16px;font-weight:700;">金額を入力する</div>
+                <div style="font-size:11px;opacity:0.8;margin-top:2px;">タグ・メモは後から選べます</div>
+              </div>
+            </div>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <polyline points="9 18 15 12 9 6"/>
             </svg>
-            <span style="font-size:16px;font-weight:700;">支出を記録する</span>
           </button>
         </div>
 
-        <!-- 最近の記録（コンパクト） -->
+        <!-- 最近の記録 -->
         ${recentHTML}
+
       </div>
-      <!-- 下部固定キャンセルボタン -->
+
+      <!-- 下部キャンセル -->
       <div style="flex-shrink:0;padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom));
         border-top:1px solid var(--border);background:var(--stone);">
-        <button id="suggest-close-btn"
+        <button id="ar-cancel-btn"
           style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--border);
           background:none;color:var(--mid);font-size:14px;font-weight:500;cursor:pointer;">
           キャンセル
         </button>
       </div>
     </div>`;
+
   overlay.hidden = false;
   document.body.style.overflow = 'hidden';
   Sound.playOpen();
 
-  // suggest を閉じる共通関数（リスナー解除を確実に行う）
+  // 閉じる処理
   let onOverlayClick;
   const closeSuggest = () => {
     if (onOverlayClick) overlay.removeEventListener('click', onOverlayClick);
@@ -1025,35 +811,35 @@ async function showSuggest(onSave, onReady, accounts, tags) {
     document.body.style.overflow = '';
     Sound.playClose();
   };
-  // オーバーレイ背景タップで閉じる（リスナーを必ず解除）
-  onOverlayClick = (e) => {
-    if (e.target === overlay) closeSuggest();
-  };
+  onOverlayClick = (e) => { if (e.target === overlay) closeSuggest(); };
   overlay.addEventListener('click', onOverlayClick);
+  document.getElementById('ar-cancel-btn')?.addEventListener('click', closeSuggest);
 
-  // ×ボタンで閉じる
-  document.getElementById('suggest-close-btn')?.addEventListener('click', closeSuggest);
-
-  // カテゴリボタンをタップ → カテゴリを主タグとして追加画面へ
-  document.querySelectorAll('.suggest-cat-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const dummy = document.getElementById('ios-focus-trick');
-      dummy?.focus();
-      const tagId = btn.dataset.tagId;
-      overlay.removeEventListener('click', onOverlayClick);
-      overlay.hidden = true;
-      document.body.style.overflow = '';
-      renderAddRecord(onSave, () => {
-        setTimeout(() => {
-          const el = document.getElementById('amount-input');
-          if (el) { el.focus(); const r=document.createRange(),s=window.getSelection(); r.selectNodeContents(el); r.collapse(false); s.removeAllRanges(); s.addRange(r); }
-        }, 50);
-      }, { _skipSuggest: true, selectedTags: [tagId] });
-    });
+  // メインCTA：金額入力フォームへ
+  document.getElementById('ar-quick-btn')?.addEventListener('click', () => {
+    const dummy = document.getElementById('ios-focus-trick');
+    dummy?.focus();
+    overlay.removeEventListener('click', onOverlayClick);
+    overlay.hidden = true;
+    document.body.style.overflow = '';
+    renderAddRecord(onSave, () => {
+      setTimeout(() => {
+        const el = document.getElementById('amount-input');
+        if (el) {
+          el.focus();
+          const r = document.createRange();
+          const s = window.getSelection();
+          r.selectNodeContents(el);
+          r.collapse(false);
+          s.removeAllRanges();
+          s.addRange(r);
+        }
+      }, 50);
+    }, { _skipSuggest: true });
   });
 
-  // 最近の記録コピーボタン（新設計）
-  document.querySelectorAll('.suggest-tx-btn').forEach(btn => {
+  // 最近の記録をコピー
+  document.querySelectorAll('.ar-recent-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const dummy = document.getElementById('ios-focus-trick');
       dummy?.focus();
@@ -1061,7 +847,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
       const tx = all.find(t => t.id === txId);
       if (!tx) return;
       const memo = tx.memo ? tx.memo + '（複製）' : '（複製）';
-      const state = {
+      const copyState = {
         type:        tx.type,
         amount:      String(tx.amount),
         date:        new Date().toISOString().slice(0, 10),
@@ -1070,69 +856,13 @@ async function showSuggest(onSave, onReady, accounts, tags) {
         memo,
         url:         tx.url || '',
         isUnsettled: false,
-        selectedTags: (tx.tags || []).map(t => t.id),
+        selectedTags: (tx.tags || []).filter(t => t).map(t => t.id),
       };
       overlay.removeEventListener('click', onOverlayClick);
       overlay.hidden = true;
       document.body.style.overflow = '';
-      renderAddRecord(onSave, null, state);
+      renderAddRecord(onSave, null, copyState);
     });
-  });
-
-  // サジェストアイテムをタップ（旧クラス・後方互換）
-  document.querySelectorAll('.suggest-item').forEach(btn => {
-    btn.addEventListener('click', () => {
-      // ユーザー操作タイミングでiOSキーボード権限を取得
-      const dummy = document.getElementById('ios-focus-trick');
-      dummy?.focus();
-      const txId = btn.dataset.id;
-      const tx = all.find(t => t.id === txId);
-      if (!tx) return;
-      const memo = tx.memo ? tx.memo + '（複製）' : '（複製）';
-      const state = {
-        type:        tx.type,
-        amount:      String(tx.amount),
-        date:        new Date().toISOString().slice(0, 10),
-        accountId:   tx.account_id,
-        toAccountId: tx.to_account_id || '',
-        memo,
-        url:         tx.url || '',
-        isUnsettled: false,
-        selectedTags: (tx.tags || []).map(t => t.id),
-      };
-      overlay.removeEventListener('click', onOverlayClick);
-      overlay.hidden = true;
-      document.body.style.overflow = '';
-      renderAddRecord(onSave, null, state);
-    });
-  });
-
-  // 新規入力ボタン（グリッド内「直接入力」）
-  document.getElementById('suggest-new-btn')?.addEventListener('click', () => {
-    const dummy = document.getElementById('ios-focus-trick');
-    dummy?.focus();
-    overlay.removeEventListener('click', onOverlayClick);
-    overlay.hidden = true;
-    document.body.style.overflow = '';
-    renderAddRecord(onSave, () => {
-      setTimeout(() => {
-        (() => { const el = document.getElementById('amount-input'); if(el){ el.focus(); const r=document.createRange(),s=window.getSelection(); r.selectNodeContents(el); r.collapse(false); s.removeAllRanges(); s.addRange(r); } })();
-      }, 50);
-    }, { _skipSuggest: true });
-  });
-
-  // ⚡ 今すぐ入力CTAボタン
-  document.getElementById('suggest-quick-btn')?.addEventListener('click', () => {
-    const dummy = document.getElementById('ios-focus-trick');
-    dummy?.focus();
-    overlay.removeEventListener('click', onOverlayClick);
-    overlay.hidden = true;
-    document.body.style.overflow = '';
-    renderAddRecord(onSave, () => {
-      setTimeout(() => {
-        (() => { const el = document.getElementById('amount-input'); if(el){ el.focus(); const r=document.createRange(),s=window.getSelection(); r.selectNodeContents(el); r.collapse(false); s.removeAllRanges(); s.addRange(r); } })();
-      }, 50);
-    }, { _skipSuggest: true });
   });
 }
 
@@ -1146,7 +876,5 @@ function calculate(left, right, op) {
     case '÷': result = right !== 0 ? Math.round(left / right) : left; break;
     default:  result = right;
   }
-  // 負の値は0に（家計アプリなので）
   return Math.max(0, result);
 }
-
