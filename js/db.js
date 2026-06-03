@@ -752,6 +752,9 @@ export const DB = {
   // 無料プランの月次AI上限
   FREE_AI_LIMIT: 5,
 
+  // Premiumプランの月次AI上限（原価=¥398ライン: 398÷0.06≒6633回）
+  PREMIUM_AI_LIMIT: 6633,
+
   // 今月のAI使用回数を取得（テーブルがなければ0を返す）
   async getAiUsageThisMonth() {
     const { data: { user } } = await supabase.auth.getUser();

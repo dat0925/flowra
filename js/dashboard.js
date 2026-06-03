@@ -491,19 +491,21 @@ function setupAiSummary(transactions, year, month) {
   }
 
   // Edge Function呼び出し（使用回数チェック付き）
-  let _limitShownThisSession = false; // セッション中1回だけシートを表示
+  let _limitShownThisSession = false;
 
   async function callAI(question, data) {
-    // プランチェック（premium・adminは無制限）
     const plan = await DB.getUserPlan().catch(() => 'free');
-    const isUnlimited = plan === 'premium' || plan === 'admin';
+    const isAdmin = plan === 'admin';
+    const isPremium = plan === 'premium';
 
-    if (!isUnlimited) {
+    // 使用回数チェック（adminのみ完全無制限）
+    if (!isAdmin) {
       const usage = await DB.getAiUsageThisMonth().catch(() => 0);
-      if (usage >= DB.FREE_AI_LIMIT) {
+      const limit = isPremium ? DB.PREMIUM_AI_LIMIT : DB.FREE_AI_LIMIT;
+      if (usage >= limit) {
         if (!_limitShownThisSession) {
           _limitShownThisSession = true;
-          showUpgradeSheet();
+          showUpgradeSheet(isPremium);
         }
         throw new Error('LIMIT_REACHED');
       }
@@ -523,74 +525,92 @@ function setupAiSummary(transactions, year, month) {
     const json = await res.json();
     if (json.error) throw new Error(json.error);
 
-    // 成功したらカウントアップ（free のみ）
-    if (!isUnlimited) DB.incrementAiUsage().catch(() => {});
+    // カウントアップ（admin以外）
+    if (!isAdmin) DB.incrementAiUsage().catch(() => {});
 
     return json.answer;
   }
 
-  // アップグレード誘導シート
-  function showUpgradeSheet() {
+  function showUpgradeSheet(isPremium = false) {
     if (document.getElementById('upgrade-sheet')) return;
     const sheet = document.createElement('div');
     sheet.id = 'upgrade-sheet';
     sheet.style.cssText = 'position:fixed;inset:0;z-index:800;background:rgba(28,43,34,0.5);'
       + 'display:flex;align-items:flex-end;justify-content:center;';
+
+    const premiumContent = `
+      <div style="font-size:32px;margin-bottom:12px;">✨</div>
+      <div style="font-family:'Noto Serif JP',serif;font-size:20px;font-weight:600;
+        color:var(--ink);margin-bottom:10px;">今月のAI利用上限に達しました</div>
+      <div style="font-size:14px;color:var(--mid);line-height:1.7;margin-bottom:8px;">
+        Premiumプランは月${DB.PREMIUM_AI_LIMIT.toLocaleString()}回まで利用できます。<br>
+        来月になるとリセットされます。
+      </div>
+      <div style="font-size:12px;color:var(--mid-lt);margin-bottom:28px;">
+        ※ サービスの原価ベースで設定した上限です
+      </div>
+      <button id="upgrade-sheet-close"
+        style="width:100%;padding:15px;border-radius:14px;border:1.5px solid var(--border);
+        background:var(--white);color:var(--mid);font-family:'Noto Sans JP',sans-serif;
+        font-size:14px;cursor:pointer;">
+        閉じる
+      </button>`;
+
+    const freeContent = `
+      <div style="font-size:32px;margin-bottom:12px;">✨</div>
+      <div style="font-family:'Noto Serif JP',serif;font-size:20px;font-weight:600;
+        color:var(--ink);margin-bottom:10px;">今月のAI回数を使い切りました</div>
+      <div style="font-size:14px;color:var(--mid);line-height:1.7;margin-bottom:8px;">
+        無料プランは月${DB.FREE_AI_LIMIT}回まで利用できます。<br>
+        Premiumプランで月${DB.PREMIUM_AI_LIMIT.toLocaleString()}回まで使えます。
+      </div>
+      <div style="font-size:12px;color:var(--mid-lt);margin-bottom:28px;">
+        来月になるとリセットされます
+      </div>
+      <div style="background:var(--white);border-radius:18px;padding:20px;margin-bottom:16px;
+        border:1.5px solid var(--sage-lt);">
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:var(--sage);
+          margin-bottom:6px;">PREMIUM PLAN</div>
+        <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;margin-bottom:4px;">
+          <span style="font-family:'Noto Serif JP',serif;font-size:32px;font-weight:700;
+            color:var(--ink);">¥398</span>
+          <span style="font-size:13px;color:var(--mid);">/ 月</span>
+        </div>
+        <div style="font-size:12px;color:var(--mid-lt);margin-bottom:16px;">
+          2人で割れば ¥199 / 人
+        </div>
+        <ul style="text-align:left;list-style:none;padding:0;margin:0 0 16px;
+          display:flex;flex-direction:column;gap:8px;">
+          <li style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);">
+            <span style="color:var(--sage);font-weight:700;">✓</span> AIアドバイス月${DB.PREMIUM_AI_LIMIT.toLocaleString()}回
+          </li>
+          <li style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);">
+            <span style="color:var(--sage);font-weight:700;">✓</span> 口座・タグ無制限
+          </li>
+          <li style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);">
+            <span style="color:var(--sage);font-weight:700;">✓</span> 新機能への優先アクセス
+          </li>
+        </ul>
+        <button onclick="window.open('mailto:support@taskra.jp?subject=Premiumプラン申込','_blank')"
+          style="width:100%;padding:15px;border-radius:14px;border:none;background:var(--sage);
+          color:#fff;font-size:15px;font-weight:600;cursor:pointer;">
+          Premiumプランに申し込む
+        </button>
+      </div>
+      <button id="upgrade-sheet-close"
+        style="background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;padding:8px;">
+        来月まで待つ
+      </button>`;
+
     sheet.innerHTML = `
       <div style="background:var(--stone);width:100%;max-width:480px;border-radius:24px 24px 0 0;
         padding:32px 24px 48px;text-align:center;">
         <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 24px;"></div>
-        <div style="font-size:32px;margin-bottom:12px;">✨</div>
-        <div style="font-family:'Noto Serif JP',serif;font-size:20px;font-weight:600;
-          color:var(--ink);margin-bottom:10px;">今月のAI回数を使い切りました</div>
-        <div style="font-size:14px;color:var(--mid);line-height:1.7;margin-bottom:8px;">
-          無料プランは月${DB.FREE_AI_LIMIT}回まで利用できます。<br>
-          Premiumプランで無制限に使えます。
-        </div>
-        <div style="font-size:12px;color:var(--mid-lt);margin-bottom:28px;">
-          来月になるとリセットされます
-        </div>
-
-        <div style="background:var(--white);border-radius:18px;padding:20px;margin-bottom:16px;
-          border:1.5px solid var(--sage-lt);">
-          <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:var(--sage);
-            margin-bottom:6px;">PREMIUM PLAN</div>
-          <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;margin-bottom:4px;">
-            <span style="font-family:'Noto Serif JP',serif;font-size:32px;font-weight:700;
-              color:var(--ink);">¥398</span>
-            <span style="font-size:13px;color:var(--mid);">/ 月</span>
-          </div>
-          <div style="font-size:12px;color:var(--mid-lt);margin-bottom:16px;">
-            2人で割れば ¥199 / 人
-          </div>
-          <ul style="text-align:left;list-style:none;padding:0;margin:0 0 16px;
-            display:flex;flex-direction:column;gap:8px;">
-            <li style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);">
-              <span style="color:var(--sage);font-weight:700;">✓</span> AIアドバイス無制限
-            </li>
-            <li style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);">
-              <span style="color:var(--sage);font-weight:700;">✓</span> 口座・タグ無制限
-            </li>
-            <li style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);">
-              <span style="color:var(--sage);font-weight:700;">✓</span> 新機能への優先アクセス
-            </li>
-          </ul>
-          <button onclick="window.open('mailto:support@taskra.jp?subject=Premiumプラン申込','_blank')"
-            style="width:100%;padding:15px;border-radius:14px;border:none;background:var(--sage);
-            color:#fff;font-size:15px;font-weight:600;cursor:pointer;">
-            Premiumプランに申し込む
-          </button>
-        </div>
-
-        <button id="upgrade-sheet-close"
-          style="background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;padding:8px;">
-          来月まで待つ
-        </button>
+        ${isPremium ? premiumContent : freeContent}
       </div>`;
+
     document.body.appendChild(sheet);
-    sheet.addEventListener('click', e => {
-      if (e.target === sheet) sheet.remove();
-    });
+    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
     document.getElementById('upgrade-sheet-close')?.addEventListener('click', () => sheet.remove());
   }
 
