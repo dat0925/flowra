@@ -169,8 +169,10 @@ async function renderContent(content, accounts, transactions, year, month, fromC
         <div class="s-card income-card" style="overflow:hidden;">
           <div class="s-card-label">今月の収入</div>
           <div class="s-amount" style="white-space:nowrap;overflow:hidden;">
-            <span class="s-currency">¥</span>
-            <span class="s-number" style="font-size:30px;">${fmt(income)}</span>
+            ${hidden
+              ? '<span class="s-currency" style="opacity:0.4;">¥</span><span class="s-number" style="font-size:30px;letter-spacing:2px;color:var(--sage-lt);">••••••</span>'
+              : '<span class="s-currency">¥</span><span class="s-number" style="font-size:30px;">' + fmt(income) + '</span>'
+            }
           </div>
           <div class="s-accent-line"></div>
         </div>
