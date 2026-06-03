@@ -478,6 +478,23 @@ function setupAiSummary(transactions, year, month) {
   const answerEl = document.getElementById('ai-answer');
   const autoEl   = document.getElementById('ai-auto-answer');
 
+  // キャッシュが同じ年月なら即復元（他ページ→ホーム戻り対応）
+  if (_aiAdviceCache && _aiAdviceCache.year === year && _aiAdviceCache.month === month) {
+    if (autoEl) {
+      autoEl.style.display = 'block';
+      autoEl.innerHTML = _aiAdviceCache.answer.split('\n').join('<br>');
+    }
+    const tsEl = document.getElementById('ai-timestamp');
+    if (tsEl && _aiAdviceCache.ts) {
+      const d = new Date(_aiAdviceCache.ts);
+      const label = (d.getMonth()+1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0');
+      tsEl.style.display = 'block';
+      tsEl.textContent = label + ' のアドバイス';
+    }
+    // キャッシュ復元時は自動AI呼び出しをスキップ（以降のボタン処理は継続）
+    // autoElのinitialスピナー表示ブロックをスキップするフラグ
+  }
+
   // タグ別支出集計
   function getTagBreakdown(txList) {
     const map = {};
@@ -615,7 +632,8 @@ function setupAiSummary(transactions, year, month) {
   }
 
   // 自動一言表示（ページ読み込み時・既存データのみ使用）
-  if (autoEl) {
+  // キャッシュ復元済みの場合はAPI呼び出しをスキップ
+  if (autoEl && !(_aiAdviceCache && _aiAdviceCache.year === year && _aiAdviceCache.month === month)) {
     const income  = transactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
     const expense = transactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
 
