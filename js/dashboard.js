@@ -320,7 +320,9 @@ async function renderContent(content, accounts, transactions, year, month, fromC
           <!-- 回答エリア（ボタンを押すまで空） -->
           <div id="ai-auto-answer" style="display:none;font-size:13px;line-height:1.75;
             color:var(--ink);margin-bottom:10px;"></div>
-          <!-- ボタン群 -->
+          <div id="ai-timestamp" style="display:none;font-size:10px;color:var(--mid-lt);
+            margin-bottom:8px;"></div>
+          <!-- チップ群 -->
           <div style="display:flex;gap:6px;flex-wrap:wrap;">
             <button class="btn-ai-q" data-q="monthly"
               style="font-size:11px;padding:5px 11px;border-radius:20px;
@@ -339,6 +341,18 @@ async function renderContent(content, accounts, transactions, year, month, fromC
                 border:1px solid var(--border);background:none;
                 color:var(--mid);cursor:pointer;font-weight:500;white-space:nowrap;">
               節約ヒント
+            </button>
+            <button class="btn-ai-q" data-q="toptag"
+              style="font-size:11px;padding:5px 11px;border-radius:20px;
+                border:1px solid var(--border);background:none;
+                color:var(--mid);cursor:pointer;font-weight:500;white-space:nowrap;">
+              一番多い支出は？
+            </button>
+            <button class="btn-ai-q" data-q="budget_check"
+              style="font-size:11px;padding:5px 11px;border-radius:20px;
+                border:1px solid var(--border);background:none;
+                color:var(--mid);cursor:pointer;font-weight:500;white-space:nowrap;">
+              予算内に収まりそう？
             </button>
           </div>
         </div>
@@ -665,9 +679,24 @@ function setupAiSummary(transactions, year, month) {
           daysInMonth: new Date(year, month, 0).getDate(),
         });
 
-        answerEl.style.display = 'block';
-        answerEl.innerHTML = '<div style="font-size:13px;line-height:1.75;color:var(--ink);">'
-          + answer.split('\n').join('<br>') + '</div>';
+        // 回答をai-auto-answerに表示（answerElは非表示に）
+        answerEl.style.display = 'none';
+        const autoElUpdate = document.getElementById('ai-auto-answer');
+        const tsElUpdate   = document.getElementById('ai-timestamp');
+        if (autoElUpdate) {
+          autoElUpdate.style.display = 'block';
+          autoElUpdate.innerHTML = answer.split('\n').join('<br>');
+        }
+        const now = new Date();
+        const label = now.getMonth()+1 + '/' + now.getDate() + ' ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+        if (tsElUpdate) {
+          tsElUpdate.style.display = 'block';
+          tsElUpdate.textContent = label + ' のアドバイス';
+        }
+        // sessionStorageにキャッシュ
+        try {
+          sessionStorage.setItem(cacheKey, JSON.stringify({ answer, question: q, ts: now.toISOString() }));
+        } catch(_) {}
         // 残り回数バッジを更新
         DB.getUserPlan().catch(() => 'free').then(async plan => {
           if (plan === 'premium' || plan === 'admin') return;
