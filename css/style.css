@@ -1049,8 +1049,15 @@ body.page-records #mobile-month-label {
   background: var(--white);
   border-radius: var(--radius);
   padding: 16px 20px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+#records-sticky {
+  box-shadow: none;
+  transition: box-shadow 0.2s;
+}
+#records-sticky.scrolled {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 .rsb-item { flex: 1; text-align: center; }
 .rsb-label { font-size: 11px; color: var(--mid); margin-bottom: 4px; }
