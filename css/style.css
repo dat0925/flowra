@@ -1055,24 +1055,13 @@ body.page-records #mobile-month-label {
 #records-sticky {
   box-shadow: none;
   transition: box-shadow 0.2s;
-  margin: -24px -28px 0;
-  padding: 16px 16px 0;
+  /* 負マージンを廃止。page-contentのpadding-topはJS側で制御 */
+  margin: 0 -28px;
+  padding: 24px 16px 0;
   background: var(--stone);
   position: sticky;
   top: 0;
   z-index: 20;
-  isolation: isolate;
-  /* 透け防止 */
-  -webkit-backdrop-filter: blur(0px);
-  backdrop-filter: blur(0px);
-  will-change: transform;
-}
-#records-sticky::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--stone);
-  z-index: -1;
 }
 #records-sticky.scrolled {
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);

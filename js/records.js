@@ -104,15 +104,11 @@ function renderShell(transactions, year, month) {
   const expense = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
   const balance = income - expense;
 
+  // stickyが正しく機能するようpadding-topを0に（stickyヘッダー自身がpadding-topを持つ）
+  content.style.paddingTop = '0';
+
   content.innerHTML = `
-    <div id="records-sticky" style="
-      position:sticky;top:0;z-index:10;
-      background:var(--stone);
-      padding-bottom:2px;
-      margin-top:-1px;
-      padding-top:1px;
-      box-shadow:0 2px 8px rgba(244,241,236,0.95);
-    ">
+    <div id="records-sticky">
       <div class="records-summary-bar" id="records-summary">
         <div class="rsb-item">
           <div class="rsb-label">収入</div>

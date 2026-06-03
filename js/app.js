@@ -95,10 +95,15 @@ function showApp(user) {
     if (Router.currentPage === 'records')   Router.navigate('records');
   });
 
-  Router.register('dashboard', renderDashboard);
-  Router.register('accounts',  renderAccounts);
-  Router.register('settings',  renderSettings);
+  Router.register('dashboard', () => { _resetPagePadding(); renderDashboard(); });
+  Router.register('accounts',  () => { _resetPagePadding(); renderAccounts(); });
+  Router.register('settings',  () => { _resetPagePadding(); renderSettings(); });
   Router.register('records', renderRecords);
+
+  function _resetPagePadding() {
+    const c = document.getElementById('page-content');
+    if (c) c.style.paddingTop = '';
+  }
 
   Router.init();
   window._flowraRouter = Router; // インポート画面等から参照できるように公開
