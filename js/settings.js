@@ -95,29 +95,20 @@ function openSubPage(title, renderFn, { showSave = false, onSave = null } = {}) 
 export async function renderSettings() {
   const content = document.getElementById('page-content');
 
-  // キャッシュから即表示
-  const [cachedTags, user] = await Promise.all([
-    getCachedTags(),
-    Auth.getUser(),
-  ]);
-  if (cachedTags.length > 0) {
-    renderSettingsContent(content, user, null, null, cachedTags, [], []);
-    // パートナー共有エリアにスケルトンを表示（CLSを防ぐ）
-    renderMembersListSkeleton();
-  } else {
-    content.innerHTML = '<div class="spinner"></div>';
-  }
+  // スピナーを表示して全データが揃ってから一度だけ描画（CLSを根絶）
+  content.innerHTML = '<div class="spinner"></div>';
 
-  // バックグラウンドで最新取得（動的部分のみ差し替え）
   try {
-    const [tags, allTeams] = await Promise.all([
-      DB.getTags(), DB.getAllTeams()
+    const [user, tags, allTeams] = await Promise.all([
+      Auth.getUser(),
+      DB.getTags(),
+      DB.getAllTeams(),
     ]);
     await putTags(tags);
 
-    const ownEntry  = allTeams.find(t => t.role === 'owner');
-    const ownTeamId = ownEntry?.team_id;
-    const ownTeam   = ownTeamId ? await DB.getTeamById(ownTeamId) : null;
+    const ownEntry   = allTeams.find(t => t.role === 'owner');
+    const ownTeamId  = ownEntry?.team_id;
+    const ownTeam    = ownTeamId ? await DB.getTeamById(ownTeamId) : null;
     const ownMembers = ownTeamId
       ? await DB.getTeamMemberProfilesForTeam(ownTeamId)
       : [];
@@ -130,42 +121,9 @@ export async function renderSettings() {
       })
     );
 
-    // すでに描画済みなら差分更新（CLSを防ぐ）
-    const alreadyRendered = !!document.getElementById('members-list');
-    if (alreadyRendered) {
-      // メンバーリストだけ更新
-      renderMembersList(ownMembers, user);
-
-      // チーム名を更新
-      const teamNameEl = document.querySelector('.team-name-value');
-      if (teamNameEl && ownTeam) teamNameEl.textContent = ownTeam.name;
-
-      // 参加チームパネルを更新（存在すれば差し替え、なければ追加しない→CLSを起こすため再描画は不要）
-      const joinedWrap = document.getElementById('joined-teams-list');
-      if (joinedWrap) renderJoinedTeamsList(joinedTeams, user);
-
-      // タグ件数を更新
-      const tagCountEl = document.getElementById('tag-count-label');
-      if (tagCountEl) tagCountEl.textContent = tags.length + '個';
-
-      // 予算件数を更新
-      const budgetCountEl = document.getElementById('budget-count-label');
-      if (budgetCountEl) {
-        DB.getBudgets(null).then(map => {
-          const n = Object.keys(map).length;
-          budgetCountEl.textContent = n > 0 ? n + '個設定済み' : '未設定';
-        }).catch(() => {});
-      }
-
-      // イベント再登録（チームID依存のもの）
-      setupSettingsDynamicEvents(content, user, ownTeam, ownTeamId, tags, ownMembers, joinedTeams);
-    } else {
-      renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ownMembers, joinedTeams);
-    }
+    renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ownMembers, joinedTeams);
   } catch (e) {
-    if (cachedTags.length === 0) {
-      content.innerHTML = '<div class="empty-state"><div class="empty-state-title">エラー: ' + e.message + '</div></div>';
-    }
+    content.innerHTML = '<div class="empty-state"><div class="empty-state-title">エラー: ' + e.message + '</div></div>';
   }
 }
 
