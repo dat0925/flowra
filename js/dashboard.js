@@ -307,47 +307,42 @@ async function renderContent(content, accounts, transactions, year, month, fromC
       <div id="ai-summary-panel" style="
           background:var(--sage-bg);border:1.5px solid var(--sage-lt);
           border-radius:16px;margin-top:10px;margin-bottom:10px;overflow:hidden;">
-        <!-- ヘッダー: 自動一言表示エリア -->
-        <div style="padding:14px 16px 0;">
-          <div style="display:flex;align-items:center;gap:5px;margin-bottom:8px;">
-            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--sage)" stroke-width="2">
-              <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
-            </svg>
-            <span style="font-size:10px;font-weight:600;color:var(--sage);letter-spacing:0.08em;text-transform:uppercase;">AI アドバイス</span>
-          </div>
-          <div id="ai-auto-answer" style="font-size:13px;line-height:1.75;color:var(--ink);
-            min-height:40px;margin-bottom:12px;">
-            <div style="display:flex;align-items:center;gap:6px;color:var(--mid-lt);font-size:12px;">
-              <div style="width:11px;height:11px;border:1.5px solid var(--sage-lt);
-                border-top-color:var(--sage);border-radius:50%;
-                animation:spin 0.8s linear infinite;flex-shrink:0;"></div>
-              分析中…
+        <div style="padding:14px 16px 12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:5px;">
+              <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="var(--sage)" stroke-width="2">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/>
+              </svg>
+              <span style="font-size:10px;font-weight:600;color:var(--sage);letter-spacing:0.08em;">AI アドバイス</span>
             </div>
+            <div id="ai-usage-badge" style="font-size:11px;color:var(--mid-lt);"></div>
+          </div>
+          <!-- 回答エリア（ボタンを押すまで空） -->
+          <div id="ai-auto-answer" style="display:none;font-size:13px;line-height:1.75;
+            color:var(--ink);margin-bottom:10px;"></div>
+          <!-- ボタン群 -->
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="btn-ai-q" data-q="monthly"
+              style="font-size:11px;padding:5px 11px;border-radius:20px;
+                border:1px solid var(--sage-lt);background:none;
+                color:var(--sage);cursor:pointer;font-weight:500;white-space:nowrap;">
+              今月どう？
+            </button>
+            <button class="btn-ai-q" data-q="compare"
+              style="font-size:11px;padding:5px 11px;border-radius:20px;
+                border:1px solid var(--border);background:none;
+                color:var(--mid);cursor:pointer;font-weight:500;white-space:nowrap;">
+              先月と比べて
+            </button>
+            <button class="btn-ai-q" data-q="saving"
+              style="font-size:11px;padding:5px 11px;border-radius:20px;
+                border:1px solid var(--border);background:none;
+                color:var(--mid);cursor:pointer;font-weight:500;white-space:nowrap;">
+              節約ヒント
+            </button>
           </div>
         </div>
-        <!-- 詳しく聞くボタン群 -->
-        <div style="padding:0 12px 12px;display:flex;gap:6px;flex-wrap:wrap;
-          border-top:1px solid var(--sage-lt);padding-top:10px;">
-          <button class="btn-ai-q" data-q="monthly"
-            style="font-size:11px;padding:5px 11px;border-radius:20px;
-              border:1px solid var(--sage-lt);background:none;
-              color:var(--sage);cursor:pointer;font-weight:500;white-space:nowrap;">
-            今月どう？
-          </button>
-          <button class="btn-ai-q" data-q="compare"
-            style="font-size:11px;padding:5px 11px;border-radius:20px;
-              border:1px solid var(--border);background:none;
-              color:var(--mid);cursor:pointer;font-weight:500;white-space:nowrap;">
-            先月と比べて
-          </button>
-          <button class="btn-ai-q" data-q="saving"
-            style="font-size:11px;padding:5px 11px;border-radius:20px;
-              border:1px solid var(--border);background:none;
-              color:var(--mid);cursor:pointer;font-weight:500;white-space:nowrap;">
-            節約ヒント
-          </button>
-        </div>
-        <div id="ai-answer" style="display:none;padding:0 16px 14px;"></div>
+        <div id="ai-answer" style="display:none;padding:0 16px 14px;border-top:1px solid var(--sage-lt);padding-top:12px;margin-top:-2px;"></div>
       </div>
       ${budgetHTML}
       <div class="main-grid">
@@ -670,9 +665,25 @@ function setupAiSummary(transactions, year, month) {
           daysInMonth: new Date(year, month, 0).getDate(),
         });
 
-        answerEl.innerHTML = '<div style="font-size:13px;line-height:1.75;color:var(--ink);'
-          + 'border-top:1px solid var(--sage-lt);padding-top:10px;">'
+        answerEl.style.display = 'block';
+        answerEl.innerHTML = '<div style="font-size:13px;line-height:1.75;color:var(--ink);">'
           + answer.split('\n').join('<br>') + '</div>';
+        // 残り回数バッジを更新
+        DB.getUserPlan().catch(() => 'free').then(async plan => {
+          if (plan === 'premium' || plan === 'admin') return;
+          const usage = await DB.getAiUsageThisMonth().catch(() => 0);
+          const remaining = Math.max(0, DB.FREE_AI_LIMIT - usage);
+          const badge = document.getElementById('ai-usage-badge');
+          if (!badge) return;
+          if (remaining === 0) {
+            badge.innerHTML = '<span style="color:var(--red);">今月の上限に達しました</span>';
+          } else if (remaining <= 2) {
+            badge.innerHTML = '<span style="color:var(--gold);">残り' + remaining + '回</span>';
+          } else {
+            badge.textContent = '残り' + remaining + '回';
+            badge.style.color = 'var(--mid-lt)';
+          }
+        });
       } catch (e) {
         if (e.message === 'LIMIT_REACHED') {
           answerEl.style.display = 'none';
