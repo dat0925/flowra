@@ -11,10 +11,9 @@ import { warmupAddRecord } from './add-record.js';
 import { showOnboardingForReplay } from './onboarding.js';
 
 // サブページを全画面でオーバーレイ表示
-function openSubPage(title, renderFn, { showBottomSave = false, onSave = null } = {}) {
+function openSubPage(title, renderFn, { showSave = false, onSave = null } = {}) {
   document.getElementById('settings-subpage')?.remove();
 
-  // アニメーションCSS
   if (!document.getElementById('subpage-style')) {
     const s = document.createElement('style');
     s.id = 'subpage-style';
@@ -26,20 +25,23 @@ function openSubPage(title, renderFn, { showBottomSave = false, onSave = null } 
   page.id = 'settings-subpage';
   page.style.cssText = 'position:fixed;inset:0;z-index:500;background:var(--stone);display:flex;flex-direction:column;animation:slideInRight 0.25s ease;';
 
-  const bottomBar = showBottomSave
-    ? '<div id="subpage-bottom" style="flex-shrink:0;padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--stone);display:flex;gap:10px;">'
-      + '<button id="btn-subpage-cancel" style="flex:0 0 auto;min-width:88px;padding:12px;background:none;border:1.5px solid var(--border);border-radius:12px;font-size:14px;color:var(--mid);cursor:pointer;">キャンセル</button>'
-      + '<button id="btn-subpage-save" class="btn-primary" style="flex:1;">保存</button>'
-      + '</div>'
-    : '';
+  // 下部バー（タグ管理: 戻る＋追加、予算管理: 戻る＋保存）
+  const bottomBtn = showSave
+    ? '<button id="btn-subpage-save" class="btn-primary" style="flex:1;">保存</button>'
+    : '<button id="btn-subpage-add" style="flex:1;padding:12px;background:var(--sage-bg);border:1.5px solid var(--sage);border-radius:12px;font-size:14px;font-weight:600;color:var(--sage);cursor:pointer;">＋ タグを追加</button>';
 
-  page.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;border-bottom:1px solid var(--border);background:var(--stone);flex-shrink:0;">'
+  page.innerHTML =
+    // タイトルのみのヘッダー（操作なし）
+    '<div style="flex-shrink:0;padding:14px 16px 12px;border-bottom:1px solid var(--border);background:var(--stone);text-align:center;">'
     + '<span style="font-size:16px;font-weight:600;color:var(--ink);">' + title + '</span>'
-    + '<button id="btn-subpage-close" style="background:none;border:none;cursor:pointer;padding:4px;color:var(--mid);display:flex;align-items:center;justify-content:center;">'
-    + '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
-    + '</button></div>'
-    + '<div id="subpage-content" style="flex:1;overflow-y:auto;padding:16px 0 ' + (showBottomSave ? '8' : '40') + 'px;"></div>'
-    + bottomBar;
+    + '</div>'
+    // コンテンツ
+    + '<div id="subpage-content" style="flex:1;overflow-y:auto;padding:16px 0 8px;"></div>'
+    // 下部固定バー（セーフエリア対応）
+    + '<div style="flex-shrink:0;padding:10px 16px;padding-bottom:calc(10px + env(safe-area-inset-bottom));border-top:1px solid var(--border);background:var(--stone);display:flex;gap:10px;">'
+    + '<button id="btn-subpage-back" style="flex:0 0 auto;min-width:88px;padding:12px;background:none;border:1.5px solid var(--border);border-radius:12px;font-size:14px;color:var(--mid);cursor:pointer;">← 戻る</button>'
+    + bottomBtn
+    + '</div>';
 
   document.body.appendChild(page);
 
@@ -51,38 +53,39 @@ function openSubPage(title, renderFn, { showBottomSave = false, onSave = null } 
     setTimeout(() => { page.remove(); renderSettings(); }, 200);
   };
 
-  document.getElementById('btn-subpage-close')?.addEventListener('click', closeSubPage);
-  document.getElementById('btn-subpage-cancel')?.addEventListener('click', closeSubPage);
+  document.getElementById('btn-subpage-back')?.addEventListener('click', closeSubPage);
   document.getElementById('btn-subpage-save')?.addEventListener('click', () => {
     if (onSave) onSave(closeSubPage);
   });
+  document.getElementById('btn-subpage-add')?.addEventListener('click', () => {
+    document.getElementById('btn-add-tag-open')?.click();
+  });
 
   // 右スワイプで閉じる
-  let startX = 0, startY = 0, dragging = false;
+  let startX = 0, startY = 0, swiping = false;
   page.addEventListener('touchstart', e => {
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
-    dragging = false;
+    swiping = false;
   }, { passive: true });
   page.addEventListener('touchmove', e => {
     const dx = e.touches[0].clientX - startX;
     const dy = Math.abs(e.touches[0].clientY - startY);
-    if (!dragging && dx > 10 && dy < dx * 0.8) dragging = true;
-    if (dragging) {
-      const x = Math.max(0, dx);
-      page.style.transform = 'translateX(' + x + 'px)';
+    if (!swiping && dx > 10 && dy < dx * 0.8) swiping = true;
+    if (swiping) {
+      page.style.transform = 'translateX(' + Math.max(0, dx) + 'px)';
       page.style.transition = 'none';
     }
   }, { passive: true });
   page.addEventListener('touchend', e => {
     const dx = e.changedTouches[0].clientX - startX;
-    if (dragging && dx > window.innerWidth * 0.35) {
+    if (swiping && dx > window.innerWidth * 0.35) {
       closeSubPage();
     } else {
       page.style.transform = '';
       page.style.transition = 'transform 0.2s ease';
     }
-    dragging = false;
+    swiping = false;
   }, { passive: true });
 
   const container = document.getElementById('subpage-content');
@@ -909,13 +912,6 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
     openSubPage('タグ管理', (container) => {
       container.innerHTML = '<div id="tag-list-wrap"></div>';
       renderTagList(tags);
-      // ＋追加ボタン
-      const addBtn = document.createElement('button');
-      addBtn.className = 'btn-primary';
-      addBtn.style.cssText = 'margin:12px 16px 0;width:calc(100% - 32px);';
-      addBtn.innerHTML = '＋ タグを追加';
-      addBtn.addEventListener('click', () => document.getElementById('btn-add-tag-open')?.click());
-      container.appendChild(addBtn);
     });
   });
 
@@ -926,10 +922,9 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
       container.innerHTML = '<div id="budget-list-wrap" style="padding:0 16px 12px;"><div style="font-size:12px;color:var(--mid-lt);padding:12px 0;">読み込み中…</div></div>';
       renderBudgetList(tags);
     }, {
-      showBottomSave: true,
+      showSave: true,
       onSave: (close) => {
         document.getElementById('btn-save-budgets')?.click();
-        // 少し待ってから閉じる（保存トーストを見せる）
         setTimeout(close, 800);
       }
     });
