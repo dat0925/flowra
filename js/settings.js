@@ -108,38 +108,63 @@ export async function renderSettings() {
     content.innerHTML = '<div class="spinner"></div>';
   }
 
-  // バックグラウンドで最新取得
+  // バックグラウンドで最新取得（動的部分のみ差し替え）
   try {
     const [tags, allTeams] = await Promise.all([
       DB.getTags(), DB.getAllTeams()
     ]);
     await putTags(tags);
 
-    // 自分のチーム（owner）は常に取得
     const ownEntry  = allTeams.find(t => t.role === 'owner');
     const ownTeamId = ownEntry?.team_id;
-    // JOINのスキーマキャッシュ問題を避けるため直接取得
-    const ownTeam = ownTeamId ? await DB.getTeamById(ownTeamId) : null;
-
-    // 自分のチームのメンバー一覧
+    const ownTeam   = ownTeamId ? await DB.getTeamById(ownTeamId) : null;
     const ownMembers = ownTeamId
       ? await DB.getTeamMemberProfilesForTeam(ownTeamId)
       : [];
 
-    // 他チームに参加している場合（role !== 'owner'）
     const joinedEntries = allTeams.filter(t => t.role !== 'owner');
-    // 各参加チームのメンバー情報（オーナー名表示用）
-    const joinedTeams = await Promise.all(
+    const joinedTeams   = await Promise.all(
       joinedEntries.map(async e => {
         const members = await DB.getTeamMemberProfilesForTeam(e.team_id);
         return { entry: e, members };
       })
     );
 
-    renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ownMembers, joinedTeams);
+    // すでに描画済みなら差分更新（CLSを防ぐ）
+    const alreadyRendered = !!document.getElementById('members-list');
+    if (alreadyRendered) {
+      // メンバーリストだけ更新
+      renderMembersList(ownMembers, user);
+
+      // チーム名を更新
+      const teamNameEl = document.querySelector('.team-name-value');
+      if (teamNameEl && ownTeam) teamNameEl.textContent = ownTeam.name;
+
+      // 参加チームパネルを更新（存在すれば差し替え、なければ追加しない→CLSを起こすため再描画は不要）
+      const joinedWrap = document.getElementById('joined-teams-list');
+      if (joinedWrap) renderJoinedTeamsList(joinedTeams, user);
+
+      // タグ件数を更新
+      const tagCountEl = document.getElementById('tag-count-label');
+      if (tagCountEl) tagCountEl.textContent = tags.length + '個';
+
+      // 予算件数を更新
+      const budgetCountEl = document.getElementById('budget-count-label');
+      if (budgetCountEl) {
+        DB.getBudgets(null).then(map => {
+          const n = Object.keys(map).length;
+          budgetCountEl.textContent = n > 0 ? n + '個設定済み' : '未設定';
+        }).catch(() => {});
+      }
+
+      // イベント再登録（チームID依存のもの）
+      setupSettingsDynamicEvents(content, user, ownTeam, ownTeamId, tags, ownMembers, joinedTeams);
+    } else {
+      renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ownMembers, joinedTeams);
+    }
   } catch (e) {
     if (cachedTags.length === 0) {
-      content.innerHTML = `<div class="empty-state"><div class="empty-state-title">エラー: ${e.message}</div></div>`;
+      content.innerHTML = '<div class="empty-state"><div class="empty-state-title">エラー: ' + e.message + '</div></div>';
     }
   }
 }
@@ -761,6 +786,47 @@ function openTagEditSheet(tag, allTags) {
   });
 }
 
+// 差分更新時にイベントを再登録する（招待ボタンなどownTeamId依存のイベント）
+function setupSettingsDynamicEvents(content, user, ownTeam, ownTeamId, tags, ownMembers, joinedTeams) {
+  // btn-create-invite は既にDOMにあるのでリスナーを付け直す
+  const oldBtn = document.getElementById('btn-create-invite');
+  if (oldBtn) {
+    const newBtn = oldBtn.cloneNode(true); // リスナーをリセット
+    oldBtn.parentNode.replaceChild(newBtn, oldBtn);
+    newBtn.addEventListener('click', async () => {
+      newBtn.disabled = true;
+      newBtn.textContent = '生成中…';
+      try {
+        const invite = await DB.createInviteForOwnTeam('member');
+        const url = window.location.origin + '?invite=' + invite.token;
+        let copied = false;
+        try { await navigator.clipboard.writeText(url); copied = true; } catch (_) {}
+        if (copied) {
+          showToast('招待リンクをコピーしました（7日間有効）');
+        } else {
+          showInviteUrlDialog(url);
+        }
+      } catch (e) {
+        showToast('エラー: ' + e.message);
+      } finally {
+        newBtn.disabled = false;
+        newBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> 招待リンクを発行';
+      }
+    });
+  }
+
+  // チーム名編集
+  const teamNameBtn = document.getElementById('btn-edit-team-name');
+  if (teamNameBtn && ownTeam) {
+    const newTeamBtn = teamNameBtn.cloneNode(true);
+    teamNameBtn.parentNode.replaceChild(newTeamBtn, teamNameBtn);
+    newTeamBtn.addEventListener('click', () => openTeamNameSheet(ownTeam, ownTeamId));
+  }
+
+  // タグ管理・予算管理ページ遷移（再登録）
+  setupTagBudgetPageEvents(tags);
+}
+
 async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ownMembers = [], joinedTeams = []) {
   content.innerHTML = `
     <!-- プロフィール -->
@@ -908,29 +974,8 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
     }).catch(() => { budgetCountEl.textContent = ''; });
   }
 
-  // タグ管理ページへ
-  document.getElementById('btn-open-tag-page')?.addEventListener('click', () => {
-    Sound.playOpen();
-    openSubPage('タグ管理', (container) => {
-      container.innerHTML = '<div id="tag-list-wrap"></div>';
-      renderTagList(tags);
-    });
-  });
-
-  // 予算管理ページへ
-  document.getElementById('btn-open-budget-page')?.addEventListener('click', () => {
-    Sound.playOpen();
-    openSubPage('予算管理', (container) => {
-      container.innerHTML = '<div id="budget-list-wrap" style="padding:0 16px 12px;"><div style="font-size:12px;color:var(--mid-lt);padding:12px 0;">読み込み中…</div></div>';
-      renderBudgetList(tags);
-    }, {
-      showSave: true,
-      onSave: (close) => {
-        document.getElementById('btn-save-budgets')?.click();
-        setTimeout(close, 800);
-      }
-    });
-  });
+  // タグ管理・予算管理ページ遷移
+  setupTagBudgetPageEvents(tags);
 
   // 自分のチームのメンバーリスト
   renderMembersList(ownMembers, user);
@@ -992,6 +1037,38 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
 }
 
 // ── メンバーリスト描画（自分のチーム用）──
+function setupTagBudgetPageEvents(tags) {
+  const tagBtn = document.getElementById('btn-open-tag-page');
+  if (tagBtn && !tagBtn.dataset.bound) {
+    tagBtn.dataset.bound = '1';
+    tagBtn.addEventListener('click', () => {
+      Sound.playOpen();
+      openSubPage('タグ管理', (container) => {
+        container.innerHTML = '<div id="tag-list-wrap"></div>';
+        renderTagList(tags);
+      });
+    });
+  }
+
+  const budgetBtn = document.getElementById('btn-open-budget-page');
+  if (budgetBtn && !budgetBtn.dataset.bound) {
+    budgetBtn.dataset.bound = '1';
+    budgetBtn.addEventListener('click', () => {
+      Sound.playOpen();
+      openSubPage('予算管理', (container) => {
+        container.innerHTML = '<div id="budget-list-wrap" style="padding:0 16px 12px;"><div style="font-size:12px;color:var(--mid-lt);padding:12px 0;">読み込み中…</div></div>';
+        renderBudgetList(tags);
+      }, {
+        showSave: true,
+        onSave: (close) => {
+          document.getElementById('btn-save-budgets')?.click();
+          setTimeout(close, 800);
+        }
+      });
+    });
+  }
+}
+
 function renderMembersListSkeleton() {
   const wrap = document.getElementById('members-list');
   if (!wrap) return;
