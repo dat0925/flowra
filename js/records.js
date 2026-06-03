@@ -109,6 +109,9 @@ function renderShell(transactions, year, month) {
       position:sticky;top:0;z-index:10;
       background:var(--stone);
       padding-bottom:2px;
+      margin-top:-1px;
+      padding-top:1px;
+      box-shadow:0 2px 8px rgba(244,241,236,0.95);
     ">
       <div class="records-summary-bar" id="records-summary">
         <div class="rsb-item">
