@@ -3,6 +3,7 @@
 // ─────────────────────────────────────
 import { Auth }  from './auth.js';
 import { Sound } from './sound.js';
+import { supabase } from './config.js';
 import { DB }    from './db.js';
 import { showToast, openModal, closeModal } from './utils.js';
 import { getCachedTags, putTags } from './cache.js';
@@ -839,12 +840,28 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
 
     <div style="text-align:center;font-size:11px;color:var(--mid-lt);margin-top:24px;">
       Flowra v0.1.0 — Supabase + PWA
+    </div>
+    <div id="admin-link-wrap" style="text-align:center;margin-top:8px;display:none;">
+      <a href="/admin.html" style="font-size:11px;color:var(--mid-lt);text-decoration:none;
+        padding:4px 10px;border-radius:6px;border:1px solid var(--border);">
+        ⚙ 管理画面
+      </a>
     </div>`;
 
   // タグリスト描画
   // タグ件数ラベルを更新
   const tagCountEl = document.getElementById('tag-count-label');
   if (tagCountEl) tagCountEl.textContent = tags.length + '個';
+
+  // 管理者のみ管理画面リンクを表示
+  const ADMIN_IDS = ['6fa4c2af-ea85-4207-aacc-538f6b481d66'];
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user && ADMIN_IDS.includes(user.id)) {
+      const el = document.getElementById('admin-link-wrap');
+      if (el) el.style.display = 'block';
+    }
+  } catch(_) {}
 
   // 予算件数ラベル（非同期で取得）
   const budgetCountEl = document.getElementById('budget-count-label');
