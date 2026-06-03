@@ -954,7 +954,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
         ${categoryGridWithDirect}
         <!-- ⚡ 今すぐ入力CTA -->
         <div style="padding:10px 16px 4px;">
-          <button id="suggest-new-btn"
+          <button id="suggest-quick-btn"
             style="width:100%;padding:14px 16px;border-radius:14px;border:none;
             background:var(--sage);color:#fff;cursor:pointer;
             display:flex;align-items:center;justify-content:center;gap:8px;">
@@ -1047,8 +1047,22 @@ async function showSuggest(onSave, onReady, accounts, tags) {
     });
   });
 
-  // 新規入力ボタン
+  // 新規入力ボタン（グリッド内「直接入力」）
   document.getElementById('suggest-new-btn')?.addEventListener('click', () => {
+    const dummy = document.getElementById('ios-focus-trick');
+    dummy?.focus();
+    overlay.removeEventListener('click', onOverlayClick);
+    overlay.hidden = true;
+    document.body.style.overflow = '';
+    renderAddRecord(onSave, () => {
+      setTimeout(() => {
+        (() => { const el = document.getElementById('amount-input'); if(el){ el.focus(); const r=document.createRange(),s=window.getSelection(); r.selectNodeContents(el); r.collapse(false); s.removeAllRanges(); s.addRange(r); } })();
+      }, 50);
+    }, { _skipSuggest: true });
+  });
+
+  // ⚡ 今すぐ入力CTAボタン
+  document.getElementById('suggest-quick-btn')?.addEventListener('click', () => {
     const dummy = document.getElementById('ios-focus-trick');
     dummy?.focus();
     overlay.removeEventListener('click', onOverlayClick);
