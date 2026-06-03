@@ -476,8 +476,18 @@ function setupAiSummary(transactions, year, month) {
     return Object.values(map);
   }
 
-  // Edge Function呼び出し
+  // Edge Function呼び出し（使用回数チェック付き）
   async function callAI(question, data) {
+    // プランチェック（coupleプランは無制限）
+    const isCouple = await DB.isCoupleplan().catch(() => false);
+    if (!isCouple) {
+      const usage = await DB.getAiUsageThisMonth().catch(() => 0);
+      if (usage >= DB.FREE_AI_LIMIT) {
+        showUpgradeSheet();
+        throw new Error('LIMIT_REACHED');
+      }
+    }
+
     const { data: { session } } = await supabase.auth.getSession();
     const token = session?.access_token || '';
     const res = await fetch('https://copyzpsyagscqrvkrwjo.supabase.co/functions/v1/flowra-ai', {
@@ -491,7 +501,76 @@ function setupAiSummary(transactions, year, month) {
     });
     const json = await res.json();
     if (json.error) throw new Error(json.error);
+
+    // 成功したらカウントアップ
+    if (!isCouple) DB.incrementAiUsage().catch(() => {});
+
     return json.answer;
+  }
+
+  // アップグレード誘導シート
+  function showUpgradeSheet() {
+    if (document.getElementById('upgrade-sheet')) return;
+    const sheet = document.createElement('div');
+    sheet.id = 'upgrade-sheet';
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:800;background:rgba(28,43,34,0.5);'
+      + 'display:flex;align-items:flex-end;justify-content:center;';
+    sheet.innerHTML = `
+      <div style="background:var(--stone);width:100%;max-width:480px;border-radius:24px 24px 0 0;
+        padding:32px 24px 48px;text-align:center;">
+        <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 24px;"></div>
+        <div style="font-size:32px;margin-bottom:12px;">✨</div>
+        <div style="font-family:'Noto Serif JP',serif;font-size:20px;font-weight:600;
+          color:var(--ink);margin-bottom:10px;">今月のAI回数を使い切りました</div>
+        <div style="font-size:14px;color:var(--mid);line-height:1.7;margin-bottom:8px;">
+          無料プランは月${DB.FREE_AI_LIMIT}回まで利用できます。<br>
+          Coupleプランで無制限に使えます。
+        </div>
+        <div style="font-size:12px;color:var(--mid-lt);margin-bottom:28px;">
+          来月になるとリセットされます
+        </div>
+
+        <div style="background:var(--white);border-radius:18px;padding:20px;margin-bottom:16px;
+          border:1.5px solid var(--sage-lt);">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:var(--sage);
+            margin-bottom:6px;">COUPLE PLAN</div>
+          <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;margin-bottom:4px;">
+            <span style="font-family:'Noto Serif JP',serif;font-size:32px;font-weight:700;
+              color:var(--ink);">¥398</span>
+            <span style="font-size:13px;color:var(--mid);">/ 月</span>
+          </div>
+          <div style="font-size:12px;color:var(--mid-lt);margin-bottom:16px;">
+            2人で割れば ¥199 / 人
+          </div>
+          <ul style="text-align:left;list-style:none;padding:0;margin:0 0 16px;
+            display:flex;flex-direction:column;gap:8px;">
+            <li style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);">
+              <span style="color:var(--sage);font-weight:700;">✓</span> AIアドバイス無制限
+            </li>
+            <li style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);">
+              <span style="color:var(--sage);font-weight:700;">✓</span> 口座・タグ無制限
+            </li>
+            <li style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink);">
+              <span style="color:var(--sage);font-weight:700;">✓</span> 新機能への優先アクセス
+            </li>
+          </ul>
+          <button onclick="window.open('mailto:support@taskra.jp?subject=Coupleプラン申込','_blank')"
+            style="width:100%;padding:15px;border-radius:14px;border:none;background:var(--sage);
+            color:#fff;font-size:15px;font-weight:600;cursor:pointer;">
+            Coupleプランに申し込む
+          </button>
+        </div>
+
+        <button id="upgrade-sheet-close"
+          style="background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;padding:8px;">
+          来月まで待つ
+        </button>
+      </div>`;
+    document.body.appendChild(sheet);
+    sheet.addEventListener('click', e => {
+      if (e.target === sheet) sheet.remove();
+    });
+    document.getElementById('upgrade-sheet-close')?.addEventListener('click', () => sheet.remove());
   }
 
   // 自動一言表示（ページ読み込み時・既存データのみ使用）
@@ -520,7 +599,12 @@ function setupAiSummary(transactions, year, month) {
     }).catch(e => {
       clearTimeout(tid);
       const el = document.getElementById('ai-auto-answer');
-      if (el) el.innerHTML = '<span style="color:rgba(255,180,100,0.7);font-size:11px;">⚠ ' + (e.message || 'エラー') + '</span>';
+      if (!el) return;
+      if (e.message === 'LIMIT_REACHED') {
+        el.innerHTML = '<span style="font-size:12px;color:var(--mid-lt);">今月のAI回数上限に達しました</span>';
+      } else {
+        el.innerHTML = '<span style="color:rgba(255,180,100,0.7);font-size:11px;">⚠ ' + (e.message || 'エラー') + '</span>';
+      }
     });
   }
 
@@ -579,7 +663,11 @@ function setupAiSummary(transactions, year, month) {
           + 'border-top:1px solid var(--sage-lt);padding-top:10px;">'
           + answer.split('\n').join('<br>') + '</div>';
       } catch (e) {
-        answerEl.innerHTML = '<div style="font-size:12px;color:rgba(255,100,100,0.8);padding:4px 0;">エラー: ' + e.message + '</div>';
+        if (e.message === 'LIMIT_REACHED') {
+          answerEl.style.display = 'none';
+        } else {
+          answerEl.innerHTML = '<div style="font-size:12px;color:rgba(255,100,100,0.8);padding:4px 0;">エラー: ' + e.message + '</div>';
+        }
       }
     });
   });

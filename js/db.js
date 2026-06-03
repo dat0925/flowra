@@ -745,5 +745,55 @@ export const DB = {
       .order('updated_at', { ascending: false });
     if (error) throw error;
     return data;
-  }
+  },
+
+  // ── AI使用量・プラン ─────────────────────
+
+  // 無料プランの月次AI上限
+  FREE_AI_LIMIT: 5,
+
+  // 今月のAI使用回数を取得（テーブルがなければ0を返す）
+  async getAiUsageThisMonth() {
+    const { data: { user } } = await supabase.auth.getUser();
+    const monthKey = new Date().toISOString().slice(0, 7); // YYYY-MM
+    const { data, error } = await supabase
+      .from('ai_usage')
+      .select('count')
+      .eq('user_id', user.id)
+      .eq('month_key', monthKey)
+      .maybeSingle();
+    if (error) return 0; // テーブル未作成でも0を返す
+    return data?.count ?? 0;
+  },
+
+  // AI使用回数をインクリメント（Edge Function呼び出し前に実行）
+  async incrementAiUsage() {
+    const { data: { user } } = await supabase.auth.getUser();
+    const monthKey = new Date().toISOString().slice(0, 7);
+    const { error } = await supabase.rpc('increment_ai_usage', {
+      p_user_id: user.id,
+      p_month_key: monthKey,
+    });
+    if (error) console.warn('[DB] increment_ai_usage failed:', error.message);
+  },
+
+  // ユーザーのプランを取得（'free' | 'couple'）
+  async getUserPlan() {
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from('user_plans')
+      .select('plan, expires_at')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (error || !data) return 'free';
+    // expires_atが過去ならfreeに降格
+    if (data.expires_at && new Date(data.expires_at) < new Date()) return 'free';
+    return data.plan;
+  },
+
+  // Coupleプランかどうか（AI制限判定用）
+  async isCoupleplan() {
+    const plan = await this.getUserPlan();
+    return plan === 'couple';
+  },
 };

@@ -811,6 +811,101 @@
       color: var(--mid-lt);
     }
 
+    /* ── PRICING ── */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 680px;
+      margin: 0 auto;
+    }
+    @media (max-width: 600px) {
+      .pricing-grid { grid-template-columns: 1fr; max-width: 360px; }
+    }
+    .pricing-card {
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 24px;
+      padding: 28px 24px 24px;
+      text-align: left;
+      position: relative;
+    }
+    .pricing-card-featured {
+      border-color: var(--sage);
+      background: #F0F7F3;
+    }
+    .pricing-badge {
+      position: absolute;
+      top: -13px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--sage);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      padding: 4px 14px;
+      border-radius: 100px;
+      white-space: nowrap;
+    }
+    .pricing-plan-name {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--sage);
+      margin-bottom: 10px;
+    }
+    .pricing-price-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .pricing-price {
+      font-family: 'Noto Serif JP', serif;
+      font-size: 36px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .pricing-per { font-size: 13px; color: var(--mid); }
+    .pricing-desc { font-size: 12px; color: var(--mid-lt); margin-bottom: 20px; }
+    .pricing-features {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+    .pricing-features li {
+      font-size: 13px;
+      color: var(--ink);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.5;
+    }
+    .pricing-features li::before { flex-shrink: 0; margin-top: 1px; font-size: 12px; font-weight: 700; }
+    .pricing-features li.ok::before  { content: '✓'; color: var(--sage); }
+    .pricing-features li.limit::before { content: '◦'; color: var(--mid-lt); }
+    .pricing-features li.limit { color: var(--mid); }
+    .pricing-btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
+      transition: opacity 0.15s;
+      box-sizing: border-box;
+    }
+    .pricing-btn:active { opacity: 0.75; }
+    .pricing-btn-free   { background: var(--stone); color: var(--ink); border: 1.5px solid var(--border); }
+    .pricing-btn-couple { background: var(--sage); color: #fff; border: none; }
+
     /* ── FREE BADGE ── */
     .free-section {
       padding: 100px 24px;
@@ -1303,24 +1398,64 @@
   <!-- FREE -->
   <section class="free-section">
     <span class="section-label">Pricing</span>
-    <h2 class="section-title" style="margin-bottom:40px;">今はずっと、無料です。</h2>
+    <h2 class="section-title" style="margin-bottom:12px;">シンプルな2プラン</h2>
+    <p style="font-size:15px;color:var(--mid);margin-bottom:48px;line-height:1.7;">
+      記録・共有・予算管理はずっと無料。<br>AIをもっと使いたくなったら、2人でコーヒー1杯分。
+    </p>
 
-    <div class="free-badge">
-      <div class="free-price">¥0</div>
-      <div class="free-label">/ 月 · 完全無料</div>
-      <ul class="free-features">
-        <li><div class="check">✓</div>収支の記録・編集（無制限）</li>
-        <li><div class="check">✓</div>パートナーとの共有</li>
-        <li><div class="check">✓</div>複数口座・タグ管理</li>
-        <li><div class="check">✓</div>タグ別予算管理・進捗バー</li>
-        <li><div class="check">✓</div>全期間の検索</li>
-        <li><div class="check">✓</div>PWA対応（ホーム画面に追加）</li>
-        <li><div class="check">✓</div>広告なし</li>
-      </ul>
+    <div class="pricing-grid">
+
+      <!-- Free -->
+      <div class="pricing-card">
+        <div class="pricing-plan-name">Free</div>
+        <div class="pricing-price-wrap">
+          <span class="pricing-price">¥0</span>
+          <span class="pricing-per">/ 月</span>
+        </div>
+        <div class="pricing-desc">まず使ってみる</div>
+        <ul class="pricing-features">
+          <li class="ok">収支の記録・編集（無制限）</li>
+          <li class="ok">パートナーとの共有</li>
+          <li class="ok">複数口座・タグ管理</li>
+          <li class="ok">タグ別予算管理・進捗バー</li>
+          <li class="ok">全期間の検索</li>
+          <li class="ok">広告なし</li>
+          <li class="limit">AIアドバイス：月5回まで</li>
+        </ul>
+        <a href="https://flowra.taskra.jp" class="pricing-btn pricing-btn-free">
+          無料で始める
+        </a>
+      </div>
+
+      <!-- Couple -->
+      <div class="pricing-card pricing-card-featured">
+        <div class="pricing-badge">おすすめ</div>
+        <div class="pricing-plan-name">Couple</div>
+        <div class="pricing-price-wrap">
+          <span class="pricing-price">¥398</span>
+          <span class="pricing-per">/ 月</span>
+        </div>
+        <div class="pricing-desc">2人で割れば ¥199 / 人</div>
+        <ul class="pricing-features">
+          <li class="ok">Freeの全機能</li>
+          <li class="ok"><strong>AIアドバイス：無制限</strong></li>
+          <li class="ok">口座・タグ：無制限</li>
+          <li class="ok">新機能への優先アクセス</li>
+          <li class="ok">開発チームへの要望受付</li>
+        </ul>
+        <a href="mailto:support@taskra.jp?subject=Coupleプラン申込" class="pricing-btn pricing-btn-couple">
+          Coupleプランに申し込む
+        </a>
+        <div style="font-size:11px;color:var(--sage-lt);margin-top:10px;">
+          メールで申し込み後、手動で有効化します
+        </div>
+      </div>
+
     </div>
 
-    <p style="font-size:13px;color:var(--mid-lt);">
-      現在ベータ版として無料公開中。今後も基本機能は無料で使えます。
+    <p style="font-size:12px;color:var(--mid-lt);margin-top:32px;line-height:1.8;">
+      クレジットカード不要。解約はメール1本。<br>
+      記録データはいつでもエクスポート可能です。
     </p>
   </section>
 
