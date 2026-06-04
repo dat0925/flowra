@@ -18,3 +18,14 @@ $$;
 create policy "user_plans: own upsert" on user_plans
   for all using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
+
+-- team_membersのRLS無限ループ修正（2026-06-04）
+-- my_all_team_ids()をSECURITY DEFINERにしてRLSバイパス
+CREATE OR REPLACE FUNCTION my_all_team_ids()
+RETURNS SETOF uuid
+LANGUAGE sql
+SECURITY DEFINER
+STABLE
+AS $$
+  SELECT team_id FROM team_members WHERE user_id = auth.uid();
+$$;
