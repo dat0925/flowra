@@ -389,10 +389,17 @@ async function renderContent(content, accounts, transactions, year, month, fromC
           </div>
         </div>
         <div class="panel" id="tx-panel">
-          <div class="panel-head"><div class="panel-title">記録一覧</div></div>
-          <div id="tx-list">${txRows}</div>
-          <div id="tx-sentinel" style="height:1px;"></div>
-          ${_hasMore ? '<div id="tx-loading" style="padding:16px;text-align:center;font-size:12px;color:var(--mid);">読み込み中…</div>' : ''}
+          <div class="panel-head ac-head" data-ac="tx-body" style="cursor:pointer;">
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div class="panel-title">記録一覧</div>
+              <svg id="ac-chevron-tx" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--sage)" stroke-width="2.5" style="transition:transform 0.25s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
+          </div>
+          <div id="tx-body" style="overflow:hidden;transition:max-height 0.28s ease;">
+            <div id="tx-list">${txRows}</div>
+            <div id="tx-sentinel" style="height:1px;"></div>
+            ${_hasMore ? '<div id="tx-loading" style="padding:16px;text-align:center;font-size:12px;color:var(--mid);">読み込み中…</div>' : ''}
+          </div>
         </div>
       </div>`;
 
@@ -868,7 +875,7 @@ function setupInfiniteScroll(year, month) {
 }
 
 function setupAccordions() {
-  ['budget', 'acct'].forEach(function(key) {
+  ['budget', 'acct', 'tx'].forEach(function(key) {
     var body = document.getElementById(key + '-body');
     var chevron = document.getElementById('ac-chevron-' + key);
     var head = document.querySelector('[data-ac="' + key + '-body"]');
