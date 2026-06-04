@@ -364,7 +364,7 @@ async function renderContent(content, accounts, transactions, year, month, fromC
         <div id="ai-answer" style="display:none;padding:0 16px 14px;border-top:1px solid var(--sage-lt);padding-top:12px;margin-top:-2px;"></div>
       </div>
       ${budgetHTML}
-      <div class="main-grid">
+      <div class="main-grid" style="margin-top:12px;">
         <div class="panel">
           <div class="panel-head">
             <div class="panel-title">口座残高</div>
