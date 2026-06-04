@@ -1034,6 +1034,13 @@ body.page-records #mobile-month-label {
   #main          { height: 100dvh; }
   #page-content  { padding: 14px 14px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); }
 
+  /* モバイルではrecords-stickyのネガティブマージンをpage-contentのpadding(14px)に合わせる */
+  #records-sticky {
+    width: calc(100% + 28px);
+    margin-left: -14px;
+    padding: 8px 14px 0;
+  }
+
   .summary-row { grid-template-columns: 1fr; gap: 10px; }
   .s-number { font-size: 26px; }
   .s-card.total .s-number { font-size: 30px; }

@@ -305,11 +305,12 @@ export const Router = {
       const dx = e.touches[0].clientX - sw.startX;
       const dy = e.touches[0].clientY - sw.startY;
 
-      // 12px 動くまでは軸を確定しない
+      // 20px 動くまでは軸を確定しない
       if (!sw.axis) {
-        if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return;
-        // 横移動が縦の2倍以上のときのみ横スワイプと確定（タップの微ブレ除外）
-        sw.axis = Math.abs(dx) > Math.abs(dy) * 2 ? 'h' : 'v';
+        if (Math.abs(dx) < 20 && Math.abs(dy) < 20) return;
+        // 横移動が縦の3倍以上かつ横が30px以上のときのみ横スワイプと確定
+        // （縦スクロール中の誤検知を防ぐため条件を厳しくする）
+        sw.axis = (Math.abs(dx) > Math.abs(dy) * 3 && Math.abs(dx) > 30) ? 'h' : 'v';
       }
 
       if (sw.axis === 'v') {
