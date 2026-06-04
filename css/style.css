@@ -372,6 +372,13 @@ svg {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: relative;
+}
+.mh-month-row {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  pointer-events: auto;
 }
 .mobile-logo {
   font-family: 'Noto Serif JP', serif;
@@ -387,12 +394,7 @@ svg {
   flex-shrink: 0;
   overflow: hidden;
 }
-.mh-month-row {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-shrink: 0;
-}
+/* mh-month-row moved to absolute center */
 #mobile-month-label {
   font-size: 15px;
   font-weight: 600;

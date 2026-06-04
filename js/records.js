@@ -163,14 +163,12 @@ function renderShell(transactions, year, month) {
 
   renderList();
 
-  // サマリーカード内の月切替ボタン
+  // サマリーカード内の月切替ボタン（router経由でヘッダー更新も行う）
   document.getElementById('rsb-btn-prev')?.addEventListener('click', () => {
-    MonthState.prev();
-    renderRecords();
+    document.getElementById('btn-month-prev-d')?.click();
   });
   document.getElementById('rsb-btn-next')?.addEventListener('click', () => {
-    MonthState.next();
-    renderRecords();
+    document.getElementById('btn-month-next-d')?.click();
   });
 
   // スクロールで影を付ける
