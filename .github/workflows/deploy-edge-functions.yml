@@ -1,11 +1,7 @@
 name: Deploy Edge Functions
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'supabase/functions/**'
+  workflow_dispatch: # 手動実行のみ（自動トリガー無効）
 
 jobs:
   deploy:
