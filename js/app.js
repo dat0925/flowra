@@ -259,6 +259,35 @@ init();
 
 // ── 招待受け入れダイアログ ──────────────
 async function showInviteAcceptDialog(token) {
+  // ログイン確認：未ログインならGoogleログインを促す
+  const { data: { user: currentUser } } = await supabase.auth.getUser();
+  if (!currentUser) {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(28,43,34,0.6);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 0.3s;';
+    overlay.innerHTML = `
+      <div style="background:var(--stone);width:100%;max-width:480px;border-radius:28px 28px 0 0;padding:32px 24px 48px;text-align:center;">
+        <div style="font-size:40px;margin-bottom:16px;">🤝</div>
+        <h2 style="font-family:'Noto Serif JP',serif;font-size:20px;font-weight:600;color:var(--ink);margin-bottom:12px;">共有への招待</h2>
+        <p style="font-size:14px;color:var(--mid);line-height:1.7;margin-bottom:32px;">参加するにはログインが必要です。<br>Googleアカウントでログインしてください。</p>
+        <button id="btn-login-for-invite" style="width:100%;padding:16px;border-radius:14px;border:none;background:var(--sage);color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:12px;">Googleでログイン</button>
+        <button id="btn-decline-invite-noauth" style="background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;padding:8px;">キャンセル</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => overlay.style.opacity = '1');
+    document.getElementById('btn-login-for-invite')?.addEventListener('click', async () => {
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.href },
+      });
+    });
+    document.getElementById('btn-decline-invite-noauth')?.addEventListener('click', () => {
+      overlay.remove();
+      checkAndShowOnboarding(() => { warmupAddRecord(); });
+    });
+    return;
+  }
+
   let invite;
   try {
     invite = await DB.getInviteByToken(token);

@@ -608,6 +608,7 @@ export const DB = {
 
   async acceptInvite(token) {
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('ログインが必要です。Googleアカウントでログインしてから再度お試しください。');
     // 招待を取得
     const invite = await this.getInviteByToken(token);
     if (!invite) throw new Error('招待が見つかりません');
