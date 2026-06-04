@@ -1055,6 +1055,22 @@ body.page-records #mobile-month-label {
 #records-sticky.scrolled {
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
+.rsb-nav-btn {
+  background: none;
+  border: none;
+  padding: 8px 6px;
+  cursor: pointer;
+  color: var(--mid);
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  border-radius: 8px;
+  transition: color 0.15s, background 0.15s;
+}
+.rsb-nav-btn:active {
+  color: var(--ink);
+  background: var(--line);
+}
 .rsb-item { flex: 1; text-align: center; }
 .rsb-label { font-size: 11px; color: var(--mid); margin-bottom: 4px; }
 .rsb-amount { font-family: 'Noto Serif JP', serif; font-size: 16px; font-weight: 600; color: var(--ink); }
