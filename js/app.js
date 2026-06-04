@@ -77,7 +77,15 @@ async function init() {
 
 let _appInitialized = false;
 function showApp(user) {
-  if (_appInitialized) return;
+  // ログイン済みで招待リンクを開いた場合：初期化済みでも招待ダイアログだけ表示
+  if (_appInitialized) {
+    const pendingToken = sessionStorage.getItem('pendingInviteToken');
+    if (pendingToken) {
+      sessionStorage.removeItem('pendingInviteToken');
+      showInviteAcceptDialog(pendingToken);
+    }
+    return;
+  }
   _appInitialized = true;
 
   hideSplash();
