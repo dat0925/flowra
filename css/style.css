@@ -357,27 +357,7 @@ svg {
        スライドアニメーション中は inline transform が自動でレイヤーを
        昇格させるので will-change は不要 */
 }
-.ghost-panel {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  display: flex;
-  align-items: flex-start;
-  justify-content: flex-start;
-  padding-top: 0;
-  opacity: 0;
-  background: var(--stone);
-}
-}
-#ghost-prev {
-  border-right: 2px solid var(--border);
-  box-shadow: 4px 0 16px rgba(28,43,34,0.08);
-}
-#ghost-next {
-  border-left: 2px solid var(--border);
-  box-shadow: -4px 0 16px rgba(28,43,34,0.08);
-}
+/* ghost-panel removed */
 
 /* MOBILE HEADER */
 #mobile-header {
