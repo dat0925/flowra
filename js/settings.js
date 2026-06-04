@@ -1075,7 +1075,11 @@ function renderMembersList(members, currentUser) {
   wrap.querySelectorAll('.member-row').forEach(row => {
     row.addEventListener('click', () => {
       const member = others.find(m => m.user_id === row.dataset.userId);
-      if (member) openMemberSheet(member, () => renderMembersList(members, currentUser));
+      if (member) openMemberSheet(member, async () => {
+        // 削除・変更後はDBから再取得して再描画
+        const freshMembers = await DB.getTeamMembers().catch(() => []);
+        renderMembersList(freshMembers, currentUser);
+      });
     });
   });
 }
