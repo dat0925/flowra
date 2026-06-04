@@ -394,6 +394,9 @@ async function renderContent(content, accounts, transactions, year, month, fromC
               <div class="panel-title">記録一覧</div>
               <svg id="ac-chevron-tx" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--sage)" stroke-width="2.5" style="transition:transform 0.25s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
             </div>
+            <div class="panel-link" id="link-records">記録
+              <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+            </div>
           </div>
           <div id="tx-body" style="overflow:hidden;transition:max-height 0.28s ease;">
             <div id="tx-list">${txRows}</div>
@@ -403,6 +406,9 @@ async function renderContent(content, accounts, transactions, year, month, fromC
         </div>
       </div>`;
 
+  document.getElementById('link-records')?.addEventListener('click', () => {
+    import('./router.js').then(({ Router }) => Router.navigate('records'));
+  });
   document.getElementById('link-acct-manage')?.addEventListener('click', () => {
     import('./router.js').then(({ Router }) => Router.navigate('accounts'));
   });
