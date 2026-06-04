@@ -264,13 +264,18 @@ async function renderContent(content, accounts, transactions, year, month, fromC
 
           budgetHTML = `
             <div class="panel" style="margin-bottom:0;">
-              <div class="panel-head">
-                <div class="panel-title">今月の予算</div>
+              <div class="panel-head ac-head" data-ac="budget-body" style="cursor:pointer;">
+                <div style="display:flex;align-items:center;gap:5px;">
+                  <div class="panel-title">今月の予算</div>
+                  <svg id="ac-chevron-budget" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--sage)" stroke-width="2.5" style="transition:transform 0.25s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
+                </div>
                 <div class="panel-link" id="link-budget-setting">設定
                   <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
               </div>
-              <div style="padding:4px 18px 16px;">${rows}${totalRow}</div>
+              <div id="budget-body" style="overflow:hidden;transition:max-height 0.28s ease;">
+                <div style="padding:4px 18px 16px;">${rows}${totalRow}</div>
+              </div>
             </div>`;
         }
       }
@@ -366,16 +371,21 @@ async function renderContent(content, accounts, transactions, year, month, fromC
       ${budgetHTML}
       <div class="main-grid" style="margin-top:12px;">
         <div class="panel">
-          <div class="panel-head">
-            <div class="panel-title">口座残高</div>
+          <div class="panel-head ac-head" data-ac="acct-body" style="cursor:pointer;">
+            <div style="display:flex;align-items:center;gap:5px;">
+              <div class="panel-title">口座残高</div>
+              <svg id="ac-chevron-acct" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--sage)" stroke-width="2.5" style="transition:transform 0.25s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
+            </div>
             <div class="panel-link" id="link-acct-manage">管理
               <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
             </div>
           </div>
-          ${acctHTML}
-          <div class="acct-total">
-            <div class="acct-total-label">合計</div>
-            <div class="acct-total-amount"><span style="font-size:11px;font-weight:300;color:var(--mid);margin-right:1px;">¥</span>${fmt(total)}</div>
+          <div id="acct-body" style="overflow:hidden;transition:max-height 0.28s ease;">
+            ${acctHTML}
+            <div class="acct-total">
+              <div class="acct-total-label">合計</div>
+              <div class="acct-total-amount"><span style="font-size:11px;font-weight:300;color:var(--mid);margin-right:1px;">¥</span>${fmt(total)}</div>
+            </div>
           </div>
         </div>
         <div class="panel" id="tx-panel">
@@ -394,6 +404,7 @@ async function renderContent(content, accounts, transactions, year, month, fromC
   });
   setupBalanceToggle();
   setupAiSummary(transactions, year, month);
+  setupAccordions();
 
   // 記録行タップ → 編集シート
   document.querySelectorAll('.tx-item[data-tx-id]').forEach(el => {
@@ -854,4 +865,38 @@ function setupInfiniteScroll(year, month) {
   }, { threshold: 0.1 });
 
   _observer.observe(sentinel);
+}
+
+function setupAccordions() {
+  ['budget', 'acct'].forEach(function(key) {
+    var body = document.getElementById(key + '-body');
+    var chevron = document.getElementById('ac-chevron-' + key);
+    var head = document.querySelector('[data-ac="' + key + '-body"]');
+    if (!body || !head) return;
+
+    var stored = localStorage.getItem('ac-' + key);
+    var isOpen = stored !== 'closed';
+
+    // 初期状態設定
+    if (isOpen) {
+      body.style.maxHeight = body.scrollHeight + 'px';
+    } else {
+      body.style.maxHeight = '0px';
+      if (chevron) chevron.style.transform = 'rotate(-90deg)';
+    }
+
+    head.addEventListener('click', function(e) {
+      if (e.target.closest('.panel-link')) return;
+      var open = body.style.maxHeight !== '0px';
+      if (open) {
+        body.style.maxHeight = '0px';
+        if (chevron) chevron.style.transform = 'rotate(-90deg)';
+        localStorage.setItem('ac-' + key, 'closed');
+      } else {
+        body.style.maxHeight = body.scrollHeight + 'px';
+        if (chevron) chevron.style.transform = 'rotate(0deg)';
+        localStorage.setItem('ac-' + key, 'open');
+      }
+    });
+  });
 }
