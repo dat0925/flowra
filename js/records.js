@@ -111,7 +111,7 @@ function renderShell(transactions, year, month) {
     <div id="records-sticky">
       <div class="records-summary-bar" id="records-summary">
         <button class="rsb-nav-btn" id="rsb-btn-prev" aria-label="前の月">
-          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="15 18 9 12 15 6"/></svg>
+          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="15 18 9 12 15 6"/></svg>
         </button>
         <div class="rsb-item">
           <div class="rsb-label">収入</div>
@@ -128,7 +128,7 @@ function renderShell(transactions, year, month) {
           <div class="rsb-amount ${balance>=0?'income':'expense'}">${balance>=0?'+':'−'}¥${fmt(Math.abs(balance))}</div>
         </div>
         <button class="rsb-nav-btn" id="rsb-btn-next" aria-label="次の月">
-          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="9 18 15 12 9 6"/></svg>
+          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="9 18 15 12 9 6"/></svg>
         </button>
       </div>
 

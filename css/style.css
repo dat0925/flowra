@@ -1058,18 +1058,19 @@ body.page-records #mobile-month-label {
 .rsb-nav-btn {
   background: none;
   border: none;
-  padding: 8px 6px;
+  padding: 10px 12px;
   cursor: pointer;
-  color: var(--mid);
+  color: var(--ink);
   display: flex;
   align-items: center;
   flex-shrink: 0;
-  border-radius: 8px;
-  transition: color 0.15s, background 0.15s;
+  border-radius: 10px;
+  transition: background 0.15s;
+  opacity: 0.5;
 }
 .rsb-nav-btn:active {
-  color: var(--ink);
   background: var(--line);
+  opacity: 1;
 }
 .rsb-item { flex: 1; text-align: center; }
 .rsb-label { font-size: 11px; color: var(--mid); margin-bottom: 4px; }
