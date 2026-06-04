@@ -372,13 +372,6 @@ svg {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  position: relative;
-}
-.mh-month-row {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  pointer-events: auto;
 }
 .mobile-logo {
   font-family: 'Noto Serif JP', serif;
@@ -394,7 +387,12 @@ svg {
   flex-shrink: 0;
   overflow: hidden;
 }
-/* mh-month-row moved to absolute center */
+.mh-month-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
 #mobile-month-label {
   font-size: 15px;
   font-weight: 600;
@@ -1057,23 +1055,7 @@ body.page-records #mobile-month-label {
 #records-sticky.scrolled {
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
-.rsb-nav-btn {
-  background: none;
-  border: none;
-  padding: 10px 12px;
-  cursor: pointer;
-  color: var(--ink);
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  border-radius: 10px;
-  transition: background 0.15s;
-  opacity: 0.5;
-}
-.rsb-nav-btn:active {
-  background: var(--line);
-  opacity: 1;
-}
+
 .rsb-item { flex: 1; text-align: center; }
 .rsb-label { font-size: 11px; color: var(--mid); margin-bottom: 4px; }
 .rsb-amount { font-family: 'Noto Serif JP', serif; font-size: 16px; font-weight: 600; color: var(--ink); }

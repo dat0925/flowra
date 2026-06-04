@@ -110,9 +110,6 @@ function renderShell(transactions, year, month) {
   content.innerHTML = `
     <div id="records-sticky">
       <div class="records-summary-bar" id="records-summary">
-        <button class="rsb-nav-btn" id="rsb-btn-prev" aria-label="前の月">
-          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
         <div class="rsb-item">
           <div class="rsb-label">収入</div>
           <div class="rsb-amount income">¥${fmt(income)}</div>
@@ -127,9 +124,6 @@ function renderShell(transactions, year, month) {
           <div class="rsb-label">収支</div>
           <div class="rsb-amount ${balance>=0?'income':'expense'}">${balance>=0?'+':'−'}¥${fmt(Math.abs(balance))}</div>
         </div>
-        <button class="rsb-nav-btn" id="rsb-btn-next" aria-label="次の月">
-          <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
       </div>
 
       <div class="records-filter-bar">
@@ -162,14 +156,6 @@ function renderShell(transactions, year, month) {
     <div id="records-list"></div>`;
 
   renderList();
-
-  // サマリーカード内の月切替ボタン（router経由でヘッダー更新も行う）
-  document.getElementById('rsb-btn-prev')?.addEventListener('click', () => {
-    document.getElementById('btn-month-prev-d')?.click();
-  });
-  document.getElementById('rsb-btn-next')?.addEventListener('click', () => {
-    document.getElementById('btn-month-next-d')?.click();
-  });
 
   // スクロールで影を付ける
   const pageContent = document.getElementById('page-content');
