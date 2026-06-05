@@ -17,6 +17,8 @@ const PAGE_SIZE = 50;
 
 // AIアドバイスのメモリキャッシュ（SPA内ナビゲーション間で保持）
 let _aiAdviceCache = null; // { answer, question, ts, year, month }
+let _freeAnswerCache = null; // { answer, ts, year, month }
+let _freeHistoryCache = []; // [{ q, a }, ...] 画面切り替えをまたいで保持
 
 // 口座タイプ別アイコン
 const ACCT_ICON = {
@@ -518,8 +520,16 @@ function setupAiSummary(transactions, year, month) {
   const answerEl = document.getElementById('ai-answer');
   const autoEl   = document.getElementById('ai-auto-answer');
 
-  // キャッシュが同じ年月なら即復元（他ページ→ホーム戻り対応）
-  if (_aiAdviceCache && _aiAdviceCache.year === year && _aiAdviceCache.month === month) {
+  // 月が変わったらチップ回答・フリー回答・会話履歴をクリア
+  const sameMonth = _aiAdviceCache && _aiAdviceCache.year === year && _aiAdviceCache.month === month;
+  if (!sameMonth) {
+    if (answerEl) { answerEl.style.display = 'none'; answerEl.innerHTML = ''; }
+    _freeAnswerCache = null;
+    _freeHistoryCache = [];
+  }
+
+  // チップ回答：同じ年月なら即復元
+  if (sameMonth) {
     if (autoEl) {
       autoEl.style.display = 'block';
       autoEl.innerHTML = _aiAdviceCache.answer.split('\n').join('<br>');
@@ -531,8 +541,21 @@ function setupAiSummary(transactions, year, month) {
       tsEl.style.display = 'block';
       tsEl.textContent = label + ' のアドバイス';
     }
-    // キャッシュ復元時は自動AI呼び出しをスキップ（以降のボタン処理は継続）
-    // autoElのinitialスピナー表示ブロックをスキップするフラグ
+  }
+
+  // フリー回答：同じ年月なら即復元
+  if (_freeAnswerCache && _freeAnswerCache.year === year && _freeAnswerCache.month === month) {
+    if (answerEl) {
+      answerEl.style.display = 'block';
+      answerEl.innerHTML = _freeAnswerCache.answer.split('\n').join('<br>');
+    }
+    const tsEl = document.getElementById('ai-timestamp');
+    if (tsEl && _freeAnswerCache.ts) {
+      const d = new Date(_freeAnswerCache.ts);
+      const label = (d.getMonth()+1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + String(d.getMinutes()).padStart(2,'0');
+      tsEl.style.display = 'block';
+      tsEl.textContent = label + ' の回答';
+    }
   }
 
   // タグ別支出集計
@@ -849,8 +872,7 @@ function setupAiSummary(transactions, year, month) {
   const freeInput = document.getElementById('ai-free-input');
   const freeBtn   = document.getElementById('ai-free-btn');
 
-  // 会話履歴（直前のやり取りを保持）
-  let _freeHistory = []; // [{ q, a }, ...]
+  // 会話履歴はモジュール変数 _freeHistoryCache を使用（画面切り替えで消えない）
 
   async function submitFreeQuery() {
     const q = freeInput?.value?.trim();
@@ -900,19 +922,22 @@ function setupAiSummary(transactions, year, month) {
         daysInMonth: new Date(year, month, 0).getDate(),
         fixedCostTags: Array.from(fixedTags),
         freeQuestion: q,
-        conversationHistory: _freeHistory.slice(-10),
+        conversationHistory: _freeHistoryCache.slice(-10),
         allTransactions: allTxs3,
       });
 
-      // 会話履歴に追加
-      _freeHistory.push({ q, a: answer });
+      // 会話履歴に追加（モジュール変数）
+      _freeHistoryCache.push({ q, a: answer });
 
       answerEl.innerHTML = answer.split('\n').join('<br>');
       if (freeInput) freeInput.value = '';
 
+      // フリー回答をキャッシュ（画面切り替えで消えない）
+      const now = new Date();
+      _freeAnswerCache = { answer, ts: now.toISOString(), year, month };
+
       // タイムスタンプ更新
       if (tsEl) {
-        const now = new Date();
         const label = (now.getMonth()+1) + '/' + now.getDate() + ' ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
         tsEl.style.display = 'block';
         tsEl.textContent = label + ' の回答';
