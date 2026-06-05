@@ -209,9 +209,6 @@ async function renderAccountsContent(content, accounts) {
       if (newPrivateThumb) newPrivateThumb.style.transform  = on ? 'translateX(18px)' : 'translateX(0)';
     }
     newPrivateChk?.addEventListener('change', updateNewPrivateToggle);
-    newPrivateTrack?.addEventListener('click', () => {
-      if (newPrivateChk) { newPrivateChk.checked = !newPrivateChk.checked; updateNewPrivateToggle(); }
-    });
 
     // 残高入力：先頭ゼロを除去（新規作成）
     document.getElementById('new-acct-balance')?.addEventListener('input', e => {
@@ -576,12 +573,7 @@ function openEditModal(acct) {
       const descEl = document.getElementById('edit-private-desc');
       if (descEl) descEl.textContent = `記録が ${count.toLocaleString()} 件あるため変更できません`;
     } else {
-      editPrivateTrack?.addEventListener('click', () => {
-        if (editPrivateChk && !editPrivateChk.disabled) {
-          editPrivateChk.checked = !editPrivateChk.checked;
-          updateEditPrivateToggle();
-        }
-      });
+      editPrivateChk?.addEventListener('change', updateEditPrivateToggle);
     }
   }).catch(() => {});
 
