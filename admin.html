@@ -243,21 +243,31 @@
     <div class="admin-section">
       <div class="admin-section-title">プラン変更</div>
       <div class="admin-form">
-        <input type="email" class="admin-input" id="input-email" placeholder="ユーザーのメールアドレス">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <select class="admin-input" id="input-plan" style="flex:1;">
-            <option value="premium">Premium（無制限）</option>
-            <option value="free">Free（月5回）</option>
-            <option value="admin">Admin（管理者・無制限）</option>
-          </select>
-          <input type="date" class="admin-input" id="input-expires" style="flex:1;"
-            title="有効期限（空欄=無期限）">
-        </div>
+        <!-- Step1: メール入力 -->
         <div style="display:flex;gap:10px;">
-          <button class="admin-btn btn-primary" id="btn-set-plan" style="flex:1;">プランを設定</button>
-          <button class="admin-btn btn-secondary" id="btn-lookup" style="flex:1;">メールで検索</button>
+          <input type="email" class="admin-input" id="input-email" placeholder="ユーザーのメールアドレス" style="flex:1;">
+          <button class="admin-btn btn-secondary" id="btn-lookup" style="white-space:nowrap;">検索</button>
         </div>
+
+        <!-- Step2: 検索結果（初期非表示） -->
         <div id="lookup-result" style="font-size:12px;color:var(--mid);min-height:18px;"></div>
+
+        <!-- Step3: プラン設定（検索成功後に表示） -->
+        <div id="plan-form" style="display:none;border-top:1px solid var(--border);padding-top:14px;display:none;flex-direction:column;gap:10px;">
+          <div id="plan-form-user" style="font-size:13px;font-weight:600;color:var(--ink);"></div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <select class="admin-input" id="input-plan" style="flex:1;">
+              <option value="premium">Premium（無制限）</option>
+              <option value="free">Free（月5回）</option>
+              <option value="admin">Admin（管理者・無制限）</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--mid);display:block;margin-bottom:4px;">有効期限（空欄で無期限）</label>
+            <input type="date" class="admin-input" id="input-expires" style="width:100%;">
+          </div>
+          <button class="admin-btn btn-primary" id="btn-set-plan">プランを設定する</button>
+        </div>
       </div>
     </div>
 
@@ -435,19 +445,33 @@
     // user_idからメールを一括取得
     const emailMap = await getEmailsByUserIds(data.map(u => u.user_id));
 
+    // user_idからプランを一括取得
+    const { data: planData } = await supabase
+      .from('user_plans')
+      .select('user_id, plan')
+      .in('user_id', data.map(u => u.user_id));
+    const planMap = {};
+    (planData || []).forEach(p => { planMap[p.user_id] = p.plan; });
+
     el.innerHTML = `
       <div style="overflow-x:auto;">
         <table class="user-table">
           <thead><tr>
             <th>メールアドレス</th>
             <th>使用回数</th>
-            <th>残り（Free）</th>
+            <th>プラン / 残り</th>
           </tr></thead>
           <tbody>
             ${data.map(u => {
-              const remaining = Math.max(0, 5 - u.count);
-              const pct = Math.min(100, (u.count / 5) * 100);
-              const color = u.count >= 5 ? '#B83232' : u.count >= 4 ? '#B8973E' : '#4A7C59';
+              const plan = planMap[u.user_id] || 'free';
+              const isUnlimited = plan === 'admin' || plan === 'premium';
+              const limit = plan === 'premium' ? 6000 : 5;
+              const remaining = isUnlimited ? null : Math.max(0, limit - u.count);
+              const pct = isUnlimited ? Math.min(100, (u.count / 6000) * 100) : Math.min(100, (u.count / 5) * 100);
+              const color = isUnlimited ? '#4A7C59' : (u.count >= limit ? '#B83232' : u.count >= limit - 1 ? '#B8973E' : '#4A7C59');
+              const remainText = isUnlimited
+                ? '<span style="color:#4A7C59;">' + plan + '（無制限）</span>'
+                : (remaining === 0 ? '<span style="color:#B83232;">上限</span>' : remaining + '回');
               return `
                 <tr>
                   <td style="font-size:12px;color:var(--ink);">
@@ -461,10 +485,12 @@
                       <span style="font-size:13px;font-weight:600;color:${color};">${u.count}回</span>
                     </div>
                   </td>
-                  <td style="font-size:12px;color:var(--mid);">
-                    ${u.count >= 5 ? '<span style="color:#B83232;">上限</span>' : remaining + '回'}
-                  </td>
+                  <td style="font-size:12px;color:var(--mid);">${remainText}</td>
                 </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>`;
             }).join('')}
           </tbody>
         </table>
@@ -472,28 +498,56 @@
   }
 
   // ── プラン設定 ──
-  document.getElementById('btn-set-plan').addEventListener('click', async () => {
+  let _currentUserId = null;
+
+  document.getElementById('btn-lookup').addEventListener('click', async () => {
     const email = document.getElementById('input-email').value.trim();
-    const plan  = document.getElementById('input-plan').value;
-    const expires = document.getElementById('input-expires').value;
-
     if (!email) { toast('メールアドレスを入力してください'); return; }
-
-    // メールからuser_idを取得（user_plansにメールが保存されていないためai_usageやteam_membersで代替）
-    // → まず検索してuser_idを確認するフローで運用
     const result = document.getElementById('lookup-result');
+    const planForm = document.getElementById('plan-form');
     result.textContent = '検索中…';
+    planForm.style.display = 'none';
+    _currentUserId = null;
 
     const userId = await findUserIdByEmail(email);
     if (!userId) {
-      result.textContent = '❌ ユーザーが見つかりません。先に「メールで検索」で確認してください。';
+      result.textContent = '❌ 見つかりません（まだログインしていない可能性があります）';
       return;
     }
+
+    _currentUserId = userId;
+    result.textContent = '✓ ユーザーが見つかりました';
+    result.style.color = '#4A7C59';
+
+    // 現在のプランを取得してセレクトに反映
+    const { data: planData } = await supabase
+      .from('user_plans')
+      .select('plan, expires_at')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    const currentPlan = planData?.plan || 'free';
+    document.getElementById('input-plan').value = currentPlan;
+    if (planData?.expires_at) {
+      document.getElementById('input-expires').value = planData.expires_at.slice(0, 10);
+    } else {
+      document.getElementById('input-expires').value = '';
+    }
+
+    document.getElementById('plan-form-user').textContent = email + '（現在: ' + currentPlan + '）';
+    planForm.style.display = 'flex';
+  });
+
+  document.getElementById('btn-set-plan').addEventListener('click', async () => {
+    if (!_currentUserId) { toast('先にメールで検索してください'); return; }
+    const plan    = document.getElementById('input-plan').value;
+    const expires = document.getElementById('input-expires').value;
+    const email   = document.getElementById('input-email').value.trim();
 
     const { error } = await supabase
       .from('user_plans')
       .upsert({
-        user_id: userId,
+        user_id: _currentUserId,
         plan,
         expires_at: expires ? new Date(expires).toISOString() : null,
         updated_at: new Date().toISOString(),
@@ -501,25 +555,14 @@
 
     if (error) {
       toast('❌ エラー: ' + error.message);
-      result.textContent = '❌ ' + error.message;
     } else {
       toast('✓ ' + email + ' を ' + plan + ' に設定しました');
-      result.textContent = '✓ user_id: ' + userId;
+      document.getElementById('lookup-result').textContent = '';
+      document.getElementById('lookup-result').style.color = '';
+      document.getElementById('plan-form').style.display = 'none';
+      document.getElementById('input-email').value = '';
+      _currentUserId = null;
       await Promise.all([loadStats(), loadUserList()]);
-    }
-  });
-
-  // ── メール検索 ──
-  document.getElementById('btn-lookup').addEventListener('click', async () => {
-    const email = document.getElementById('input-email').value.trim();
-    if (!email) { toast('メールアドレスを入力してください'); return; }
-    const result = document.getElementById('lookup-result');
-    result.textContent = '検索中…';
-    const userId = await findUserIdByEmail(email);
-    if (userId) {
-      result.innerHTML = '✓ user_id: <span style="font-family:monospace;">' + userId + '</span>';
-    } else {
-      result.textContent = '❌ 見つかりません（まだログインしていない可能性があります）';
     }
   });
 
