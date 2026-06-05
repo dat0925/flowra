@@ -680,6 +680,159 @@
     }
 
     /* ── HOW ── */
+    /* ── AI セクション ── */
+    .ai-section {
+      padding: 100px 24px;
+      background: var(--ink);
+      overflow: hidden;
+    }
+
+    .ai-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 72px;
+      align-items: center;
+    }
+
+    @media (max-width: 720px) {
+      .ai-inner { grid-template-columns: 1fr; gap: 48px; }
+    }
+
+    .ai-copy .section-label { color: var(--sage-lt); }
+    .ai-copy .section-title { color: #fff; margin-bottom: 16px; }
+    .ai-copy .section-desc  { color: rgba(255,255,255,0.55); margin-bottom: 32px; }
+
+    .ai-points {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .ai-point {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 14px;
+      color: rgba(255,255,255,0.75);
+      line-height: 1.6;
+    }
+
+    .ai-point-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      background: var(--sage);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    /* AIモックUI */
+    .ai-mock {
+      background: #fff;
+      border-radius: 24px;
+      padding: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+
+    .ai-mock-header {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--ink);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .ai-mock-header::before {
+      content: '☆';
+      color: var(--sage);
+    }
+
+    .ai-mock-answer {
+      background: var(--sage-bg);
+      border: 1px solid var(--mist);
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 13px;
+      color: var(--ink);
+      line-height: 1.7;
+      margin-bottom: 14px;
+      min-height: 72px;
+      transition: opacity 0.3s;
+    }
+
+    .ai-mock-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .ai-mock-chip {
+      padding: 7px 14px;
+      border-radius: 100px;
+      border: 1.5px solid var(--border);
+      font-size: 12px;
+      color: var(--ink);
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #fff;
+      user-select: none;
+    }
+
+    .ai-mock-chip:hover,
+    .ai-mock-chip.active {
+      border-color: var(--sage);
+      color: var(--sage);
+      background: var(--sage-bg);
+    }
+
+    .ai-mock-free {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .ai-mock-input {
+      flex: 1;
+      border: 1.5px solid var(--border);
+      border-radius: 100px;
+      padding: 8px 16px;
+      font-size: 12px;
+      color: var(--ink);
+      outline: none;
+      font-family: inherit;
+      background: #fff;
+    }
+
+    .ai-mock-input:focus { border-color: var(--sage); }
+
+    .ai-mock-btn {
+      background: var(--sage);
+      color: #fff;
+      border: none;
+      border-radius: 100px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .ai-mock-ts {
+      font-size: 11px;
+      color: var(--mid-lt);
+      margin-top: 8px;
+    }
+
     .how-section {
       background: var(--ink);
       padding: 100px 24px;
@@ -1231,6 +1384,11 @@
         <p class="feature-desc">メモ・タグ名で全期間の記録を瞬時に検索。「あの出費いくらだっけ？」がすぐ解決。</p>
       </div>
       <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <div class="feature-name">AIアドバイス</div>
+        <p class="feature-desc">「今月どう？」と聞くだけで、直近3ヶ月のデータをもとに具体的なアドバイスを返します。自由に質問できるフリー入力つき。</p>
+      </div>
+      <div class="feature-card">
         <div class="feature-icon">📅</div>
         <div class="feature-name">かんたん月移動</div>
         <p class="feature-desc">ヘッダーの「&lt; &gt;」ボタンで月をサクサク移動。どの画面からでもすぐに先月・来月の記録にアクセスできます。</p>
@@ -1331,6 +1489,50 @@
             <div class="budget-bar-fill safe" data-pct="84"></div>
           </div>
           <div class="budget-row-pct safe">84%</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- AI -->
+  <section class="ai-section" id="ai">
+    <div class="ai-inner">
+
+      <div class="ai-copy">
+        <span class="section-label">AI Advice</span>
+        <h2 class="section-title">聞けば、<br>答えてくれる。</h2>
+        <p class="section-desc">家計データをもとに、AIが具体的なアドバイスをします。「今月どう？」と聞くだけでOK。数字が苦手なふたりでも、家計と向き合えます。</p>
+        <div class="ai-points">
+          <div class="ai-point">
+            <div class="ai-point-icon">💬</div>
+            <div>「今日いくら使った？」「先月と比べてどう？」など、自由に質問できます。</div>
+          </div>
+          <div class="ai-point">
+            <div class="ai-point-icon">📊</div>
+            <div>直近3ヶ月の全取引データをもとに回答。過去の支出も踏まえた的確なアドバイスを返します。</div>
+          </div>
+          <div class="ai-point">
+            <div class="ai-point-icon">🔁</div>
+            <div>会話の文脈を引き継ぐので「その中で食費だけは？」と掘り下げた質問もOK。</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- インタラクティブUIモック -->
+      <div class="ai-mock" id="ai-lp-mock">
+        <div class="ai-mock-header">AI アドバイス</div>
+        <div class="ai-mock-answer" id="ai-lp-answer">今月は月初6日時点で支出が¥38,400。食費と交通費が先月より抑えられていて、このペースなら月末の収支はプラスになりそうです。</div>
+        <div class="ai-mock-ts" id="ai-lp-ts">6/6 0:44 のアドバイス</div>
+        <div class="ai-mock-chips" style="margin-top:12px;">
+          <div class="ai-mock-chip active" data-q="monthly">今月どう？</div>
+          <div class="ai-mock-chip" data-q="compare">先月と比べて</div>
+          <div class="ai-mock-chip" data-q="saving">節約ヒント</div>
+          <div class="ai-mock-chip" data-q="top">一番多い支出は？</div>
+        </div>
+        <div class="ai-mock-free">
+          <input class="ai-mock-input" id="ai-lp-input" type="text" placeholder="今日いくら使った？　5/1の支出は？">
+          <button class="ai-mock-btn" id="ai-lp-btn">聞く</button>
         </div>
       </div>
 
@@ -1517,6 +1719,55 @@
 
     const budgetMock = document.getElementById('budget-ui-mock');
     if (budgetMock) budgetObserver.observe(budgetMock);
+
+    // AIモック インタラクション
+    const aiAnswers = {
+      monthly: '今月は月初6日時点で支出が¥38,400。食費と交通費が先月より抑えられていて、このペースなら月末の収支はプラスになりそうです。',
+      compare: '先月と比べると支出が¥12,000ほど少ないペースです。特に娯楽費が先月の¥28,000から¥9,800に抑えられているのが大きいですね。',
+      saving: '食費が¥38,200と予算の76%なので順調です。ただ外食が週3回のペースなので、週2回に減らすと月¥8,000ほど節約できそうです。',
+      top: '今月の支出で一番多いのは食費の¥38,200です。次いで交通費¥17,400、娯楽・趣味¥23,600と続いています。',
+      free: '5月1日の支出は¥4,200でした。内訳は昼食¥1,200とスーパーでの買い物¥3,000です。',
+    };
+
+    const aiAnswerEl = document.getElementById('ai-lp-answer');
+    const aiTsEl     = document.getElementById('ai-lp-ts');
+    const aiInputEl  = document.getElementById('ai-lp-input');
+    const aiBtnEl    = document.getElementById('ai-lp-btn');
+
+    function setAiAnswer(key) {
+      if (!aiAnswerEl) return;
+      aiAnswerEl.style.opacity = '0';
+      setTimeout(() => {
+        aiAnswerEl.textContent = aiAnswers[key] || aiAnswers.monthly;
+        aiAnswerEl.style.opacity = '1';
+        if (aiTsEl) aiTsEl.textContent = '6/6 0:44 のアドバイス';
+      }, 200);
+    }
+
+    document.querySelectorAll('.ai-mock-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('.ai-mock-chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        setAiAnswer(chip.dataset.q);
+        if (aiInputEl) aiInputEl.value = '';
+      });
+    });
+
+    function submitAiFree() {
+      const val = aiInputEl?.value?.trim();
+      if (!val) return;
+      document.querySelectorAll('.ai-mock-chip').forEach(c => c.classList.remove('active'));
+      if (aiAnswerEl) {
+        aiAnswerEl.style.opacity = '0';
+        setTimeout(() => {
+          aiAnswerEl.textContent = aiAnswers.free;
+          aiAnswerEl.style.opacity = '1';
+        }, 200);
+      }
+    }
+
+    aiBtnEl?.addEventListener('click', submitAiFree);
+    aiInputEl?.addEventListener('keydown', e => { if (e.key === 'Enter') submitAiFree(); });
   </script>
 </body>
 </html>
