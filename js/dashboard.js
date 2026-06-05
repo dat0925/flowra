@@ -378,6 +378,9 @@ async function renderContent(content, accounts, transactions, year, month, fromC
               聞く
             </button>
           </div>
+          <div style="font-size:10px;color:var(--mid-lt);margin-top:5px;padding:0 2px;">
+            直近3ヶ月の記録をもとに回答します
+          </div>
         </div>
         <div id="ai-answer" style="display:none;padding:0 16px 14px;border-top:1px solid var(--sage-lt);padding-top:12px;margin-top:-2px;"></div>
       </div>
@@ -859,13 +862,33 @@ function setupAiSummary(transactions, year, month) {
     const tsEl = document.getElementById('ai-timestamp');
 
     try {
+      const income  = transactions.filter(t => t.type === 'income').reduce((s,t) => s+t.amount, 0);
+      const expense = transactions.filter(t => t.type === 'expense').reduce((s,t) => s+t.amount, 0);
+      const fixedTags = await estimateFixedCostTags(year, month);
+
+      // 直近3ヶ月分の全取引を取得
+      const months3 = [];
+      for (let i = 0; i <= 2; i++) {
+        let m = month - i; let y = year;
+        if (m <= 0) { m += 12; y -= 1; }
+        months3.push({ year: y, month: m });
+      }
+      const results3 = await Promise.all(
+        months3.map(({ year: y, month: m }) =>
+          DB.getTransactions({ year: y, month: m, pageSize: 500 }).then(r => r.data || [])
+        )
+      );
+      const allTxs3 = results3.flat().map(t => ({
+        date: t.date,
+        type: t.type,
+        amount: t.amount,
+        memo: t.memo || '',
+        tags: (t.tags || []).map(tg => tg.name || tg).filter(Boolean),
+      }));
+
       const prevM = month === 1 ? 12 : month - 1;
       const prevY = month === 1 ? year - 1 : year;
-      const prevData = await DB.getTransactions({ year: prevY, month: prevM, pageSize: 1000 });
-      const prevTxs  = prevData.data || [];
-      const income   = transactions.filter(t => t.type === 'income').reduce((s,t) => s+t.amount, 0);
-      const expense  = transactions.filter(t => t.type === 'expense').reduce((s,t) => s+t.amount, 0);
-      const fixedTags = await estimateFixedCostTags(year, month);
+      const prevTxs = results3[1] || [];
 
       const answer = await callAI('free', {
         year, month, income, expense,
@@ -877,15 +900,8 @@ function setupAiSummary(transactions, year, month) {
         daysInMonth: new Date(year, month, 0).getDate(),
         fixedCostTags: Array.from(fixedTags),
         freeQuestion: q,
-        // 直前の会話履歴（最大3件）
         conversationHistory: _freeHistory.slice(-3),
-        allTransactions: transactions.map(t => ({
-          date: t.date,
-          type: t.type,
-          amount: t.amount,
-          memo: t.memo || '',
-          tags: (t.tags || []).map(tg => tg.name || tg).filter(Boolean),
-        })),
+        allTransactions: allTxs3,
       });
 
       // 会話履歴に追加

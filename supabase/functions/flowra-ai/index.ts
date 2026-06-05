@@ -79,10 +79,10 @@ ${budgets.length ? `予算設定:\n${budgets.map((b: any) => `  ${b.name}: ¥${b
       free: `あなたは家計アドバイザーです。以下の家計データをもとに、ユーザーの質問に日本語で簡潔に答えてください。
 
 今日の日付: ${year}年${month}月${today}日
-今月（${year}年${month}月）の全取引データ（日付 種別 金額 メモ [タグ]）:
+直近3ヶ月の全取引データ（日付 種別 金額 メモ [タグ]）:
 ${allTransactions.map((t: any) => `  ${t.date} ${t.type === 'income' ? '収入' : t.type === 'expense' ? '支出' : '移動'} ¥${t.amount.toLocaleString()} ${t.memo || ''}${t.tags?.length ? ' [' + t.tags.join(',') + ']' : ''}`).join('\n') || '  データなし'}
 
-今月合計: 収入¥${income.toLocaleString()} 支出¥${expense.toLocaleString()}
+今月（${month}月）合計: 収入¥${income.toLocaleString()} 支出¥${expense.toLocaleString()}
 
 ${conversationHistory.length > 0 ? `
 直前の会話:
