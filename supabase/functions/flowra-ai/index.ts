@@ -20,6 +20,8 @@ serve(async (req) => {
       todayDate,        // 例: 3  (何日時点か)
       daysInMonth,      // 例: 30
       fixedCostTags = [], // 過去3ヶ月の推移から固定費と推定されたタグ名の配列
+      freeQuestion = '',
+      allTransactions = [],
     } = data;
 
     const today    = todayDate  ?? new Date().getDate();
@@ -72,6 +74,17 @@ serve(async (req) => {
 支出内訳:\n${tagLines || "  データなし"}
 ${budgets.length ? `予算設定:\n${budgets.map((b: any) => `  ${b.name}: ¥${b.amount.toLocaleString()}`).join("\n")}` : ""}
 節約できそうな点を具体的に2〜3文で教えてください。`,
+
+      free: `あなたは家計アドバイザーです。以下の家計データをもとに、ユーザーの質問に日本語で簡潔に答えてください。
+
+今月（${year}年${month}月）の全取引データ:
+${allTransactions.map((t: any) => `  ${t.date} ${t.type === 'income' ? '収入' : t.type === 'expense' ? '支出' : '移動'} ¥${t.amount.toLocaleString()} ${t.memo || ''}${t.tags?.length ? ' [' + t.tags.join(',') + ']' : ''}`).join('\n') || '  データなし'}
+
+今月合計: 収入¥${income.toLocaleString()} 支出¥${expense.toLocaleString()}
+
+ユーザーの質問: ${freeQuestion}
+
+2〜3文以内で具体的に答えてください。数字は必ず¥XX,XXX形式で。`,
     };
 
     const userMessage = prompts[question] ?? prompts.monthly;

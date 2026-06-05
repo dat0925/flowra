@@ -365,6 +365,19 @@ async function renderContent(content, accounts, transactions, year, month, fromC
               予算内に収まりそう？
             </button>
           </div>
+          <!-- フリー入力 -->
+          <div style="display:flex;gap:6px;margin-top:10px;">
+            <input id="ai-free-input" type="text" placeholder="今日いくら使った？　5/1の支出は？　など"
+              style="flex:1;font-size:12px;padding:7px 12px;border-radius:20px;
+                border:1px solid var(--border);background:var(--stone);
+                color:var(--ink);outline:none;min-width:0;">
+            <button id="ai-free-btn"
+              style="font-size:12px;padding:7px 14px;border-radius:20px;
+                border:none;background:var(--sage);color:#fff;
+                cursor:pointer;font-weight:600;white-space:nowrap;flex-shrink:0;">
+              聞く
+            </button>
+          </div>
         </div>
         <div id="ai-answer" style="display:none;padding:0 16px 14px;border-top:1px solid var(--sage-lt);padding-top:12px;margin-top:-2px;"></div>
       </div>
@@ -827,6 +840,59 @@ function setupAiSummary(transactions, year, month) {
         }
       }
     });
+  });
+
+  // フリー入力
+  const freeInput = document.getElementById('ai-free-input');
+  const freeBtn   = document.getElementById('ai-free-btn');
+
+  async function submitFreeQuery() {
+    const q = freeInput?.value?.trim();
+    if (!q) return;
+
+    answerEl.style.display = 'block';
+    answerEl.innerHTML = '<div style="font-size:12px;color:var(--mid);">考え中…</div>';
+
+    try {
+      const prevM = month === 1 ? 12 : month - 1;
+      const prevY = month === 1 ? year - 1 : year;
+      const prevData = await DB.getTransactions({ year: prevY, month: prevM, pageSize: 1000 });
+      const prevTxs  = prevData.data || [];
+      const income   = transactions.filter(t => t.type === 'income').reduce((s,t) => s+t.amount, 0);
+      const expense  = transactions.filter(t => t.type === 'expense').reduce((s,t) => s+t.amount, 0);
+      const fixedTags = await estimateFixedCostTags(year, month);
+
+      const answer = await callAI('free', {
+        year, month, income, expense,
+        tagBreakdown: getTagBreakdown(transactions),
+        prevIncome:  prevTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0),
+        prevExpense: prevTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0),
+        prevTagBreakdown: getTagBreakdown(prevTxs),
+        todayDate: new Date().getDate(),
+        daysInMonth: new Date(year, month, 0).getDate(),
+        fixedCostTags: Array.from(fixedTags),
+        freeQuestion: q,
+        // 今月の全取引（日付・金額・メモ・タグ付き）
+        allTransactions: transactions.map(t => ({
+          date: t.date,
+          type: t.type,
+          amount: t.amount,
+          memo: t.memo || '',
+          tags: (t.tags || []).map(tg => tg.name || tg).filter(Boolean),
+        })),
+      });
+
+      answerEl.innerHTML = answer.split('\\n').join('<br>');
+      if (freeInput) freeInput.value = '';
+
+    } catch(e) {
+      answerEl.innerHTML = '<div style="font-size:12px;color:rgba(255,100,100,0.8);">エラー: ' + e.message + '</div>';
+    }
+  }
+
+  freeBtn?.addEventListener('click', submitFreeQuery);
+  freeInput?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submitFreeQuery();
   });
 }
 
