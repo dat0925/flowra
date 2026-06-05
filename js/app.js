@@ -207,6 +207,8 @@ function patchAfterSave(tx) {
   }
 
   // ── ホーム画面のDOMパッチ ──
+  // サマリーカード（収支・残高）はhiddenフラグが反映されないためrenderDashboardで再描画
+  renderDashboard();
   const txList = document.getElementById('tx-list');
   if (txList) {
     const today = new Date(tx.date + 'T00:00:00');
