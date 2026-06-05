@@ -611,6 +611,8 @@ export async function openEditRecord(tx, onSave) {
         const updated = await DB.updateTransaction(tx.id, payload, [...state.selectedTags]);
         await upsertTransactions([{ ...updated, tags: [] }]);
         Sound.playSave();
+        const saveBar = document.getElementById('save-bar');
+        if (saveBar) saveBar.hidden = true;
         sheet.remove();
         if (onSave) onSave();
       } catch (e) {
