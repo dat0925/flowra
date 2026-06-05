@@ -900,7 +900,7 @@ function setupAiSummary(transactions, year, month) {
         daysInMonth: new Date(year, month, 0).getDate(),
         fixedCostTags: Array.from(fixedTags),
         freeQuestion: q,
-        conversationHistory: _freeHistory.slice(-3),
+        conversationHistory: _freeHistory.slice(-10),
         allTransactions: allTxs3,
       });
 
