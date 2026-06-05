@@ -98,7 +98,10 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
           </div>
           <div class="row-body">
             <div class="row-label">口座</div>
-            <div class="row-value ${state.accountId ? '' : 'ph'}">${acctName(state.accountId)}</div>
+            <div style="display:flex;align-items:baseline;gap:8px;">
+              <div class="row-value ${state.accountId ? '' : 'ph'}">${acctName(state.accountId)}</div>
+              ${state.accountId ? '<div style="font-size:11px;color:var(--mid);">残高 ¥' + (accounts.find(a=>a.id===state.accountId)?.balance ?? 0).toLocaleString() + '</div>' : ''}
+            </div>
           </div>
           <div class="row-chevron"><svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg></div>
         </div>
@@ -660,6 +663,14 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
 
       const tmpEl = document.querySelector('[data-tx-id="' + optimisticTx.id + '"]');
       if (tmpEl) tmpEl.dataset.txId = tx.id;
+
+      // 登録後の残高をトーストで表示
+      const acct = accounts.find(a => a.id === state.accountId);
+      if (acct) {
+        const sign = payload.type === 'income' ? 1 : payload.type === 'expense' ? -1 : 0;
+        const newBalance = acct.balance + sign * amount;
+        showToast(acctNameVal + ' ¥' + newBalance.toLocaleString());
+      }
     } catch (err) {
       showToast('⚠️ ' + (err.message || JSON.stringify(err)));
       console.error('Save error:', err);
