@@ -22,6 +22,7 @@ serve(async (req) => {
       fixedCostTags = [], // 過去3ヶ月の推移から固定費と推定されたタグ名の配列
       freeQuestion = '',
       allTransactions = [],
+      conversationHistory = [],
     } = data;
 
     const today    = todayDate  ?? new Date().getDate();
@@ -82,6 +83,10 @@ ${budgets.length ? `予算設定:\n${budgets.map((b: any) => `  ${b.name}: ¥${b
 ${allTransactions.map((t: any) => `  ${t.date} ${t.type === 'income' ? '収入' : t.type === 'expense' ? '支出' : '移動'} ¥${t.amount.toLocaleString()} ${t.memo || ''}${t.tags?.length ? ' [' + t.tags.join(',') + ']' : ''}`).join('\n') || '  データなし'}
 
 今月合計: 収入¥${income.toLocaleString()} 支出¥${expense.toLocaleString()}
+
+${conversationHistory.length > 0 ? `
+直前の会話:
+${conversationHistory.map((h: any) => `  Q: ${h.q}\n  A: ${h.a}`).join('\n')}` : ''}
 
 ユーザーの質問: ${freeQuestion}
 

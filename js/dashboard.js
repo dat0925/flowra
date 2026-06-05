@@ -846,12 +846,17 @@ function setupAiSummary(transactions, year, month) {
   const freeInput = document.getElementById('ai-free-input');
   const freeBtn   = document.getElementById('ai-free-btn');
 
+  // 会話履歴（直前のやり取りを保持）
+  let _freeHistory = []; // [{ q, a }, ...]
+
   async function submitFreeQuery() {
     const q = freeInput?.value?.trim();
     if (!q) return;
 
     answerEl.style.display = 'block';
     answerEl.innerHTML = '<div style="font-size:12px;color:var(--mid);">考え中…</div>';
+
+    const tsEl = document.getElementById('ai-timestamp');
 
     try {
       const prevM = month === 1 ? 12 : month - 1;
@@ -872,7 +877,8 @@ function setupAiSummary(transactions, year, month) {
         daysInMonth: new Date(year, month, 0).getDate(),
         fixedCostTags: Array.from(fixedTags),
         freeQuestion: q,
-        // 今月の全取引（日付・金額・メモ・タグ付き）
+        // 直前の会話履歴（最大3件）
+        conversationHistory: _freeHistory.slice(-3),
         allTransactions: transactions.map(t => ({
           date: t.date,
           type: t.type,
@@ -882,8 +888,19 @@ function setupAiSummary(transactions, year, month) {
         })),
       });
 
-      answerEl.innerHTML = answer.split('\\n').join('<br>');
+      // 会話履歴に追加
+      _freeHistory.push({ q, a: answer });
+
+      answerEl.innerHTML = answer.split('\n').join('<br>');
       if (freeInput) freeInput.value = '';
+
+      // タイムスタンプ更新
+      if (tsEl) {
+        const now = new Date();
+        const label = (now.getMonth()+1) + '/' + now.getDate() + ' ' + now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0');
+        tsEl.style.display = 'block';
+        tsEl.textContent = label + ' の回答';
+      }
 
     } catch(e) {
       answerEl.innerHTML = '<div style="font-size:12px;color:rgba(255,100,100,0.8);">エラー: ' + e.message + '</div>';
