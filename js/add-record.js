@@ -715,16 +715,17 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
 async function showSuggest(onSave, onReady, accounts, tags) {
   const all = await getCachedTransactions();
 
-  // 直近の記録から重複排除して4件取得
+  // 直近の記録から重複排除して20件取得（日付+内容で重複排除）
   const seen = new Set();
   const recent = [];
   for (const tx of all) {
     if (tx.type === 'transfer') continue;
-    const key = tx.type + '|' + tx.amount + '|' + (tx.memo || '') + '|' + tx.account_id;
+    // 日付を含めたキーで重複排除（同日同内容のみ除外、別日は別扱い）
+    const key = tx.date + '|' + tx.type + '|' + tx.amount + '|' + (tx.memo || '') + '|' + tx.account_id;
     if (!seen.has(key)) {
       seen.add(key);
       recent.push(tx);
-      if (recent.length >= 4) break;
+      if (recent.length >= 20) break;
     }
   }
 
