@@ -359,13 +359,14 @@ async function showInviteAcceptDialog(token) {
 async function applyViewerMode() {
   try {
     const role = await DB.getMyRole();
+    console.log('[ViewerMode] role:', role);
     const isViewer = role === 'viewer';
     const addMobile  = document.getElementById('btn-add-mobile');
     const addDesktop = document.getElementById('btn-add-desktop');
     if (addMobile)  addMobile.style.display  = isViewer ? 'none' : '';
     if (addDesktop) addDesktop.style.display = isViewer ? 'none' : '';
   } catch (e) {
-    // エラー時は何もしない（デフォルト表示を維持）
+    console.error('[ViewerMode] error:', e);
   }
 }
 
