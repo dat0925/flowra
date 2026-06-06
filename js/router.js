@@ -67,6 +67,7 @@ export const Router = {
   // 画面遷移
   navigate(page) {
     this.currentPage = page;
+    localStorage.setItem('flowra_last_page', page);
     Sound.playTap();
     // ページ遷移時にsave-barを確実に非表示
     const saveBar = document.getElementById('save-bar');

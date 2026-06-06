@@ -160,7 +160,8 @@ function showApp(user) {
   document.getElementById('btn-add-desktop')?.addEventListener('click', openAdd);
   document.getElementById('btn-add-mobile')?.addEventListener('click', openAdd);
 
-  Router.navigate('dashboard');
+  const lastPage = localStorage.getItem('flowra_last_page') || 'dashboard';
+  Router.navigate(lastPage);
 }
 
 async function _seedDefaultTags() {
@@ -452,4 +453,55 @@ async function initTeamSwitcher() {
   } catch (e) {
     console.error('team switcher error:', e);
   }
+}
+
+// ── プルトゥリフレッシュ ──────────────────
+function initPullToRefresh() {
+  let startY = 0;
+  let pulling = false;
+  let indicator = null;
+
+  const target = document.getElementById('page-content');
+  if (!target) return;
+
+  target.addEventListener('touchstart', e => {
+    if (target.scrollTop === 0) {
+      startY = e.touches[0].clientY;
+      pulling = true;
+    }
+  }, { passive: true });
+
+  target.addEventListener('touchmove', e => {
+    if (!pulling) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 10) {
+      if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);' +
+          'background:var(--sage);color:#fff;font-size:12px;padding:6px 16px;border-radius:20px;' +
+          'z-index:9999;pointer-events:none;transition:opacity 0.2s;';
+        indicator.textContent = '↓ 引いて更新';
+        document.body.appendChild(indicator);
+      }
+      if (dy > 80) indicator.textContent = '↑ 離して更新';
+      else indicator.textContent = '↓ 引いて更新';
+    }
+  }, { passive: true });
+
+  target.addEventListener('touchend', e => {
+    if (!pulling) return;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (indicator) { indicator.remove(); indicator = null; }
+    if (dy > 80) {
+      import('./router.js').then(({ Router }) => Router.navigate(Router.currentPage));
+    }
+    pulling = false;
+  }, { passive: true });
+}
+
+// DOM準備後に初期化
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPullToRefresh);
+} else {
+  initPullToRefresh();
 }
