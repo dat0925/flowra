@@ -545,14 +545,11 @@
     const expires = document.getElementById('input-expires').value;
     const email   = document.getElementById('input-email').value.trim();
 
-    const { error } = await supabase
-      .from('user_plans')
-      .upsert({
-        user_id: _currentUserId,
-        plan,
-        expires_at: expires ? new Date(expires).toISOString() : null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' });
+    const { error } = await supabase.rpc('set_user_plan', {
+      p_user_id: _currentUserId,
+      p_plan: plan,
+      p_expires_at: expires ? new Date(expires).toISOString() : null,
+    });
 
     if (error) {
       toast('❌ エラー: ' + error.message);
@@ -576,14 +573,11 @@
 
   // ── プラン解除 ──
   window.revokePlan = async (userId) => {
-    const { error } = await supabase
-      .from('user_plans')
-      .upsert({
-        user_id: userId,
-        plan: 'free',
-        expires_at: null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' });
+    const { error } = await supabase.rpc('set_user_plan', {
+      p_user_id: userId,
+      p_plan: 'free',
+      p_expires_at: null,
+    });
     if (error) { toast('❌ ' + error.message); return; }
     toast('✓ Freeに変更しました');
     await Promise.all([loadStats(), loadUserList()]);
