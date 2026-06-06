@@ -638,21 +638,20 @@ export const DB = {
 
   async updateMemberRole(userId, role) {
     const teamId = await this.getTeamId();
-    const { error } = await supabase
-      .from('team_members')
-      .update({ role })
-      .eq('team_id', teamId)
-      .eq('user_id', userId);
+    const { error } = await supabase.rpc('update_member_role', {
+      p_team_id: teamId,
+      p_user_id: userId,
+      p_role: role,
+    });
     if (error) throw error;
   },
 
   async removeMember(userId) {
     const teamId = await this.getTeamId();
-    const { error } = await supabase
-      .from('team_members')
-      .delete()
-      .eq('team_id', teamId)
-      .eq('user_id', userId);
+    const { error } = await supabase.rpc('remove_member', {
+      p_team_id: teamId,
+      p_user_id: userId,
+    });
     if (error) throw error;
   },
 
