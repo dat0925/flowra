@@ -1012,7 +1012,7 @@ function setupAccordions() {
     if (!body || !head) return;
 
     var stored = localStorage.getItem('ac-' + key);
-    var isOpen = stored !== 'closed';
+    var isOpen = key === "budget" ? true : stored !== "closed";
 
     // 初期状態設定
     if (isOpen) {
