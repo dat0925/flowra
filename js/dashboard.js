@@ -283,36 +283,8 @@ async function renderContent(content, accounts, transactions, year, month, fromC
       }
     } catch(e) { console.error('[Budget]', e); /* 予算取得失敗は無視 */ }
 
-    // 口座一覧
-    const acctHTML = accounts.map((a,i) => `
-      ${i > 0 ? '<div class="acct-divider"></div>' : ''}
-      <div class="acct-item">
-        <div class="acct-left">
-          ${acctIconSVG(a.type)}
-          <div>
-            <div class="acct-name">${a.name}</div>
-            <div class="acct-type-label">${ACCT_TYPE_LABEL[a.type]||a.type}</div>
-          </div>
-        </div>
-        <div class="acct-balance" style="color:${a.balance<0?'var(--red)':'var(--ink)'}">
-          ${a.balance < 0 ? '<span class="acct-balance-cur" style="color:var(--red)">−¥</span>' : '<span class="acct-balance-cur">¥</span>'}${fmt(Math.abs(a.balance))}
-        </div>
-      </div>`).join('');
 
-    // 記録一覧
-    const firstPage = transactions.slice(0, PAGE_SIZE);
-    const grouped = groupByDate(firstPage);
-    let txRows = Object.entries(grouped).map(([date, txs]) =>
-      `<div class="tx-date-label">${formatDate(date)}</div>${txs.map(txItemHTML).join('')}`
-    ).join('');
 
-    if (!txRows) {
-      txRows = `<div class="empty-state">
-        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <div class="empty-state-title">記録がありません</div>
-        <div class="empty-state-sub">＋ボタンから記録を追加してください</div>
-      </div>`;
-    }
 
     content.innerHTML = `
       ${summaryHTML}
@@ -387,49 +359,9 @@ async function renderContent(content, accounts, transactions, year, month, fromC
         <div id="ai-answer" style="display:none;padding:0 16px 14px;border-top:1px solid var(--sage-lt);padding-top:12px;margin-top:-2px;"></div>
       </div>
       ${budgetHTML}
-      <div class="main-grid" style="margin-top:12px;">
-        <div class="panel">
-          <div class="panel-head ac-head" data-ac="acct-body" style="cursor:pointer;">
-            <div style="display:flex;align-items:center;gap:5px;">
-              <div class="panel-title">口座残高</div>
-              <svg id="ac-chevron-acct" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--sage)" stroke-width="2.5" style="transition:transform 0.25s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-            <div class="panel-link" id="link-acct-manage">管理
-              <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-            </div>
-          </div>
-          <div id="acct-body" style="overflow:hidden;transition:max-height 0.28s ease;">
-            ${acctHTML}
-            <div class="acct-total">
-              <div class="acct-total-label">合計</div>
-              <div class="acct-total-amount"><span style="font-size:11px;font-weight:300;color:var(--mid);margin-right:1px;">¥</span>${fmt(total)}</div>
-            </div>
-          </div>
-        </div>
-        <div class="panel" id="tx-panel">
-          <div class="panel-head ac-head" data-ac="tx-body" style="cursor:pointer;">
-            <div style="display:flex;align-items:center;gap:5px;">
-              <div class="panel-title">記録一覧</div>
-              <svg id="ac-chevron-tx" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--sage)" stroke-width="2.5" style="transition:transform 0.25s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
-            </div>
-            <div class="panel-link" id="link-records">記録
-              <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
-            </div>
-          </div>
-          <div id="tx-body" style="overflow:hidden;transition:max-height 0.28s ease;">
-            <div id="tx-list">${txRows}</div>
-            <div id="tx-sentinel" style="height:1px;"></div>
-            ${_hasMore ? '<div id="tx-loading" style="padding:16px;text-align:center;font-size:12px;color:var(--mid);">読み込み中…</div>' : ''}
-          </div>
-        </div>
-      </div>`;
+`;
 
-  document.getElementById('link-records')?.addEventListener('click', () => {
-    import('./router.js').then(({ Router }) => Router.navigate('records'));
-  });
-  document.getElementById('link-acct-manage')?.addEventListener('click', () => {
-    import('./router.js').then(({ Router }) => Router.navigate('accounts'));
-  });
+
   document.getElementById('link-budget-setting')?.addEventListener('click', () => {
     import('./router.js').then(({ Router }) => Router.navigate('settings'));
   });
@@ -1005,7 +937,7 @@ function setupInfiniteScroll(year, month) {
 }
 
 function setupAccordions() {
-  ['budget', 'acct', 'tx'].forEach(function(key) {
+  ['budget'].forEach(function(key) {
     var body = document.getElementById(key + '-body');
     var chevron = document.getElementById('ac-chevron-' + key);
     var head = document.querySelector('[data-ac="' + key + '-body"]');
