@@ -270,7 +270,7 @@ init();
 // ── 招待受け入れダイアログ ──────────────
 async function showInviteAcceptDialog(token) {
   // ログイン確認：未ログインならGoogleログインを促す
-  const { data: { user: currentUser } } = await supabase.auth.getUser();
+  const currentUser = await Auth.getUser();
   if (!currentUser) {
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(28,43,34,0.6);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 0.3s;';

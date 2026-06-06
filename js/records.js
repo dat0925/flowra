@@ -54,7 +54,7 @@ export async function renderRecords({ focusSearch = false } = {}) {
   const cachedTxs = await getCachedTransactions({ year, month });
   if (cachedTxs.length > 0) {
     _allTx = cachedTxs;
-    renderShell(cachedTxs, year, month);
+    renderShell(cachedTxs, year, month, focusSearch);
   } else {
     content.innerHTML = '<div class="spinner"></div>';
   }
@@ -81,7 +81,7 @@ export async function renderRecords({ focusSearch = false } = {}) {
       || result.data.length !== cachedTxs.length
       || freshIds.some(id => !cachedIds.has(id));
     if (needsUpdate) {
-      renderShell(result.data, year, month);
+      renderShell(result.data, year, month, focusSearch);
     } else {
       // 差分なし: サマリーバーだけ静かに更新
       updateSummaryBar(summary);
@@ -98,7 +98,7 @@ export async function renderRecords({ focusSearch = false } = {}) {
   }
 }
 
-function renderShell(transactions, year, month) {
+function renderShell(transactions, year, month, focusSearch = false) {
   const content = document.getElementById('page-content');
   const income  = transactions.filter(t=>t.type==='income' ).reduce((s,t)=>s+t.amount,0);
   const expense = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);

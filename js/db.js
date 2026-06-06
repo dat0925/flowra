@@ -615,13 +615,13 @@ export const DB = {
     if (invite.used_at) throw new Error('この招待リンクは既に使用済みです');
     if (new Date(invite.expires_at) < new Date()) throw new Error('招待リンクの有効期限が切れています');
 
-    // 既にメンバーか確認
+    // 既にメンバーか確認（team_membersにidカラムはないためteam_idで代替）
     const { data: existing } = await supabase
       .from('team_members')
-      .select('id')
+      .select('team_id')
       .eq('team_id', invite.team_id)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
     if (existing) throw new Error('既にこのチームのメンバーです');
 
     // メンバー追加
@@ -638,6 +638,7 @@ export const DB = {
 
     // チームIDキャッシュをリセットして招待元チームをアクティブに設定
     _teamId = null;
+    _allTeams = null;
     this.setActiveTeamId(invite.team_id);
   },
 
