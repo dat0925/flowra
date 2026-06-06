@@ -636,8 +636,9 @@ export const DB = {
       .update({ used_at: new Date().toISOString(), used_by: user.id })
       .eq('id', invite.id);
 
-    // チームIDキャッシュをリセット
+    // チームIDキャッシュをリセットして招待元チームをアクティブに設定
     _teamId = null;
+    this.setActiveTeamId(invite.team_id);
   },
 
   async updateMemberRole(userId, role) {
