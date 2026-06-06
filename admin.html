@@ -279,7 +279,11 @@
           更新
         </button>
       </div>
+      <div style="margin-bottom:12px;">
+        <input type="text" class="admin-input" id="user-search" placeholder="メールアドレスで絞り込み" style="width:100%;">
+      </div>
       <div id="user-list"><div class="spinner"></div></div>
+      <div id="user-pagination" style="display:flex;justify-content:center;gap:8px;margin-top:12px;"></div>
     </div>
 
     <!-- AI使用量 -->
@@ -379,23 +383,52 @@
     return map;
   }
 
-  // ── 全ユーザー一覧（プラン情報マージ）──
+  // ── 全ユーザー一覧（プラン情報マージ・検索・ページネーション）──
+  const PAGE_SIZE = 20;
+  let _allUsers = [];
+  let _planMap  = {};
+  let _userPage = 0;
+  let _userQuery = '';
+
   async function loadUserList() {
     const el = document.getElementById('user-list');
+    el.innerHTML = '<div class="spinner"></div>';
 
-    // 全ユーザー取得（RPC）
     const { data: allUsers, error: usersError } = await supabase.rpc('get_all_users');
     if (usersError || !allUsers?.length) {
       el.innerHTML = '<p style="font-size:13px;color:var(--mid);padding:8px;">ユーザーがいません</p>';
       return;
     }
 
-    // プラン情報取得
     const { data: plans } = await supabase.from('user_plans').select('user_id, plan, expires_at');
-    const planMap = {};
-    (plans || []).forEach(p => { planMap[p.user_id] = p; });
+    _planMap = {};
+    (plans || []).forEach(p => { _planMap[p.user_id] = p; });
+    _allUsers = allUsers;
+    _userPage = 0;
+    renderUserList();
+  }
+
+  function renderUserList() {
+    const el   = document.getElementById('user-list');
+    const pgEl = document.getElementById('user-pagination');
+
+    const q = _userQuery.toLowerCase();
+    const filtered = q
+      ? _allUsers.filter(u => u.email.toLowerCase().includes(q))
+      : _allUsers;
+
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    const page = Math.min(_userPage, Math.max(0, totalPages - 1));
+    const slice = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+    if (!slice.length) {
+      el.innerHTML = '<p style="font-size:13px;color:var(--mid);padding:8px;">該当ユーザーがいません</p>';
+      pgEl.innerHTML = '';
+      return;
+    }
 
     el.innerHTML = `
+      <div style="font-size:11px;color:var(--mid);margin-bottom:6px;">${filtered.length}件中 ${page * PAGE_SIZE + 1}〜${Math.min((page + 1) * PAGE_SIZE, filtered.length)}件表示</div>
       <div style="overflow-x:auto;">
         <table class="user-table">
           <thead><tr>
@@ -405,8 +438,8 @@
             <th></th>
           </tr></thead>
           <tbody>
-            ${allUsers.map(u => {
-              const p = planMap[u.id];
+            ${slice.map(u => {
+              const p = _planMap[u.id];
               const plan = p?.plan || 'free';
               const expires = p?.expires_at;
               const isExpired = expires && new Date(expires) < new Date();
@@ -429,7 +462,25 @@
           </tbody>
         </table>
       </div>`;
+
+    // ページネーション
+    if (totalPages <= 1) { pgEl.innerHTML = ''; return; }
+    pgEl.innerHTML = `
+      <button class="admin-btn btn-secondary" style="padding:4px 12px;font-size:12px;"
+        ${page === 0 ? 'disabled' : ''} onclick="goUserPage(${page - 1})">‹ 前</button>
+      <span style="font-size:12px;color:var(--mid);line-height:30px;">${page + 1} / ${totalPages}</span>
+      <button class="admin-btn btn-secondary" style="padding:4px 12px;font-size:12px;"
+        ${page >= totalPages - 1 ? 'disabled' : ''} onclick="goUserPage(${page + 1})">次 ›</button>
+    `;
   }
+
+  window.goUserPage = (page) => { _userPage = page; renderUserList(); };
+
+  document.getElementById('user-search').addEventListener('input', e => {
+    _userQuery = e.target.value;
+    _userPage  = 0;
+    renderUserList();
+  });
 
   // ── AI使用量上位 ──
   async function loadUsageList() {
