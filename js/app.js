@@ -391,7 +391,8 @@ async function initTeamSwitcher() {
       const isActive = teamId === activeId;
       let name;
       if (t.role === 'owner') {
-        name = '個人';
+        const teamData = Array.isArray(t.teams) ? t.teams[0] : t.teams;
+        name = teamData?.name || '個人';
       } else {
         const teamData = Array.isArray(t.teams) ? t.teams[0] : t.teams;
         const teamName = teamData?.name;
@@ -399,25 +400,28 @@ async function initTeamSwitcher() {
         const ownerName = ownerProfile?.full_name || ownerProfile?.email?.split('@')[0] || '共有';
         name = teamName || ownerName;
       }
+      const initial = name.charAt(0);
+      const avatar = `<span style="display:inline-flex;align-items:center;justify-content:center;
+        width:15px;height:15px;border-radius:50%;
+        background:${isActive ? 'rgba(255,255,255,0.3)' : 'var(--mist)'};
+        font-size:9px;font-weight:700;flex-shrink:0;">${initial}</span>`;
       if (isDesktop) {
-        // デスクトップ：石色背景にインク色テキスト
         return `<button class="team-switch-btn ${isActive ? 'active' : ''}" data-team-id="${teamId}"
-          style="font-size:11px;padding:4px 10px;border-radius:20px;
+          style="font-size:11px;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;
           border:1px solid ${isActive ? 'var(--sage)' : 'var(--border)'};
           background:${isActive ? 'var(--sage)' : 'var(--white)'};
           color:${isActive ? '#fff' : 'var(--mid)'};
           cursor:pointer;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">
-          ${t.role === 'owner' ? '🏠' : '👥'} ${name}
+          ${avatar} ${name}
         </button>`;
       } else {
-        // モバイル：ダーク背景に白テキスト
         return `<button class="team-switch-btn ${isActive ? 'active' : ''}" data-team-id="${teamId}"
-          style="font-size:11px;padding:4px 10px;border-radius:20px;
+          style="font-size:11px;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;
           border:1px solid ${isActive ? 'var(--sage)' : 'rgba(255,255,255,0.25)'};
           background:${isActive ? 'var(--sage)' : 'transparent'};
           color:${isActive ? '#fff' : 'rgba(255,255,255,0.6)'};
           cursor:pointer;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">
-          ${t.role === 'owner' ? '🏠' : '👥'} ${name}
+          ${avatar} ${name}
         </button>`;
       }
     }).join('');
