@@ -123,7 +123,11 @@
 
       <!-- デスクトップトップバー -->
       <div id="topbar">
-        <div class="topbar-title" id="topbar-title">ホーム</div>
+        <div style="display:flex;align-items:center;gap:16px;">
+          <div class="topbar-title" id="topbar-title">ホーム</div>
+          <!-- チーム切り替え（複数チーム所属時のみ表示） -->
+          <div id="team-switcher-d" hidden style="display:flex;align-items:center;gap:6px;"></div>
+        </div>
         <div class="topbar-right">
           <div class="month-nav">
             <button class="mnav-btn" id="btn-month-prev-d">

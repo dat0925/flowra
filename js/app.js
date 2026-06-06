@@ -372,44 +372,66 @@ async function applyViewerMode() {
 async function initTeamSwitcher() {
   try {
     const teams = await DB.getAllTeams();
-    const switcher = document.getElementById('team-switcher');
-    if (!switcher) return;
+    const switcherMobile  = document.getElementById('team-switcher');
+    const switcherDesktop = document.getElementById('team-switcher-d');
 
     // 1チームのみなら非表示
     if (teams.length <= 1) {
-      switcher.hidden = true;
+      if (switcherMobile)  switcherMobile.hidden  = true;
+      if (switcherDesktop) switcherDesktop.hidden = true;
       return;
     }
 
-    switcher.hidden = false;
     const activeId = await DB.getTeamId();
-
-    // オーナーのチームのprofileを取得して表示名を決める
     const profiles = await DB.getTeamMemberProfiles(teams.map(t => t.team_id));
 
-    switcher.innerHTML = teams.map(t => {
+    const buildButtons = (isDesktop) => teams.map(t => {
       const teamId = t.team_id;
       const isActive = teamId === activeId;
       let name;
       if (t.role === 'owner') {
         name = '個人';
       } else {
-        // チーム名があればそれを優先、なければオーナー名
         const teamData = Array.isArray(t.teams) ? t.teams[0] : t.teams;
         const teamName = teamData?.name;
         const ownerProfile = profiles.find(p => p.team_id === teamId && p.role === 'owner');
         const ownerName = ownerProfile?.full_name || ownerProfile?.email?.split('@')[0] || '共有';
         name = teamName || ownerName;
       }
-      return `
-        <button class="team-switch-btn ${isActive ? 'active' : ''}" data-team-id="${teamId}"
-          style="font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid ${isActive ? 'var(--sage)' : 'rgba(255,255,255,0.25)'};background:${isActive ? 'var(--sage)' : 'transparent'};color:${isActive ? '#fff' : 'rgba(255,255,255,0.6)'};cursor:pointer;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">
+      if (isDesktop) {
+        // デスクトップ：石色背景にインク色テキスト
+        return `<button class="team-switch-btn ${isActive ? 'active' : ''}" data-team-id="${teamId}"
+          style="font-size:11px;padding:4px 10px;border-radius:20px;
+          border:1px solid ${isActive ? 'var(--sage)' : 'var(--border)'};
+          background:${isActive ? 'var(--sage)' : 'var(--white)'};
+          color:${isActive ? '#fff' : 'var(--mid)'};
+          cursor:pointer;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">
           ${t.role === 'owner' ? '🏠' : '👥'} ${name}
-        </button>
-      `;
+        </button>`;
+      } else {
+        // モバイル：ダーク背景に白テキスト
+        return `<button class="team-switch-btn ${isActive ? 'active' : ''}" data-team-id="${teamId}"
+          style="font-size:11px;padding:4px 10px;border-radius:20px;
+          border:1px solid ${isActive ? 'var(--sage)' : 'rgba(255,255,255,0.25)'};
+          background:${isActive ? 'var(--sage)' : 'transparent'};
+          color:${isActive ? '#fff' : 'rgba(255,255,255,0.6)'};
+          cursor:pointer;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">
+          ${t.role === 'owner' ? '🏠' : '👥'} ${name}
+        </button>`;
+      }
     }).join('');
 
-    switcher.querySelectorAll('.team-switch-btn').forEach(btn => {
+    if (switcherMobile) {
+      switcherMobile.hidden  = false;
+      switcherMobile.innerHTML = buildButtons(false);
+    }
+    if (switcherDesktop) {
+      switcherDesktop.hidden = false;
+      switcherDesktop.innerHTML = buildButtons(true);
+    }
+
+    // クリックイベントを両方のスイッチャーに登録
+    document.querySelectorAll('.team-switch-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         const teamId = btn.dataset.teamId;
         if (teamId === DB.getActiveTeamId()) return;
