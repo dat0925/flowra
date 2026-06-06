@@ -195,7 +195,7 @@ async function renderContent(content, accounts, transactions, year, month, fromC
       const monthKey = `${year}-${String(month).padStart(2,'0')}`;
       const [budgetMap, tags] = await Promise.all([
         DB.getBudgets(monthKey),
-        import('./cache.js').then(({ getCachedTags }) => getCachedTags())
+        DB.getTags()
       ]);
       const budgetEntries = Object.entries(budgetMap);
       if (budgetEntries.length > 0) {
@@ -281,7 +281,7 @@ async function renderContent(content, accounts, transactions, year, month, fromC
             </div>`;
         }
       }
-    } catch(e) { /* 予算取得失敗は無視 */ }
+    } catch(e) { console.error('[Budget]', e); /* 予算取得失敗は無視 */ }
 
     // 口座一覧
     const acctHTML = accounts.map((a,i) => `
