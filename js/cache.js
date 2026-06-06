@@ -94,6 +94,8 @@ export async function getCachedAccounts() {
 export async function putAccounts(accounts) {
   await openDB();
   const store = _db.transaction(STORES.accounts, 'readwrite').objectStore(STORES.accounts);
+  // 既存を全クリアしてから書き直す（削除済み口座の残留防止）
+  await promisify(store.clear());
   await Promise.all(accounts.map(a => promisify(store.put(a))));
 }
 
