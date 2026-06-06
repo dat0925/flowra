@@ -560,15 +560,9 @@ export const DB = {
 
   async getMyRole() {
     const teamId = await this.getTeamId();
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data, error } = await supabase
-      .from('team_members')
-      .select('role')
-      .eq('team_id', teamId)
-      .eq('user_id', user.id)
-      .single();
+    const { data, error } = await supabase.rpc('get_my_role', { p_team_id: teamId });
     if (error) return 'member';
-    return data.role;
+    return data || 'member';
   },
 
   async createInvite(role = 'member') {
