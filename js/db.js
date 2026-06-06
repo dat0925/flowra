@@ -779,20 +779,48 @@ export const DB = {
   // ユーザーのプランを取得（'free' | 'premium'）
   async getUserPlan() {
     const { data: { user } } = await supabase.auth.getUser();
-    const { data, error } = await supabase
-      .from('user_plans')
-      .select('plan, expires_at')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (error || !data) return 'free';
-    // expires_atが過去ならfreeに降格
-    if (data.expires_at && new Date(data.expires_at) < new Date()) return 'free';
-    return data.plan;
+
+    // まず自分のプランを確認
+    const { data, error } = await supabase.rpc('get_all_user_plans');
+    const myPlan = (data || []).find(p => p.user_id === user.id);
+    const myPlanName = myPlan?.plan || 'free';
+    const myExpired = myPlan?.expires_at && new Date(myPlan.expires_at) < new Date();
+    const effectivePlan = myExpired ? 'free' : myPlanName;
+
+    // 自分がpremium/adminなら確定
+    if (effectivePlan === 'premium' || effectivePlan === 'admin') return effectivePlan;
+
+    // 自分がfreeの場合、アクティブチームのオーナーがpremiumか確認
+    // （夫がpremiumなら妻もチーム内でAI使い放題）
+    try {
+      const teamId = await this.getTeamId();
+      const ownTeamId = await this.getOwnTeamId();
+      if (teamId !== ownTeamId) {
+        // 他人のチームを見ている場合、オーナーのプランを確認
+        const { data: members } = await supabase.rpc('get_my_role', { p_team_id: teamId });
+        // オーナーのuser_idを取得
+        const { data: allPlans } = await supabase.rpc('get_all_user_plans');
+        // チームオーナーを特定するRPCがないのでteam_membersから取得
+        const { data: ownerData } = await supabase.rpc('get_team_owner', { p_team_id: teamId });
+        if (ownerData) {
+          const ownerPlan = (allPlans || []).find(p => p.user_id === ownerData);
+          const ownerPlanName = ownerPlan?.plan || 'free';
+          const ownerExpired = ownerPlan?.expires_at && new Date(ownerPlan.expires_at) < new Date();
+          if (!ownerExpired && (ownerPlanName === 'premium' || ownerPlanName === 'admin')) {
+            return ownerPlanName;
+          }
+        }
+      }
+    } catch (e) {
+      // フォールバック：自分のプランを使用
+    }
+
+    return effectivePlan;
   },
 
   // Premiumプランかどうか（AI制限判定用）
   async isPremiumplan() {
     const plan = await this.getUserPlan();
-    return plan === 'premium';
+    return plan === 'premium' || plan === 'admin';
   },
 };
