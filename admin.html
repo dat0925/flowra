@@ -348,7 +348,11 @@
 
   // ── 統計 ──
   async function loadStats() {
-    // Premiumユーザー数
+    // 全ユーザー取得
+    const { data: allUsers } = await supabase.rpc('get_all_users');
+    document.getElementById('stat-total').textContent = allUsers?.length ?? '—';
+
+    // Premiumユーザー数（admin含む）
     const { data: plans } = await supabase
       .from('user_plans')
       .select('plan')
@@ -363,7 +367,6 @@
       .eq('month_key', monthKey)
       .gt('count', 0);
     document.getElementById('stat-active').textContent = usage?.length ?? '—';
-    document.getElementById('stat-total').textContent = '—'; // auth.usersは直接取得不可
   }
 
   // ── メール一括取得ヘルパー ──
@@ -376,20 +379,21 @@
     return map;
   }
 
-  // ── プラン保有ユーザー一覧 ──
+  // ── 全ユーザー一覧（プラン情報マージ）──
   async function loadUserList() {
-    const { data, error } = await supabase
-      .from('user_plans')
-      .select('user_id, plan, expires_at, updated_at')
-      .order('updated_at', { ascending: false });
-
     const el = document.getElementById('user-list');
-    if (error || !data?.length) {
-      el.innerHTML = '<p style="font-size:13px;color:var(--mid);padding:8px;">まだユーザーがいません</p>';
+
+    // 全ユーザー取得（RPC）
+    const { data: allUsers, error: usersError } = await supabase.rpc('get_all_users');
+    if (usersError || !allUsers?.length) {
+      el.innerHTML = '<p style="font-size:13px;color:var(--mid);padding:8px;">ユーザーがいません</p>';
       return;
     }
 
-    const emailMap = await getEmailsByUserIds(data.map(u => u.user_id));
+    // プラン情報取得
+    const { data: plans } = await supabase.from('user_plans').select('user_id, plan, expires_at');
+    const planMap = {};
+    (plans || []).forEach(p => { planMap[p.user_id] = p; });
 
     el.innerHTML = `
       <div style="overflow-x:auto;">
@@ -401,26 +405,27 @@
             <th></th>
           </tr></thead>
           <tbody>
-            ${data.map(u => `
-              <tr>
-                <td style="font-size:12px;color:var(--ink);">
-                  ${emailMap[u.user_id] || u.user_id.slice(0, 8) + '…'}
-                </td>
-                <td>
-                  <span class="plan-badge plan-${u.plan}">${u.plan}</span>
-                </td>
-                <td style="font-size:12px;color:var(--mid);">
-                  ${u.expires_at ? new Date(u.expires_at).toLocaleDateString('ja-JP') : '無期限'}
-                </td>
-                <td>
-                  <button class="admin-btn btn-danger" data-uid="${u.user_id}"
-                    style="padding:4px 10px;font-size:11px;"
-                    onclick="revokePlan('${u.user_id}')">
-                    解除
-                  </button>
-                </td>
-              </tr>
-            `).join('')}
+            ${allUsers.map(u => {
+              const p = planMap[u.id];
+              const plan = p?.plan || 'free';
+              const expires = p?.expires_at;
+              const isExpired = expires && new Date(expires) < new Date();
+              const effectivePlan = isExpired ? 'free' : plan;
+              return `
+                <tr>
+                  <td style="font-size:12px;color:var(--ink);">${u.email}</td>
+                  <td><span class="plan-badge plan-${effectivePlan}">${effectivePlan}</span></td>
+                  <td style="font-size:12px;color:var(--mid);">
+                    ${expires ? new Date(expires).toLocaleDateString('ja-JP') + (isExpired ? ' <span style="color:#B83232;">期限切れ</span>' : '') : '無期限'}
+                  </td>
+                  <td>
+                    ${effectivePlan !== 'free' ? `
+                      <button class="admin-btn btn-danger" style="padding:4px 10px;font-size:11px;"
+                        onclick="revokePlan('${u.id}')">解除</button>
+                    ` : ''}
+                  </td>
+                </tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>`;
