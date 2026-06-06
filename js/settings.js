@@ -811,6 +811,14 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
         </svg>
         オンボーディングをもう一度見る
       </div>
+      <div class="form-row" id="btn-resync" style="color:var(--sage-dk);">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 4 23 10 17 10"/>
+          <polyline points="1 20 1 14 7 14"/>
+          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+        </svg>
+        データを再同期
+      </div>
       <div class="form-row" id="btn-logout" style="color:var(--red);">
         <svg viewBox="0 0 24 24" width="16" height="16" style="color:var(--red)">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -953,6 +961,14 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
   // チーム名編集
   document.getElementById('btn-edit-team-name')?.addEventListener('click', () => {
     if (ownTeam) openTeamNameSheet(ownTeam, ownTeamId);
+  });
+
+  document.getElementById('btn-resync')?.addEventListener('click', async () => {
+    if (!confirm('ローカルキャッシュをクリアしてサーバーから再取得します。よろしいですか？')) return;
+    const { clearAll } = await import('./cache.js');
+    await clearAll();
+    showToast('✓ キャッシュをクリアしました。再読み込みします…');
+    setTimeout(() => location.reload(), 1000);
   });
 
   document.getElementById('btn-logout')?.addEventListener('click', () => {
