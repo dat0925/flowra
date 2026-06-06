@@ -1,0 +1,34 @@
+name: Bump Service Worker Cache Version
+
+on:
+  push:
+    branches:
+      - main
+    paths-ignore:
+      - 'sw.js'        # sw.js自身の変更でループしないよう除外
+      - 'HANDOFF.md'
+      - '**.md'
+
+jobs:
+  bump-sw:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump SW cache version
+        run: |
+          # 現在のバージョン番号を取得
+          CURRENT=$(grep -o "flowra-v[0-9]*" sw.js | grep -o "[0-9]*")
+          NEXT=$((CURRENT + 1))
+          echo "Bumping SW cache: v${CURRENT} -> v${NEXT}"
+          sed -i "s/flowra-v${CURRENT}/flowra-v${NEXT}/" sw.js
+
+      - name: Commit updated sw.js
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add sw.js
+          git diff --staged --quiet || git commit -m "chore: bump SW cache version [skip ci]"
+          git push
