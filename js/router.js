@@ -182,6 +182,11 @@ export const Router = {
     if (!content || !carousel || this.currentPage !== 'records') {
       if (dir === 'next') MonthState.next(); else MonthState.prev();
       this._updateMonthLabels(dir);
+      // dashboard は月が変わったら再描画
+      if (this.currentPage === 'dashboard') {
+        const handler = this._pageHandlers['dashboard'];
+        if (handler) handler();
+      }
       return;
     }
 
