@@ -86,7 +86,9 @@ export async function setLastSync(isoString) {
 export async function getCachedAccounts() {
   await openDB();
   const accounts = await promisify(tx(STORES.accounts).getAll());
-  return accounts.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  return accounts
+    .filter(a => !a.is_archived)
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 }
 
 export async function putAccounts(accounts) {
