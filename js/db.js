@@ -560,15 +560,9 @@ export const DB = {
 
   async getMyRole() {
     const teamId = await this.getTeamId();
-    const { data: { user } } = await supabase.auth.getUser();
-    const { data, error } = await supabase
-      .from('team_members')
-      .select('role')
-      .eq('team_id', teamId)
-      .eq('user_id', user.id)
-      .single();
+    const { data, error } = await supabase.rpc('get_my_role', { p_team_id: teamId });
     if (error) return 'member';
-    return data.role;
+    return data || 'member';
   },
 
   async createInvite(role = 'member') {
@@ -615,13 +609,13 @@ export const DB = {
     if (invite.used_at) throw new Error('この招待リンクは既に使用済みです');
     if (new Date(invite.expires_at) < new Date()) throw new Error('招待リンクの有効期限が切れています');
 
-    // 既にメンバーか確認
+    // 既にメンバーか確認（team_membersにidカラムはないためteam_idで代替）
     const { data: existing } = await supabase
       .from('team_members')
-      .select('id')
+      .select('team_id')
       .eq('team_id', invite.team_id)
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
     if (existing) throw new Error('既にこのチームのメンバーです');
 
     // メンバー追加
@@ -636,27 +630,28 @@ export const DB = {
       .update({ used_at: new Date().toISOString(), used_by: user.id })
       .eq('id', invite.id);
 
-    // チームIDキャッシュをリセット
+    // チームIDキャッシュをリセットして招待元チームをアクティブに設定
     _teamId = null;
+    _allTeams = null;
+    this.setActiveTeamId(invite.team_id);
   },
 
   async updateMemberRole(userId, role) {
     const teamId = await this.getTeamId();
-    const { error } = await supabase
-      .from('team_members')
-      .update({ role })
-      .eq('team_id', teamId)
-      .eq('user_id', userId);
+    const { error } = await supabase.rpc('update_member_role', {
+      p_team_id: teamId,
+      p_user_id: userId,
+      p_role: role,
+    });
     if (error) throw error;
   },
 
   async removeMember(userId) {
     const teamId = await this.getTeamId();
-    const { error } = await supabase
-      .from('team_members')
-      .delete()
-      .eq('team_id', teamId)
-      .eq('user_id', userId);
+    const { error } = await supabase.rpc('remove_member', {
+      p_team_id: teamId,
+      p_user_id: userId,
+    });
     if (error) throw error;
   },
 
@@ -784,62 +779,50 @@ export const DB = {
   // ユーザーのプランを取得（'free' | 'premium'）
   async getUserPlan() {
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return 'free';
 
-    // 自分のプランを確認
-    const { data, error } = await supabase
+    // 自分のプランを直接取得（RLSで自分のデータのみ参照可）
+    const { data: myData } = await supabase
       .from('user_plans')
       .select('plan, expires_at')
       .eq('user_id', user.id)
       .maybeSingle();
 
-    const myPlan = (!error && data && !(data.expires_at && new Date(data.expires_at) < new Date()))
-      ? data.plan : 'free';
+    const myPlan = myData?.plan || 'free';
+    const myExpired = myData?.expires_at && new Date(myData.expires_at) < new Date();
+    const effectivePlan = myExpired ? 'free' : myPlan;
 
-    // admin/premiumなら即返す
-    if (myPlan === 'admin' || myPlan === 'premium') return myPlan;
+    // 自分がpremium/adminなら確定
+    if (effectivePlan === 'premium' || effectivePlan === 'admin') return effectivePlan;
 
-    // チームオーナーのプランを確認（招待ユーザーはオーナーのプランを継承）
+    // 自分がfreeの場合、アクティブチームのオーナーのプランを確認
+    // （オーナーがpremium/adminなら招待メンバーもそのプランを使える）
     try {
-      const { data: memberships } = await supabase
-        .from('team_members')
-        .select('team_id, role')
-        .eq('user_id', user.id);
-
-      if (memberships && memberships.length > 0) {
-        // ownerでないチームのオーナーを探す
-        const joinedTeams = memberships.filter(m => m.role !== 'owner').map(m => m.team_id);
-        if (joinedTeams.length > 0) {
-          const { data: owners } = await supabase
-            .from('team_members')
-            .select('user_id')
-            .in('team_id', joinedTeams)
-            .eq('role', 'owner');
-
-          if (owners && owners.length > 0) {
-            const ownerIds = owners.map(o => o.user_id);
-            const { data: ownerPlans } = await supabase
-              .from('user_plans')
-              .select('plan, expires_at')
-              .in('user_id', ownerIds);
-
-            if (ownerPlans) {
-              for (const op of ownerPlans) {
-                if (!op.expires_at || new Date(op.expires_at) >= new Date()) {
-                  if (op.plan === 'admin' || op.plan === 'premium') return op.plan;
-                }
-              }
+      const teamId = await this.getTeamId();
+      const ownTeamId = await this.getOwnTeamId();
+      if (teamId && ownTeamId && teamId !== ownTeamId) {
+        // 他人のチームを見ている → オーナーのuser_idをRPCで取得
+        const { data: ownerUserId } = await supabase.rpc('get_team_owner', { p_team_id: teamId });
+        if (ownerUserId) {
+          // オーナーのプランを取得（service_role不要・RPCでSECURITY DEFINER）
+          const { data: ownerPlanData } = await supabase.rpc('get_user_plan_by_id', { p_user_id: ownerUserId });
+          if (ownerPlanData) {
+            const ownerPlan = ownerPlanData.plan || 'free';
+            const ownerExpired = ownerPlanData.expires_at && new Date(ownerPlanData.expires_at) < new Date();
+            if (!ownerExpired && (ownerPlan === 'premium' || ownerPlan === 'admin')) {
+              return ownerPlan;
             }
           }
         }
       }
-    } catch(_) {}
+    } catch (_) {}
 
-    return myPlan;
+    return effectivePlan;
   },
 
   // Premiumプランかどうか（AI制限判定用）
   async isPremiumplan() {
     const plan = await this.getUserPlan();
-    return plan === 'premium';
+    return plan === 'premium' || plan === 'admin';
   },
 };

@@ -209,9 +209,6 @@ async function renderAccountsContent(content, accounts) {
       if (newPrivateThumb) newPrivateThumb.style.transform  = on ? 'translateX(18px)' : 'translateX(0)';
     }
     newPrivateChk?.addEventListener('change', updateNewPrivateToggle);
-    newPrivateTrack?.addEventListener('click', () => {
-      if (newPrivateChk) { newPrivateChk.checked = !newPrivateChk.checked; updateNewPrivateToggle(); }
-    });
 
     // 残高入力：先頭ゼロを除去（新規作成）
     document.getElementById('new-acct-balance')?.addEventListener('input', e => {
@@ -576,12 +573,7 @@ function openEditModal(acct) {
       const descEl = document.getElementById('edit-private-desc');
       if (descEl) descEl.textContent = `記録が ${count.toLocaleString()} 件あるため変更できません`;
     } else {
-      editPrivateTrack?.addEventListener('click', () => {
-        if (editPrivateChk && !editPrivateChk.disabled) {
-          editPrivateChk.checked = !editPrivateChk.checked;
-          updateEditPrivateToggle();
-        }
-      });
+      editPrivateChk?.addEventListener('change', updateEditPrivateToggle);
     }
   }).catch(() => {});
 
@@ -655,9 +647,7 @@ function openEditModal(acct) {
     if (!name) { showToast('口座名を入力してください'); return; }
     try {
       const isPrivate = document.getElementById('edit-acct-private')?.checked || false;
-      // 公開→非公開への変更は記録なしの場合のみ許可（UIで制御済みだが念のため）
-      const privatePayload = (!acct.is_private && isPrivate) ? { is_private: true } : { is_private: acct.is_private };
-      await DB.updateAccount(acct.id, { name, type, balance, color: editColor, notes, ...privatePayload });
+      await DB.updateAccount(acct.id, { name, type, balance, color: editColor, notes, is_private: isPrivate });
       closeModal();
       showToast('✓ 変更を保存しました');
       renderAccounts();

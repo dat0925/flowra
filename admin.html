@@ -243,21 +243,31 @@
     <div class="admin-section">
       <div class="admin-section-title">プラン変更</div>
       <div class="admin-form">
-        <input type="email" class="admin-input" id="input-email" placeholder="ユーザーのメールアドレス">
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <select class="admin-input" id="input-plan" style="flex:1;">
-            <option value="premium">Premium（無制限）</option>
-            <option value="free">Free（月5回）</option>
-            <option value="admin">Admin（管理者・無制限）</option>
-          </select>
-          <input type="date" class="admin-input" id="input-expires" style="flex:1;"
-            title="有効期限（空欄=無期限）">
-        </div>
+        <!-- Step1: メール入力 -->
         <div style="display:flex;gap:10px;">
-          <button class="admin-btn btn-primary" id="btn-set-plan" style="flex:1;">プランを設定</button>
-          <button class="admin-btn btn-secondary" id="btn-lookup" style="flex:1;">メールで検索</button>
+          <input type="email" class="admin-input" id="input-email" placeholder="ユーザーのメールアドレス" style="flex:1;">
+          <button class="admin-btn btn-secondary" id="btn-lookup" style="white-space:nowrap;">検索</button>
         </div>
+
+        <!-- Step2: 検索結果（初期非表示） -->
         <div id="lookup-result" style="font-size:12px;color:var(--mid);min-height:18px;"></div>
+
+        <!-- Step3: プラン設定（検索成功後に表示） -->
+        <div id="plan-form" style="display:none;border-top:1px solid var(--border);padding-top:14px;display:none;flex-direction:column;gap:10px;">
+          <div id="plan-form-user" style="font-size:13px;font-weight:600;color:var(--ink);"></div>
+          <div style="display:flex;gap:10px;align-items:center;">
+            <select class="admin-input" id="input-plan" style="flex:1;">
+              <option value="premium">Premium（無制限）</option>
+              <option value="free">Free（月5回）</option>
+              <option value="admin">Admin（管理者・無制限）</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:var(--mid);display:block;margin-bottom:4px;">有効期限（空欄で無期限）</label>
+            <input type="date" class="admin-input" id="input-expires" style="width:100%;">
+          </div>
+          <button class="admin-btn btn-primary" id="btn-set-plan">プランを設定する</button>
+        </div>
       </div>
     </div>
 
@@ -269,7 +279,11 @@
           更新
         </button>
       </div>
+      <div style="margin-bottom:12px;">
+        <input type="text" class="admin-input" id="user-search" placeholder="メールアドレスで絞り込み" style="width:100%;">
+      </div>
       <div id="user-list"><div class="spinner"></div></div>
+      <div id="user-pagination" style="display:flex;justify-content:center;gap:8px;margin-top:12px;"></div>
     </div>
 
     <!-- AI使用量 -->
@@ -338,12 +352,14 @@
 
   // ── 統計 ──
   async function loadStats() {
-    // Premiumユーザー数
-    const { data: plans } = await supabase
-      .from('user_plans')
-      .select('plan')
-      .neq('plan', 'free');
-    document.getElementById('stat-premium').textContent = plans?.length ?? '—';
+    // 全ユーザー取得
+    const { data: allUsers } = await supabase.rpc('get_all_users');
+    document.getElementById('stat-total').textContent = allUsers?.length ?? '—';
+
+    // Premiumユーザー数（admin含む）
+    const { data: allPlans } = await supabase.rpc('get_all_user_plans');
+    const premiumCount = (allPlans || []).filter(p => p.plan !== 'free').length;
+    document.getElementById('stat-premium').textContent = premiumCount;
 
     // 今月AI利用ユーザー数
     const monthKey = new Date().toISOString().slice(0, 7);
@@ -353,7 +369,6 @@
       .eq('month_key', monthKey)
       .gt('count', 0);
     document.getElementById('stat-active').textContent = usage?.length ?? '—';
-    document.getElementById('stat-total').textContent = '—'; // auth.usersは直接取得不可
   }
 
   // ── メール一括取得ヘルパー ──
@@ -366,22 +381,52 @@
     return map;
   }
 
-  // ── プラン保有ユーザー一覧 ──
-  async function loadUserList() {
-    const { data, error } = await supabase
-      .from('user_plans')
-      .select('user_id, plan, expires_at, updated_at')
-      .order('updated_at', { ascending: false });
+  // ── 全ユーザー一覧（プラン情報マージ・検索・ページネーション）──
+  const PAGE_SIZE = 20;
+  let _allUsers = [];
+  let _planMap  = {};
+  let _userPage = 0;
+  let _userQuery = '';
 
+  async function loadUserList() {
     const el = document.getElementById('user-list');
-    if (error || !data?.length) {
-      el.innerHTML = '<p style="font-size:13px;color:var(--mid);padding:8px;">まだユーザーがいません</p>';
+    el.innerHTML = '<div class="spinner"></div>';
+
+    const { data: allUsers, error: usersError } = await supabase.rpc('get_all_users');
+    if (usersError || !allUsers?.length) {
+      el.innerHTML = '<p style="font-size:13px;color:var(--mid);padding:8px;">ユーザーがいません</p>';
       return;
     }
 
-    const emailMap = await getEmailsByUserIds(data.map(u => u.user_id));
+    const { data: plans } = await supabase.rpc('get_all_user_plans');
+    _planMap = {};
+    (plans || []).forEach(p => { _planMap[p.user_id] = p; });
+    _allUsers = allUsers;
+    _userPage = 0;
+    renderUserList();
+  }
+
+  function renderUserList() {
+    const el   = document.getElementById('user-list');
+    const pgEl = document.getElementById('user-pagination');
+
+    const q = _userQuery.toLowerCase();
+    const filtered = q
+      ? _allUsers.filter(u => u.email.toLowerCase().includes(q))
+      : _allUsers;
+
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    const page = Math.min(_userPage, Math.max(0, totalPages - 1));
+    const slice = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
+    if (!slice.length) {
+      el.innerHTML = '<p style="font-size:13px;color:var(--mid);padding:8px;">該当ユーザーがいません</p>';
+      pgEl.innerHTML = '';
+      return;
+    }
 
     el.innerHTML = `
+      <div style="font-size:11px;color:var(--mid);margin-bottom:6px;">${filtered.length}件中 ${page * PAGE_SIZE + 1}〜${Math.min((page + 1) * PAGE_SIZE, filtered.length)}件表示</div>
       <div style="overflow-x:auto;">
         <table class="user-table">
           <thead><tr>
@@ -391,30 +436,49 @@
             <th></th>
           </tr></thead>
           <tbody>
-            ${data.map(u => `
-              <tr>
-                <td style="font-size:12px;color:var(--ink);">
-                  ${emailMap[u.user_id] || u.user_id.slice(0, 8) + '…'}
-                </td>
-                <td>
-                  <span class="plan-badge plan-${u.plan}">${u.plan}</span>
-                </td>
-                <td style="font-size:12px;color:var(--mid);">
-                  ${u.expires_at ? new Date(u.expires_at).toLocaleDateString('ja-JP') : '無期限'}
-                </td>
-                <td>
-                  <button class="admin-btn btn-danger" data-uid="${u.user_id}"
-                    style="padding:4px 10px;font-size:11px;"
-                    onclick="revokePlan('${u.user_id}')">
-                    解除
-                  </button>
-                </td>
-              </tr>
-            `).join('')}
+            ${slice.map(u => {
+              const p = _planMap[u.id];
+              const plan = p?.plan || 'free';
+              const expires = p?.expires_at;
+              const isExpired = expires && new Date(expires) < new Date();
+              const effectivePlan = isExpired ? 'free' : plan;
+              return `
+                <tr>
+                  <td style="font-size:12px;color:var(--ink);">${u.email}</td>
+                  <td><span class="plan-badge plan-${effectivePlan}">${effectivePlan}</span></td>
+                  <td style="font-size:12px;color:var(--mid);">
+                    ${expires ? new Date(expires).toLocaleDateString('ja-JP') + (isExpired ? ' <span style="color:#B83232;">期限切れ</span>' : '') : '無期限'}
+                  </td>
+                  <td>
+                    ${effectivePlan !== 'free' ? `
+                      <button class="admin-btn btn-danger" style="padding:4px 10px;font-size:11px;"
+                        onclick="revokePlan('${u.id}')">解除</button>
+                    ` : ''}
+                  </td>
+                </tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>`;
+
+    // ページネーション
+    if (totalPages <= 1) { pgEl.innerHTML = ''; return; }
+    pgEl.innerHTML = `
+      <button class="admin-btn btn-secondary" style="padding:4px 12px;font-size:12px;"
+        ${page === 0 ? 'disabled' : ''} onclick="goUserPage(${page - 1})">‹ 前</button>
+      <span style="font-size:12px;color:var(--mid);line-height:30px;">${page + 1} / ${totalPages}</span>
+      <button class="admin-btn btn-secondary" style="padding:4px 12px;font-size:12px;"
+        ${page >= totalPages - 1 ? 'disabled' : ''} onclick="goUserPage(${page + 1})">次 ›</button>
+    `;
   }
+
+  window.goUserPage = (page) => { _userPage = page; renderUserList(); };
+
+  document.getElementById('user-search').addEventListener('input', e => {
+    _userQuery = e.target.value;
+    _userPage  = 0;
+    renderUserList();
+  });
 
   // ── AI使用量上位 ──
   async function loadUsageList() {
@@ -435,19 +499,30 @@
     // user_idからメールを一括取得
     const emailMap = await getEmailsByUserIds(data.map(u => u.user_id));
 
+    // user_idからプランを一括取得
+    const { data: planData } = await supabase.rpc('get_all_user_plans');
+    const planMap = {};
+    (planData || []).forEach(p => { planMap[p.user_id] = p.plan; });
+
     el.innerHTML = `
       <div style="overflow-x:auto;">
         <table class="user-table">
           <thead><tr>
             <th>メールアドレス</th>
             <th>使用回数</th>
-            <th>残り（Free）</th>
+            <th>プラン / 残り</th>
           </tr></thead>
           <tbody>
             ${data.map(u => {
-              const remaining = Math.max(0, 5 - u.count);
-              const pct = Math.min(100, (u.count / 5) * 100);
-              const color = u.count >= 5 ? '#B83232' : u.count >= 4 ? '#B8973E' : '#4A7C59';
+              const plan = planMap[u.user_id] || 'free';
+              const isUnlimited = plan === 'admin' || plan === 'premium';
+              const limit = plan === 'premium' ? 6000 : 5;
+              const remaining = isUnlimited ? null : Math.max(0, limit - u.count);
+              const pct = isUnlimited ? Math.min(100, (u.count / 6000) * 100) : Math.min(100, (u.count / 5) * 100);
+              const color = isUnlimited ? '#4A7C59' : (u.count >= limit ? '#B83232' : u.count >= limit - 1 ? '#B8973E' : '#4A7C59');
+              const remainText = isUnlimited
+                ? '<span style="color:#4A7C59;">' + plan + '（無制限）</span>'
+                : (remaining === 0 ? '<span style="color:#B83232;">上限</span>' : remaining + '回');
               return `
                 <tr>
                   <td style="font-size:12px;color:var(--ink);">
@@ -461,9 +536,7 @@
                       <span style="font-size:13px;font-weight:600;color:${color};">${u.count}回</span>
                     </div>
                   </td>
-                  <td style="font-size:12px;color:var(--mid);">
-                    ${u.count >= 5 ? '<span style="color:#B83232;">上限</span>' : remaining + '回'}
-                  </td>
+                  <td style="font-size:12px;color:var(--mid);">${remainText}</td>
                 </tr>`;
             }).join('')}
           </tbody>
@@ -472,54 +545,65 @@
   }
 
   // ── プラン設定 ──
-  document.getElementById('btn-set-plan').addEventListener('click', async () => {
-    const email = document.getElementById('input-email').value.trim();
-    const plan  = document.getElementById('input-plan').value;
-    const expires = document.getElementById('input-expires').value;
+  let _currentUserId = null;
 
-    if (!email) { toast('メールアドレスを入力してください'); return; }
-
-    // メールからuser_idを取得（user_plansにメールが保存されていないためai_usageやteam_membersで代替）
-    // → まず検索してuser_idを確認するフローで運用
-    const result = document.getElementById('lookup-result');
-    result.textContent = '検索中…';
-
-    const userId = await findUserIdByEmail(email);
-    if (!userId) {
-      result.textContent = '❌ ユーザーが見つかりません。先に「メールで検索」で確認してください。';
-      return;
-    }
-
-    const { error } = await supabase
-      .from('user_plans')
-      .upsert({
-        user_id: userId,
-        plan,
-        expires_at: expires ? new Date(expires).toISOString() : null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' });
-
-    if (error) {
-      toast('❌ エラー: ' + error.message);
-      result.textContent = '❌ ' + error.message;
-    } else {
-      toast('✓ ' + email + ' を ' + plan + ' に設定しました');
-      result.textContent = '✓ user_id: ' + userId;
-      await Promise.all([loadStats(), loadUserList()]);
-    }
-  });
-
-  // ── メール検索 ──
   document.getElementById('btn-lookup').addEventListener('click', async () => {
     const email = document.getElementById('input-email').value.trim();
     if (!email) { toast('メールアドレスを入力してください'); return; }
     const result = document.getElementById('lookup-result');
+    const planForm = document.getElementById('plan-form');
     result.textContent = '検索中…';
+    planForm.style.display = 'none';
+    _currentUserId = null;
+
     const userId = await findUserIdByEmail(email);
-    if (userId) {
-      result.innerHTML = '✓ user_id: <span style="font-family:monospace;">' + userId + '</span>';
-    } else {
+    if (!userId) {
       result.textContent = '❌ 見つかりません（まだログインしていない可能性があります）';
+      return;
+    }
+
+    _currentUserId = userId;
+    result.textContent = '✓ ユーザーが見つかりました';
+    result.style.color = '#4A7C59';
+
+    // 現在のプランを取得してセレクトに反映
+    const { data: allPlansData } = await supabase.rpc('get_all_user_plans');
+    const planData = (allPlansData || []).find(p => p.user_id === userId);
+
+    const currentPlan = planData?.plan || 'free';
+    document.getElementById('input-plan').value = currentPlan;
+    if (planData?.expires_at) {
+      document.getElementById('input-expires').value = planData.expires_at.slice(0, 10);
+    } else {
+      document.getElementById('input-expires').value = '';
+    }
+
+    document.getElementById('plan-form-user').textContent = email + '（現在: ' + currentPlan + '）';
+    planForm.style.display = 'flex';
+  });
+
+  document.getElementById('btn-set-plan').addEventListener('click', async () => {
+    if (!_currentUserId) { toast('先にメールで検索してください'); return; }
+    const plan    = document.getElementById('input-plan').value;
+    const expires = document.getElementById('input-expires').value;
+    const email   = document.getElementById('input-email').value.trim();
+
+    const { error } = await supabase.rpc('set_user_plan', {
+      p_user_id: _currentUserId,
+      p_plan: plan,
+      p_expires_at: expires ? new Date(expires).toISOString() : null,
+    });
+
+    if (error) {
+      toast('❌ エラー: ' + error.message);
+    } else {
+      toast('✓ ' + email + ' を ' + plan + ' に設定しました');
+      document.getElementById('lookup-result').textContent = '';
+      document.getElementById('lookup-result').style.color = '';
+      document.getElementById('plan-form').style.display = 'none';
+      document.getElementById('input-email').value = '';
+      _currentUserId = null;
+      await Promise.all([loadStats(), loadUserList()]);
     }
   });
 
@@ -532,14 +616,11 @@
 
   // ── プラン解除 ──
   window.revokePlan = async (userId) => {
-    const { error } = await supabase
-      .from('user_plans')
-      .upsert({
-        user_id: userId,
-        plan: 'free',
-        expires_at: null,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: 'user_id' });
+    const { error } = await supabase.rpc('set_user_plan', {
+      p_user_id: userId,
+      p_plan: 'free',
+      p_expires_at: null,
+    });
     if (error) { toast('❌ ' + error.message); return; }
     toast('✓ Freeに変更しました');
     await Promise.all([loadStats(), loadUserList()]);

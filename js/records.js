@@ -41,7 +41,7 @@ let _searchResults = [];   // 全期間検索結果（タップ用）
 let _searchDebounce = null; // デバウンスタイマー
 let _searchGen     = 0;    // 競合防止カウンター（古い非同期結果を破棄）
 
-export async function renderRecords() {
+export async function renderRecords({ focusSearch = false } = {}) {
   const content = document.getElementById('page-content');
   const { year, month } = MonthState;
 
@@ -54,7 +54,7 @@ export async function renderRecords() {
   const cachedTxs = await getCachedTransactions({ year, month });
   if (cachedTxs.length > 0) {
     _allTx = cachedTxs;
-    renderShell(cachedTxs, year, month);
+    renderShell(cachedTxs, year, month, focusSearch);
   } else {
     content.innerHTML = '<div class="spinner"></div>';
   }
@@ -81,7 +81,7 @@ export async function renderRecords() {
       || result.data.length !== cachedTxs.length
       || freshIds.some(id => !cachedIds.has(id));
     if (needsUpdate) {
-      renderShell(result.data, year, month);
+      renderShell(result.data, year, month, focusSearch);
     } else {
       // 差分なし: サマリーバーだけ静かに更新
       updateSummaryBar(summary);
@@ -98,7 +98,7 @@ export async function renderRecords() {
   }
 }
 
-function renderShell(transactions, year, month) {
+function renderShell(transactions, year, month, focusSearch = false) {
   const content = document.getElementById('page-content');
   const income  = transactions.filter(t=>t.type==='income' ).reduce((s,t)=>s+t.amount,0);
   const expense = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
@@ -197,6 +197,11 @@ function renderShell(transactions, year, month) {
 
   const searchInput = document.getElementById('records-search');
   const clearBtn    = document.getElementById('btn-search-clear');
+
+  // focusSearchフラグ：描画直後にキーボードを出す
+  if (focusSearch && searchInput) {
+    searchInput.focus();
+  }
 
   searchInput?.addEventListener('input', e => {
     searchQuery = e.target.value;

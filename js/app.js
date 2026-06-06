@@ -160,7 +160,8 @@ function showApp(user) {
   document.getElementById('btn-add-desktop')?.addEventListener('click', openAdd);
   document.getElementById('btn-add-mobile')?.addEventListener('click', openAdd);
 
-  Router.navigate('dashboard');
+  const lastPage = localStorage.getItem('flowra_last_page') || 'dashboard';
+  Router.navigate(lastPage);
 }
 
 async function _seedDefaultTags() {
@@ -270,7 +271,7 @@ init();
 // ── 招待受け入れダイアログ ──────────────
 async function showInviteAcceptDialog(token) {
   // ログイン確認：未ログインならGoogleログインを促す
-  const { data: { user: currentUser } } = await supabase.auth.getUser();
+  const currentUser = await Auth.getUser();
   if (!currentUser) {
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(28,43,34,0.6);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 0.3s;';
@@ -359,57 +360,84 @@ async function showInviteAcceptDialog(token) {
 async function applyViewerMode() {
   try {
     const role = await DB.getMyRole();
+    console.log('[ViewerMode] role:', role);
     const isViewer = role === 'viewer';
     const addMobile  = document.getElementById('btn-add-mobile');
     const addDesktop = document.getElementById('btn-add-desktop');
     if (addMobile)  addMobile.style.display  = isViewer ? 'none' : '';
     if (addDesktop) addDesktop.style.display = isViewer ? 'none' : '';
   } catch (e) {
-    // エラー時は何もしない（デフォルト表示を維持）
+    console.error('[ViewerMode] error:', e);
   }
 }
 
 async function initTeamSwitcher() {
   try {
     const teams = await DB.getAllTeams();
-    const switcher = document.getElementById('team-switcher');
-    if (!switcher) return;
+    const switcherMobile  = document.getElementById('team-switcher');
+    const switcherDesktop = document.getElementById('team-switcher-d');
 
     // 1チームのみなら非表示
     if (teams.length <= 1) {
-      switcher.hidden = true;
+      if (switcherMobile)  switcherMobile.hidden  = true;
+      if (switcherDesktop) switcherDesktop.hidden = true;
       return;
     }
 
-    switcher.hidden = false;
     const activeId = await DB.getTeamId();
-
-    // オーナーのチームのprofileを取得して表示名を決める
     const profiles = await DB.getTeamMemberProfiles(teams.map(t => t.team_id));
 
-    switcher.innerHTML = teams.map(t => {
+    const buildButtons = (isDesktop) => teams.map(t => {
       const teamId = t.team_id;
       const isActive = teamId === activeId;
       let name;
       if (t.role === 'owner') {
-        name = '個人';
+        const teamData = Array.isArray(t.teams) ? t.teams[0] : t.teams;
+        name = teamData?.name || '個人';
       } else {
-        // チーム名があればそれを優先、なければオーナー名
         const teamData = Array.isArray(t.teams) ? t.teams[0] : t.teams;
         const teamName = teamData?.name;
         const ownerProfile = profiles.find(p => p.team_id === teamId && p.role === 'owner');
         const ownerName = ownerProfile?.full_name || ownerProfile?.email?.split('@')[0] || '共有';
         name = teamName || ownerName;
       }
-      return `
-        <button class="team-switch-btn ${isActive ? 'active' : ''}" data-team-id="${teamId}"
-          style="font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid ${isActive ? 'var(--sage)' : 'rgba(255,255,255,0.25)'};background:${isActive ? 'var(--sage)' : 'transparent'};color:${isActive ? '#fff' : 'rgba(255,255,255,0.6)'};cursor:pointer;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">
-          ${t.role === 'owner' ? '🏠' : '👥'} ${name}
-        </button>
-      `;
+      const initial = name.charAt(0);
+      const avatar = `<span style="display:inline-flex;align-items:center;justify-content:center;
+        width:15px;height:15px;border-radius:50%;
+        background:${isActive ? 'rgba(255,255,255,0.3)' : 'var(--mist)'};
+        font-size:9px;font-weight:700;flex-shrink:0;">${initial}</span>`;
+      if (isDesktop) {
+        return `<button class="team-switch-btn ${isActive ? 'active' : ''}" data-team-id="${teamId}"
+          style="font-size:11px;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;
+          border:1px solid ${isActive ? 'var(--sage)' : 'var(--border)'};
+          background:${isActive ? 'var(--sage)' : 'var(--white)'};
+          color:${isActive ? '#fff' : 'var(--mid)'};
+          cursor:pointer;white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">
+          ${avatar} ${name}
+        </button>`;
+      } else {
+        return `<button class="team-switch-btn ${isActive ? 'active' : ''}" data-team-id="${teamId}"
+          style="font-size:11px;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px;
+          border:1px solid ${isActive ? 'var(--sage)' : 'rgba(255,255,255,0.25)'};
+          background:${isActive ? 'var(--sage)' : 'transparent'};
+          color:${isActive ? '#fff' : 'rgba(255,255,255,0.6)'};
+          cursor:pointer;white-space:nowrap;max-width:90px;overflow:hidden;text-overflow:ellipsis;flex-shrink:0;">
+          ${avatar} ${name}
+        </button>`;
+      }
     }).join('');
 
-    switcher.querySelectorAll('.team-switch-btn').forEach(btn => {
+    if (switcherMobile) {
+      switcherMobile.hidden  = false;
+      switcherMobile.innerHTML = buildButtons(false);
+    }
+    if (switcherDesktop) {
+      switcherDesktop.hidden = false;
+      switcherDesktop.innerHTML = buildButtons(true);
+    }
+
+    // クリックイベントを両方のスイッチャーに登録
+    document.querySelectorAll('.team-switch-btn').forEach(btn => {
       btn.addEventListener('click', async () => {
         const teamId = btn.dataset.teamId;
         if (teamId === DB.getActiveTeamId()) return;
@@ -425,4 +453,55 @@ async function initTeamSwitcher() {
   } catch (e) {
     console.error('team switcher error:', e);
   }
+}
+
+// ── プルトゥリフレッシュ ──────────────────
+function initPullToRefresh() {
+  let startY = 0;
+  let pulling = false;
+  let indicator = null;
+
+  const target = document.getElementById('page-content');
+  if (!target) return;
+
+  target.addEventListener('touchstart', e => {
+    if (target.scrollTop === 0) {
+      startY = e.touches[0].clientY;
+      pulling = true;
+    }
+  }, { passive: true });
+
+  target.addEventListener('touchmove', e => {
+    if (!pulling) return;
+    const dy = e.touches[0].clientY - startY;
+    if (dy > 10) {
+      if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.style.cssText = 'position:fixed;top:60px;left:50%;transform:translateX(-50%);' +
+          'background:var(--sage);color:#fff;font-size:12px;padding:6px 16px;border-radius:20px;' +
+          'z-index:9999;pointer-events:none;transition:opacity 0.2s;';
+        indicator.textContent = '↓ 引いて更新';
+        document.body.appendChild(indicator);
+      }
+      if (dy > 80) indicator.textContent = '↑ 離して更新';
+      else indicator.textContent = '↓ 引いて更新';
+    }
+  }, { passive: true });
+
+  target.addEventListener('touchend', e => {
+    if (!pulling) return;
+    const dy = e.changedTouches[0].clientY - startY;
+    if (indicator) { indicator.remove(); indicator = null; }
+    if (dy > 80) {
+      import('./router.js').then(({ Router }) => Router.navigate(Router.currentPage));
+    }
+    pulling = false;
+  }, { passive: true });
+}
+
+// DOM準備後に初期化
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPullToRefresh);
+} else {
+  initPullToRefresh();
 }

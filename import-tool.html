@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flowra インポートツール</title>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #1C2B22;
+      color: #E8F2ED;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding: 40px 16px;
+    }
+    .card {
+      background: #243320;
+      border-radius: 16px;
+      padding: 32px;
+      width: 100%;
+      max-width: 640px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 8px; color: #A8D4B8; }
+    .subtitle { font-size: 0.85rem; color: #7A9A8A; margin-bottom: 24px; }
+    .section { margin-bottom: 24px; }
+    .section-title { font-size: 0.8rem; font-weight: 600; color: #7A9A8A; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+    .user-box {
+      background: #1C2B22;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 0.9rem;
+      color: #E8F2ED;
+    }
+    .user-box .email { font-weight: 600; }
+    .user-box .team { font-size: 0.8rem; color: #7A9A8A; margin-top: 2px; }
+    .error-box {
+      background: #3A2020;
+      border: 1px solid #8C4040;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 0.9rem;
+      color: #F0A0A0;
+    }
+    label.file-label {
+      display: block;
+      background: #1C2B22;
+      border: 2px dashed #3A5040;
+      border-radius: 10px;
+      padding: 24px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s;
+      font-size: 0.9rem;
+      color: #7A9A8A;
+    }
+    label.file-label:hover { border-color: #5C8C72; color: #A8D4B8; }
+    label.file-label.has-files { border-color: #5C8C72; color: #A8D4B8; }
+    input[type=file] { display: none; }
+    .file-count { font-size: 0.8rem; margin-top: 8px; color: #7A9A8A; text-align: center; }
+    .options { background: #1C2B22; border-radius: 10px; padding: 16px; }
+    .option-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .option-row:last-child { margin-bottom: 0; }
+    .option-row label { font-size: 0.9rem; color: #C8E4D4; }
+    .option-row input[type=text] {
+      flex: 1;
+      background: #243320;
+      border: 1px solid #3A5040;
+      border-radius: 6px;
+      padding: 6px 10px;
+      color: #E8F2ED;
+      font-size: 0.9rem;
+    }
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      background: #4A8C6A;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #5C9C7A; }
+    .btn:disabled { background: #3A5040; color: #7A9A8A; cursor: not-allowed; }
+    .progress-wrap {
+      display: none;
+      background: #1C2B22;
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .progress-bar-bg {
+      background: #3A5040;
+      border-radius: 4px;
+      height: 8px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: #4A8C6A;
+      transition: width 0.3s;
+      width: 0%;
+    }
+    .progress-text { font-size: 0.85rem; color: #A8D4B8; }
+    .log {
+      display: none;
+      background: #111C15;
+      border-radius: 10px;
+      padding: 16px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      color: #A8D4B8;
+      max-height: 240px;
+      overflow-y: auto;
+      line-height: 1.6;
+    }
+    .log .err { color: #F08080; }
+    .log .ok  { color: #80C880; }
+    .done-box {
+      display: none;
+      background: #1A3A24;
+      border: 1px solid #4A8C6A;
+      border-radius: 10px;
+      padding: 16px;
+      font-size: 0.95rem;
+      color: #A8D4B8;
+    }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1>📥 Flowra インポートツール</h1>
+  <p class="subtitle">過去データのCSVをFlowraにインポートします</p>
+
+  <div class="section">
+    <div class="section-title">ログイン状態</div>
+    <div id="user-info"><div class="user-box" style="color:#7A9A8A">確認中...</div></div>
+  </div>
+
+  <div id="main" style="display:none">
+    <div class="section">
+      <div class="section-title">CSVファイル選択（複数可）</div>
+      <label class="file-label" id="file-label" for="csv-input">
+        📂 CSVファイルをここをクリックして選択
+        <br><span style="font-size:0.8rem;margin-top:4px;display:block">（202503.csv ～ 202605.csv など複数まとめて選択できます）</span>
+      </label>
+      <input type="file" id="csv-input" accept=".csv" multiple>
+      <div class="file-count" id="file-count"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">インポート設定</div>
+      <div class="options">
+        <div class="option-row">
+          <label>口座名</label>
+          <input type="text" id="account-name" value="現金">
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <button class="btn" id="import-btn" onclick="startImport()" disabled>インポート開始</button>
+    </div>
+
+    <div class="progress-wrap" id="progress-wrap">
+      <div class="progress-bar-bg"><div class="progress-bar-fill" id="progress-fill"></div></div>
+      <div class="progress-text" id="progress-text">準備中...</div>
+    </div>
+
+    <div class="log" id="log"></div>
+
+    <div class="done-box" id="done-box">
+      ✅ インポート完了！Flowraアプリに戻って確認してください。
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL      = 'https://copyzpsyagscqrvkrwjo.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcHl6cHN5YWdzY3Fydmtyd2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MTI4NTEsImV4cCI6MjA5NTE4ODg1MX0.4g0Rzo4TyM0NPWF53swUWhLD4nDYMSOD7KB9ZBW80Kc';
+
+const { createClient } = supabase;
+const client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: { persistSession: true, autoRefreshToken: true, storageKey: 'flowra-auth' }
+});
+
+// Category → icon key
+const CATEGORY_ICON = {
+  '食費':         'food',
+  '調味料　米　乾物': 'food',
+  '外食':         'dining',
+  '日用品':       'daily',
+  '子育て':       'baby',
+  '交通費':       'bus',
+  '交際費':       'gift',
+  '嗜好品':       'hobby',
+  'お小遣い':     'pocket',
+  '貯金':         'other',
+  '臨時出費':     'other',
+};
+
+// Category → color
+const CATEGORY_COLOR = {
+  '食費':         '#5C8C72',
+  '調味料　米　乾物': '#7A9A5C',
+  '外食':         '#4A8C6A',
+  '日用品':       '#6A7A8A',
+  '子育て':       '#C07840',
+  '交通費':       '#508C78',
+  '交際費':       '#A06878',
+  '嗜好品':       '#7058A8',
+  'お小遣い':     '#A09040',
+  '貯金':         '#6A8A6A',
+  '臨時出費':     '#8A6A6A',
+};
+
+let currentUser = null;
+let currentTeamId = null;
+let parsedRecords = [];
+
+// ── 初期化 ─────────────────────────────────────
+async function init() {
+  const { data: { session } } = await client.auth.getSession();
+  if (!session) {
+    document.getElementById('user-info').innerHTML =
+      `<div class="error-box">ログインされていません。先に <a href="/" style="color:#F0C080">flowra.taskra.jp</a> でログインしてからこのページを開いてください。</div>`;
+    return;
+  }
+
+  currentUser = session.user;
+
+  // ownerとして所属しているチームを取得（個人チーム）
+  const { data: teams, error: teamsErr } = await client
+    .from('team_members')
+    .select('team_id, role, teams(name)')
+    .eq('user_id', currentUser.id);
+
+  if (teamsErr || !teams || teams.length === 0) {
+    document.getElementById('user-info').innerHTML =
+      `<div class="error-box">チーム情報の取得に失敗しました: ${teamsErr?.message}</div>`;
+    return;
+  }
+
+  // ownerのチームを優先（個人チーム）
+  const ownerTeam = teams.find(t => t.role === 'owner') || teams[0];
+  currentTeamId = ownerTeam.team_id;
+  const teamName = ownerTeam.teams?.name || currentTeamId;
+
+  document.getElementById('user-info').innerHTML = `
+    <div class="user-box">
+      <div class="email">👤 ${currentUser.email}</div>
+      <div class="team">インポート先チーム: ${teamName}</div>
+    </div>`;
+
+  document.getElementById('main').style.display = 'block';
+}
+
+// ── ファイル選択 ────────────────────────────────
+document.getElementById('csv-input').addEventListener('change', async function() {
+  const files = Array.from(this.files);
+  if (files.length === 0) return;
+
+  document.getElementById('file-label').classList.add('has-files');
+  document.getElementById('file-count').textContent = `${files.length}ファイル選択済み`;
+
+  parsedRecords = [];
+  let totalRows = 0;
+  let skipped = 0;
+
+  for (const file of files) {
+    const text = await file.text();
+    const result = Papa.parse(text, { header: true, skipEmptyLines: true });
+    for (const row of result.data) {
+      const amount = parseInt(row['Amount'] || row['"Amount"'] || 0);
+      if (amount <= 0) { skipped++; continue; }
+      const year  = parseInt(row['Year']);
+      const month = parseInt(row['Month']);
+      const day   = parseInt(row['Day']);
+      const date  = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      parsedRecords.push({
+        date,
+        amount,
+        category: (row['Category'] || '').trim(),
+        memo: (row['Name'] || '').trim(),
+      });
+      totalRows++;
+    }
+  }
+
+  // 日付順ソート（古い順）
+  parsedRecords.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+
+  document.getElementById('file-count').textContent =
+    `${files.length}ファイル選択済み ／ ${totalRows}件（スキップ:${skipped}件）`;
+  document.getElementById('import-btn').disabled = (parsedRecords.length === 0);
+});
+
+// ── ログ ───────────────────────────────────────
+function log(msg, type = '') {
+  const el = document.getElementById('log');
+  el.style.display = 'block';
+  const span = document.createElement('div');
+  span.className = type;
+  span.textContent = msg;
+  el.appendChild(span);
+  el.scrollTop = el.scrollHeight;
+}
+
+function setProgress(n, total, msg) {
+  const pct = total > 0 ? Math.round(n / total * 100) : 0;
+  document.getElementById('progress-fill').style.width = pct + '%';
+  document.getElementById('progress-text').textContent = msg;
+}
+
+// ── バッチinsert (50件ずつ) ──────────────────────
+async function insertBatch(table, rows) {
+  const SIZE = 50;
+  for (let i = 0; i < rows.length; i += SIZE) {
+    const batch = rows.slice(i, i + SIZE);
+    const { error } = await client.from(table).insert(batch);
+    if (error) throw new Error(`${table} batch insert failed: ${error.message}`);
+  }
+}
+
+// ── メインインポート ─────────────────────────────
+async function startImport() {
+  if (!currentUser || !currentTeamId) return;
+
+  document.getElementById('import-btn').disabled = true;
+  document.getElementById('progress-wrap').style.display = 'block';
+  document.getElementById('done-box').style.display = 'none';
+
+  const accountName = document.getElementById('account-name').value.trim() || '現金';
+  const total = parsedRecords.length;
+
+  try {
+    // ── STEP 1: 口座作成（既存チェック） ──────────────
+    setProgress(0, 4, 'Step 1/4: 口座を作成中...');
+    log('■ 口座作成: ' + accountName);
+
+    let accountId;
+    const { data: existAcc } = await client
+      .from('accounts')
+      .select('id')
+      .eq('team_id', currentTeamId)
+      .eq('name', accountName)
+      .maybeSingle();
+
+    if (existAcc) {
+      accountId = existAcc.id;
+      log(`  → 既存口座を使用: ${accountId}`, 'ok');
+    } else {
+      const { data: newAcc, error: accErr } = await client
+        .from('accounts')
+        .insert({
+          team_id:    currentTeamId,
+          name:       accountName,
+          type:       'cash',
+          balance:    0,
+          sort_order: 0,
+          is_archived: false,
+          is_private: false,
+          created_by: currentUser.id,
+        })
+        .select()
+        .single();
+      if (accErr) throw new Error('口座作成失敗: ' + accErr.message);
+      accountId = newAcc.id;
+      log(`  → 新規作成: ${accountId}`, 'ok');
+    }
+
+    // ── STEP 2: タグ作成 ───────────────────────────
+    setProgress(1, 4, 'Step 2/4: タグを作成中...');
+    log('■ タグ作成');
+
+    const uniqueCats = [...new Set(parsedRecords.map(r => r.category).filter(Boolean))];
+    const tagMap = {};
+
+    for (let i = 0; i < uniqueCats.length; i++) {
+      const cat = uniqueCats[i];
+      // 既存チェック
+      const { data: existTag } = await client
+        .from('tags')
+        .select('id')
+        .eq('team_id', currentTeamId)
+        .eq('name', cat)
+        .maybeSingle();
+
+      if (existTag) {
+        tagMap[cat] = existTag.id;
+        log(`  タグ「${cat}」 → 既存使用`, 'ok');
+      } else {
+        const { data: newTag, error: tagErr } = await client
+          .from('tags')
+          .insert({
+            team_id:    currentTeamId,
+            name:       cat,
+            icon:       CATEGORY_ICON[cat] || 'other',
+            color:      CATEGORY_COLOR[cat] || '#6A8A6A',
+            sort_order: i,
+          })
+          .select()
+          .single();
+        if (tagErr) throw new Error(`タグ「${cat}」作成失敗: ` + tagErr.message);
+        tagMap[cat] = newTag.id;
+        log(`  タグ「${cat}」 → 新規作成`, 'ok');
+      }
+    }
+
+    // ── STEP 3: トランザクション挿入 ─────────────────
+    setProgress(2, 4, `Step 3/4: ${total}件のトランザクションを挿入中...`);
+    log(`■ トランザクション挿入 (${total}件)`);
+
+    const BATCH = 100;
+    let inserted = 0;
+    let errCount = 0;
+
+    for (let i = 0; i < parsedRecords.length; i += BATCH) {
+      const chunk = parsedRecords.slice(i, i + BATCH);
+
+      const txRows = chunk.map(r => ({
+        team_id:    currentTeamId,
+        type:       'expense',
+        amount:     r.amount,
+        account_id: accountId,
+        date:       r.date,
+        memo:       r.memo || null,
+        created_by: currentUser.id,
+        updated_by: currentUser.id,
+      }));
+
+      const { data: txData, error: txErr } = await client
+        .from('transactions')
+        .insert(txRows)
+        .select('id');
+
+      if (txErr) {
+        log(`  エラー (${i}〜${i+chunk.length}): ${txErr.message}`, 'err');
+        errCount += chunk.length;
+        continue;
+      }
+
+      // タグの紐付け
+      const tagLinks = [];
+      txData.forEach((tx, idx) => {
+        const cat = chunk[idx].category;
+        if (cat && tagMap[cat]) {
+          tagLinks.push({ transaction_id: tx.id, tag_id: tagMap[cat] });
+        }
+      });
+
+      if (tagLinks.length > 0) {
+        const { error: tlErr } = await client.from('transaction_tags').insert(tagLinks);
+        if (tlErr) log(`  タグリンクエラー: ${tlErr.message}`, 'err');
+      }
+
+      inserted += txData.length;
+      setProgress(2, 4, `Step 3/4: ${inserted} / ${total}件挿入済み...`);
+    }
+
+    log(`  → ${inserted}件挿入完了 (エラー:${errCount}件)`, inserted > 0 ? 'ok' : 'err');
+
+    // ── STEP 4: 完了 ───────────────────────────────
+    setProgress(4, 4, '完了！');
+    log('■ インポート完了！', 'ok');
+    document.getElementById('done-box').style.display = 'block';
+    document.getElementById('done-box').textContent =
+      `✅ インポート完了！${inserted}件のデータが追加されました。Flowraアプリで確認してください。`;
+
+  } catch (e) {
+    log('致命的エラー: ' + e.message, 'err');
+    document.getElementById('import-btn').disabled = false;
+    document.getElementById('import-btn').textContent = '再試行';
+  }
+}
+
+init();
+</script>
+</body>
+</html>
