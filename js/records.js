@@ -41,7 +41,7 @@ let _searchResults = [];   // 全期間検索結果（タップ用）
 let _searchDebounce = null; // デバウンスタイマー
 let _searchGen     = 0;    // 競合防止カウンター（古い非同期結果を破棄）
 
-export async function renderRecords() {
+export async function renderRecords({ focusSearch = false } = {}) {
   const content = document.getElementById('page-content');
   const { year, month } = MonthState;
 
@@ -197,6 +197,11 @@ function renderShell(transactions, year, month) {
 
   const searchInput = document.getElementById('records-search');
   const clearBtn    = document.getElementById('btn-search-clear');
+
+  // focusSearchフラグ：描画直後にキーボードを出す
+  if (focusSearch && searchInput) {
+    searchInput.focus();
+  }
 
   searchInput?.addEventListener('input', e => {
     searchQuery = e.target.value;

@@ -848,17 +848,8 @@ async function showSuggest(onSave, onReady, accounts, tags) {
   // 過去の履歴を検索
   document.getElementById('ar-search-history-btn')?.addEventListener('click', () => {
     closeSuggest();
-    import('./router.js').then(({ Router }) => {
-      Router.navigate('records');
-      setTimeout(() => {
-        const searchInput = document.getElementById('records-search');
-        if (searchInput) {
-          searchInput.focus();
-          searchInput.click();
-          searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }, 350);
-    });
+    import('./router.js').then(({ Router }) => Router.navigate('records'));
+    import('./records.js').then(({ renderRecords }) => renderRecords({ focusSearch: true }));
   });
   document.getElementById('ar-quick-btn')?.addEventListener('click', () => {
     const dummy = document.getElementById('ios-focus-trick');
