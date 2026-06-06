@@ -357,11 +357,9 @@
     document.getElementById('stat-total').textContent = allUsers?.length ?? '—';
 
     // Premiumユーザー数（admin含む）
-    const { data: plans } = await supabase
-      .from('user_plans')
-      .select('plan')
-      .neq('plan', 'free');
-    document.getElementById('stat-premium').textContent = plans?.length ?? '—';
+    const { data: allPlans } = await supabase.rpc('get_all_user_plans');
+    const premiumCount = (allPlans || []).filter(p => p.plan !== 'free').length;
+    document.getElementById('stat-premium').textContent = premiumCount;
 
     // 今月AI利用ユーザー数
     const monthKey = new Date().toISOString().slice(0, 7);
@@ -400,7 +398,7 @@
       return;
     }
 
-    const { data: plans } = await supabase.from('user_plans').select('user_id, plan, expires_at');
+    const { data: plans } = await supabase.rpc('get_all_user_plans');
     _planMap = {};
     (plans || []).forEach(p => { _planMap[p.user_id] = p; });
     _allUsers = allUsers;
@@ -502,10 +500,7 @@
     const emailMap = await getEmailsByUserIds(data.map(u => u.user_id));
 
     // user_idからプランを一括取得
-    const { data: planData } = await supabase
-      .from('user_plans')
-      .select('user_id, plan')
-      .in('user_id', data.map(u => u.user_id));
+    const { data: planData } = await supabase.rpc('get_all_user_plans');
     const planMap = {};
     (planData || []).forEach(p => { planMap[p.user_id] = p.plan; });
 
@@ -572,11 +567,8 @@
     result.style.color = '#4A7C59';
 
     // 現在のプランを取得してセレクトに反映
-    const { data: planData } = await supabase
-      .from('user_plans')
-      .select('plan, expires_at')
-      .eq('user_id', userId)
-      .maybeSingle();
+    const { data: allPlansData } = await supabase.rpc('get_all_user_plans');
+    const planData = (allPlansData || []).find(p => p.user_id === userId);
 
     const currentPlan = planData?.plan || 'free';
     document.getElementById('input-plan').value = currentPlan;
