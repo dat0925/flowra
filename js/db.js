@@ -784,15 +784,57 @@ export const DB = {
   // ユーザーのプランを取得（'free' | 'premium'）
   async getUserPlan() {
     const { data: { user } } = await supabase.auth.getUser();
+
+    // 自分のプランを確認
     const { data, error } = await supabase
       .from('user_plans')
       .select('plan, expires_at')
       .eq('user_id', user.id)
       .maybeSingle();
-    if (error || !data) return 'free';
-    // expires_atが過去ならfreeに降格
-    if (data.expires_at && new Date(data.expires_at) < new Date()) return 'free';
-    return data.plan;
+
+    const myPlan = (!error && data && !(data.expires_at && new Date(data.expires_at) < new Date()))
+      ? data.plan : 'free';
+
+    // admin/premiumなら即返す
+    if (myPlan === 'admin' || myPlan === 'premium') return myPlan;
+
+    // チームオーナーのプランを確認（招待ユーザーはオーナーのプランを継承）
+    try {
+      const { data: memberships } = await supabase
+        .from('team_members')
+        .select('team_id, role')
+        .eq('user_id', user.id);
+
+      if (memberships && memberships.length > 0) {
+        // ownerでないチームのオーナーを探す
+        const joinedTeams = memberships.filter(m => m.role !== 'owner').map(m => m.team_id);
+        if (joinedTeams.length > 0) {
+          const { data: owners } = await supabase
+            .from('team_members')
+            .select('user_id')
+            .in('team_id', joinedTeams)
+            .eq('role', 'owner');
+
+          if (owners && owners.length > 0) {
+            const ownerIds = owners.map(o => o.user_id);
+            const { data: ownerPlans } = await supabase
+              .from('user_plans')
+              .select('plan, expires_at')
+              .in('user_id', ownerIds);
+
+            if (ownerPlans) {
+              for (const op of ownerPlans) {
+                if (!op.expires_at || new Date(op.expires_at) >= new Date()) {
+                  if (op.plan === 'admin' || op.plan === 'premium') return op.plan;
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch(_) {}
+
+    return myPlan;
   },
 
   // Premiumプランかどうか（AI制限判定用）
