@@ -467,8 +467,8 @@ async function syncInBackground(year, month, hadCache) {
     await upsertTransactions(result.data);
     await setLastSync(now);
 
-    // キャッシュなしで初回ロードしていた場合は画面を更新
-    if (!hadCache) {
+    // キャッシュなし or 当月取引が空だった場合は画面を更新
+    if (!hadCache || cachedTxs.length === 0) {
       const content = document.getElementById('page-content');
       if (content) renderContent(content, accounts, result.data, year, month, false);
     } else {
