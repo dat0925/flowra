@@ -218,18 +218,6 @@ export const DB = {
   //  ・3万行あっても index_transactions_team_date が効く
   //  ・画面は PAGE_SIZE=50 件ずつ追加ロード（無限スクロール）
 
-  async getTransactionById(id) {
-    const teamId = await this.getTeamId();
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('*, account:accounts!account_id(id,name,type,icon,color), to_account:accounts!to_account_id(id,name,type), transaction_tags(tag:tags(id,name,color))')
-      .eq('id', id)
-      .eq('team_id', teamId)
-      .maybeSingle();
-    if (error || !data) return null;
-    return { ...data, tags: (data.transaction_tags||[]).map(tt=>tt.tag).filter(Boolean) };
-  },
-
   async getTransactions({
     year, month, accountId, unsettledOnly,
     page = 0,           // 0始まり

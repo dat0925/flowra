@@ -162,25 +162,6 @@ function showApp(user) {
 
   const lastPage = localStorage.getItem('flowra_last_page') || 'dashboard';
   Router.navigate(lastPage);
-
-  // ?tx=ID のディープリンク対応
-  const txId = new URLSearchParams(window.location.search).get('tx');
-  if (txId) {
-    window.history.replaceState({}, '', window.location.pathname);
-    setTimeout(async () => {
-      try {
-        const tx = await DB.getTransactionById(txId);
-        if (tx) {
-          const { openEditRecord } = await import('./edit-record.js');
-          openEditRecord(tx, () => {});
-        } else {
-          showToast('記録が見つかりませんでした');
-        }
-      } catch(e) {
-        console.error('[DeepLink]', e);
-      }
-    }, 800);
-  }
 }
 
 async function _seedDefaultTags() {
