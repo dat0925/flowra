@@ -224,6 +224,20 @@ export const Router = {
     if (m) m.textContent = label;
     if (d) d.textContent = label;
 
+    // スワイプ時のフィードバック：月ラベルを一瞬強調
+    if (dir) {
+      [m, d].forEach(el => {
+        if (!el) return;
+        el.style.transition = 'transform 0.15s ease, color 0.15s ease';
+        el.style.color = 'var(--sage)';
+        el.style.transform = 'scale(1.08)';
+        setTimeout(() => {
+          el.style.color = '';
+          el.style.transform = '';
+        }, 200);
+      });
+    }
+
     // 今月ボタンは今月以外のときだけ表示
     const notCurrent = !MonthState.isCurrentMonth();
     ['btn-today-month', 'btn-today-month-d'].forEach(id => {
