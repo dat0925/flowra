@@ -72,12 +72,13 @@ export async function openEditRecord(tx, onSave) {
   }
 
   // 最新の口座・タグを取得
-  let accounts = [], tags = [], myRole = 'member', members = [];
+  let accounts = [], tags = [], myRole = 'member', members = [], budgetMapRaw = {};
   try {
     const teamId = await DB.getTeamId();
-    [accounts, tags, myRole, members] = await Promise.all([
+    [accounts, tags, myRole, members, budgetMapRaw] = await Promise.all([
       DB.getAccounts(), DB.getTags(), DB.getMyRole(),
-      DB.getTeamMemberProfilesForTeam(teamId).catch(() => [])
+      DB.getTeamMemberProfilesForTeam(teamId).catch(() => []),
+      DB.getBudgets(null).catch(() => ({}))
     ]);
   } catch (e) {
     showToast('データ取得エラー: ' + e.message);
@@ -245,8 +246,9 @@ export async function openEditRecord(tx, onSave) {
 
         <!-- タグ -->
         <div class="form-section" style="margin-bottom:12px;">
-          <div style="padding:10px 18px 4px;display:flex;align-items:center;gap:6px;">
+          <div style="padding:10px 18px 4px;display:flex;align-items:center;justify-content:space-between;gap:6px;">
             <span style="font-size:12px;color:var(--mid);font-weight:500;">タグ</span>
+            <span style="font-size:10px;color:var(--mid-lt);line-height:1.5;text-align:right;">主タグ（予算あり）は1つまで<br>サブタグ（予算なし）は自由に</span>
           </div>
           <div class="tags-wrap" style="padding-top:6px;">
             ${tags.length === 0
@@ -495,6 +497,15 @@ export async function openEditRecord(tx, onSave) {
           if (state.selectedTags.has(id)) {
             state.selectedTags.delete(id);
           } else {
+            // 予算ありタグを2つ以上選ぼうとした場合は警告
+            const isBudgetTag = !!budgetMapRaw[id];
+            if (isBudgetTag) {
+              const currentBudgetTags = [...state.selectedTags].filter(tid => !!budgetMapRaw[tid]);
+              if (currentBudgetTags.length >= 1) {
+                showToast('主タグ（予算あり）は1つまでです');
+                return;
+              }
+            }
             state.selectedTags.add(id);
           }
           // 全チップの表示を更新
