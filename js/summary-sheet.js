@@ -1,6 +1,7 @@
 // summary-sheet.js  タグ×月クロス集計シート
 import { DB } from './db.js';
 import { MonthState } from './router.js';
+import { supabase } from './config.js';
 
 const fmt = n => Math.abs(n).toLocaleString('ja-JP');
 
@@ -155,10 +156,41 @@ async function loadAndRender(baseYear, baseMonth) {
       DB.getBudgets(currentKey),
     ]);
 
+    // 集計シート専用取得：search_transactions RPCでタグ情報も含めて取得
+    const fetchMonthTxs = async (year, month) => {
+      const teamId = await DB.getTeamId();
+      // 月の全取引をRPC経由で取得（transaction_tagsのRLS回避）
+      const dateFrom = `${year}-${String(month).padStart(2,'0')}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const dateTo = `${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+
+      const { data: txs } = await supabase
+        .from('transactions')
+        .select('id, type, amount, date')
+        .eq('team_id', teamId)
+        .gte('date', dateFrom)
+        .lte('date', dateTo)
+        .eq('type', 'expense')
+        .limit(5000);
+
+      if (!txs || txs.length === 0) return [];
+
+      // transaction_tagsをRPC経由で取得
+      const txIds = txs.map(t => t.id);
+      const { data: tagRows } = await supabase.rpc('get_transaction_tags', { p_transaction_ids: txIds });
+      const tagMap = {};
+      (tagRows || []).forEach(r => {
+        if (!tagMap[r.transaction_id]) tagMap[r.transaction_id] = [];
+        tagMap[r.transaction_id].push({ id: r.tag_id, name: r.tag_name, color: r.tag_color });
+      });
+
+      return txs.map(tx => ({ ...tx, tags: tagMap[tx.id] || [] }));
+    };
+
     const allTxData = await Promise.all(
-      months.map(({ year, month }) =>
-        DB.getTransactions({ year, month, pageSize: 2000 }).then(r => ({ year, month, txs: r.data || [] }))
-      )
+      months.map(async ({ year, month }) => ({
+        year, month, txs: await fetchMonthTxs(year, month)
+      }))
     );
 
     const matrix = {};
