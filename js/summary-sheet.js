@@ -28,14 +28,14 @@ export async function openSummarySheet() {
   overlay.innerHTML = `
     <div id="summary-sheet" style="width:100%;max-width:640px;background:var(--stone);border-radius:20px 20px 0 0;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
       <!-- ヘッダー -->
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px;border-bottom:none;flex-shrink:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;border-bottom:none;flex-shrink:0;">
         <div style="font-size:15px;font-weight:700;color:var(--ink);">タグ別集計</div>
         <div style="display:flex;align-items:center;gap:6px;">
-          <button id="ss-today-btn" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--stone);color:var(--mid);cursor:pointer;white-space:nowrap;display:none;">今月</button>
-          <div style="display:flex;align-items:center;gap:4px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:4px 8px;">
-            <button id="ss-prev-month" style="background:none;border:none;padding:2px 6px;cursor:pointer;color:var(--sage);font-size:16px;line-height:1;">‹</button>
-            <span id="ss-month-label" style="font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;min-width:80px;text-align:center;cursor:pointer;border-bottom:1px dotted var(--mid-lt);"></span>
-            <button id="ss-next-month" style="background:none;border:none;padding:2px 6px;cursor:pointer;color:var(--sage);font-size:16px;line-height:1;">›</button>
+          <button id="ss-today-btn" style="font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--white);color:var(--mid);cursor:pointer;white-space:nowrap;display:none;">今月</button>
+          <div style="display:flex;align-items:center;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:4px 4px;">
+            <button id="ss-prev-month" style="background:none;border:none;padding:4px 8px;cursor:pointer;color:var(--sage);font-size:18px;line-height:1;">‹</button>
+            <span id="ss-month-label" style="font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;min-width:90px;text-align:center;cursor:pointer;"></span>
+            <button id="ss-next-month" style="background:none;border:none;padding:4px 8px;cursor:pointer;color:var(--sage);font-size:18px;line-height:1;">›</button>
           </div>
           <button id="btn-close-summary" style="background:none;border:none;padding:4px;cursor:pointer;color:var(--mid);">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
@@ -99,7 +99,7 @@ export async function openSummarySheet() {
   });
 
   const updateLabel = () => {
-    document.getElementById('ss-month-label').textContent = `〜${baseYear}年${baseMonth}月`;
+    document.getElementById('ss-month-label').textContent = `${baseYear}年${baseMonth}月`;
     const now = new Date();
     const isCurrentMonth = baseYear === now.getFullYear() && baseMonth === now.getMonth() + 1;
     document.getElementById('ss-next-month').disabled =
@@ -125,7 +125,7 @@ export async function openSummarySheet() {
     picker.style.cssText = 'position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;';
     picker.innerHTML = `
       <div style="background:var(--white);border-radius:20px;padding:24px;width:280px;max-width:90vw;">
-        <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:16px;text-align:center;">表示する最終月を選択</div>
+        <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:16px;text-align:center;">表示する月を選択</div>
         <div style="display:flex;gap:8px;margin-bottom:20px;">
           <select id="ss-pick-year" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--white);">
             ${Array.from({length: 6}, (_, i) => now.getFullYear() - i).map(y =>
