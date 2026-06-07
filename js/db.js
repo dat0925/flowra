@@ -699,6 +699,17 @@ export const DB = {
     return map; // { tag_id: budget }
   },
 
+  // 予算が1件でも設定されているタグIDのSetを返す（主/サブ判定用）
+  async getBudgetTagIds() {
+    const teamId = await this.getTeamId();
+    const { data, error } = await supabase
+      .from('budgets')
+      .select('tag_id')
+      .eq('team_id', teamId);
+    if (error) throw error;
+    return new Set((data || []).map(b => b.tag_id));
+  },
+
   // 予算をUpsert（デフォルト or 月別）
   async upsertBudget(tagId, amount, month = null) {
     const teamId = await this.getTeamId();
@@ -825,3 +836,4 @@ export const DB = {
     return plan === 'premium' || plan === 'admin';
   },
 };
+
