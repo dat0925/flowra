@@ -163,13 +163,9 @@ async function renderTagList(tags) {
   } catch(_) {}
 
   wrap.innerHTML = tags.map(t => {
-    const ico = getTagIcon(t);
     const c   = t.color || '#7A9485';
-    const dotOrIcon = ico
-      ? '<div style="width:28px;height:28px;border-radius:8px;background:' + ico.bg + ';display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
-        + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="' + ico.stroke + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="' + ico.path + '"/></svg></div>'
-      : '<div style="width:28px;height:28px;border-radius:8px;background:' + c + '33;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
-        + '<div style="width:10px;height:10px;border-radius:50%;background:' + c + ';"></div></div>';
+    const dotOrIcon = '<div style="width:28px;height:28px;border-radius:8px;background:' + c + '33;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
+      + '<div style="width:10px;height:10px;border-radius:50%;background:' + c + ';"></div></div>';
     const budget = budgetMap[t.id];
     const budgetVal = budget ? Number(budget.amount).toLocaleString() : '';
     return '<div class="tag-item" data-tag-id="' + t.id + '" style="display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);">'  
@@ -689,18 +685,7 @@ function openTagEditSheet(tag, allTags, budgetMap = {}) {
               style="font-size:16px;">
           </div>
         </div>
-        <div class="form-row no-tap">
-          <div class="row-body" style="flex-direction:column;align-items:flex-start;gap:10px;">
-            <div class="row-label">アイコン</div>
-            <div id="edit-tag-icon-picker"
-              style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;"></div>
-            <button id="btn-clear-tag-icon"
-              style="font-size:11px;color:var(--mid);background:none;border:1px solid var(--border);
-                border-radius:8px;padding:5px 12px;cursor:pointer;margin-top:4px;">
-              自動推定に戻す
-            </button>
-          </div>
-        </div>
+
         <div class="form-row no-tap" style="border-bottom:none;">
           <div class="row-body" style="flex-direction:column;align-items:flex-start;gap:10px;">
             <div class="row-label">カラー</div>
@@ -765,43 +750,7 @@ function openTagEditSheet(tag, allTags, budgetMap = {}) {
   document.getElementById('btn-close-tag-sheet')?.addEventListener('click', closeSheet);
   document.getElementById('btn-cancel-tag')?.addEventListener('click', closeSheet);
 
-  // アイコンピッカー初期化
-  let selectedTagIcon = tag.icon || null;
-  const iconPickerEl = document.getElementById('edit-tag-icon-picker');
-  if (iconPickerEl) {
-    iconPickerEl.innerHTML = Object.entries(TAG_ICON_REGISTRY).map(([key, ico]) => `
-      <button data-icon-key="${key}" title="${ico.label}"
-        style="display:flex;flex-direction:column;align-items:center;gap:4px;
-          padding:8px 4px;border-radius:12px;border:2px solid ${key === selectedTagIcon ? 'var(--sage)' : 'transparent'};
-          background:${key === selectedTagIcon ? 'var(--sage-bg)' : ico.bg};
-          cursor:pointer;transition:all 0.15s;">
-        <svg viewBox="0 0 24 24" width="22" height="22" fill="none"
-          stroke="${ico.stroke}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-          <path d="${ico.path}"/>
-        </svg>
-        <span style="font-size:9px;color:var(--mid);line-height:1.2;text-align:center;">${ico.label}</span>
-      </button>`).join('');
 
-    iconPickerEl.querySelectorAll('button[data-icon-key]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        selectedTagIcon = btn.dataset.iconKey;
-        iconPickerEl.querySelectorAll('button[data-icon-key]').forEach(b => {
-          const k = b.dataset.iconKey;
-          const ico = TAG_ICON_REGISTRY[k];
-          b.style.border = k === selectedTagIcon ? '2px solid var(--sage)' : '2px solid transparent';
-          b.style.background = k === selectedTagIcon ? 'var(--sage-bg)' : ico.bg;
-        });
-      });
-    });
-  }
-
-  document.getElementById('btn-clear-tag-icon')?.addEventListener('click', () => {
-    selectedTagIcon = null;
-    iconPickerEl?.querySelectorAll('button[data-icon-key]').forEach(b => {
-      b.style.border = '2px solid transparent';
-      b.style.background = TAG_ICON_REGISTRY[b.dataset.iconKey]?.bg || 'var(--mist)';
-    });
-  });
 
   // カラーピッカー初期化
   let selectedTagColor = tag.color || '#7A9485';
@@ -845,7 +794,7 @@ function openTagEditSheet(tag, allTags, budgetMap = {}) {
     }
 
     try {
-      await DB.updateTag(tag.id, { name, color: selectedTagColor, icon: selectedTagIcon });
+      await DB.updateTag(tag.id, { name, color: selectedTagColor });
       // 予算も保存
       const budgetInputEl = document.getElementById('edit-tag-budget');
       if (budgetInputEl) {
@@ -1679,6 +1628,7 @@ function openTagAddSheet(tags) {
     if (e.key === 'Enter') doAdd();
   });
 }
+
 
 
 
