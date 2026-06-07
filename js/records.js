@@ -127,14 +127,14 @@ function renderShell(transactions, year, month, focusSearch = false) {
       </div>
       <div class="records-filter-bar" style="flex-direction:column;gap:0;padding:0;">
         <!-- 1行目：フィルタータブ -->
-        <div class="filter-tabs" id="filter-tabs" style="padding:6px 12px;border-bottom:none;">
+        <div class="filter-tabs" id="filter-tabs" style="padding:4px 12px;border-bottom:none;">
           <button class="filter-tab active" data-filter="all">すべて</button>
           <button class="filter-tab" data-filter="expense">支出</button>
           <button class="filter-tab" data-filter="income">収入</button>
           <button class="filter-tab" data-filter="transfer">振替</button>
         </div>
         <!-- 2行目：検索窓＋集計ボタン -->
-        <div style="display:flex;align-items:center;gap:8px;padding:6px 12px;">
+        <div style="display:flex;align-items:center;gap:8px;padding:4px 12px 6px;">
           <div class="search-wrap" style="flex:1;min-width:0;">
             <svg viewBox="0 0 24 24" class="search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" class="search-input" placeholder="メモ・口座・タグで検索" id="records-search">
