@@ -324,15 +324,15 @@ async function renderBudgetList(tags) {
         '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
         '<div style="display:flex;align-items:center;border:1px solid var(--border);border-radius:8px;padding:3px 8px;background:var(--white);">' +
         '<span style="font-size:12px;color:var(--mid);margin-right:2px;">¥</span>' +
-        '<input type="text" inputmode="numeric" class="text-input budget-input" data-tag-id="' + tag.id + '" value="' + (b ? Number(b.amount).toLocaleString() : '') + '" placeholder="−" style="width:72px;text-align:right;font-size:14px;padding:0;border:none;background:transparent;" />' +
+        '<input type="text" inputmode="numeric" class="text-input budget-input" data-tag-id="' + tag.id + '" value="' + (b ? Number(b.amount).toLocaleString() : '') + '" placeholder="−" style="width:72px;text-align:right;font-size:14px;padding:0;border:none;background:transparent;border-bottom:1.5px solid var(--border);" />' +
         '</div>' +
-        '<button class="btn-budget-month" data-tag-id="' + tag.id + '" style="font-size:11px;color:var(--sage);background:var(--sage-bg);border:none;border-radius:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">月別</button>' +
+        '<button class="btn-budget-month" data-tag-id="' + tag.id + '" style="font-size:11px;color:var(--sage);background:var(--sage-bg);border:none;border-radius:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">月で調整</button>' +
         '</div></label>' + barHTML + '</div>';
     }).join('');
   };
 
   const buildHTML = () =>
-    '<div style="font-size:11px;color:var(--mid-lt);padding:10px 0 8px;line-height:1.6;">タグごとに毎月の予算を設定します。月別に上書きも可能です。</div>' +
+    '<div style="font-size:11px;color:var(--mid-lt);padding:8px 0 6px;line-height:1.6;">金額をタップして編集 / 月で調整で特定月だけ変更</div>' +
     renderRows() +
     '<div id="budget-total-row" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--border);margin-top:2px;">' +
     '<span style="font-size:13px;font-weight:600;color:var(--ink);">合計</span>' +
