@@ -275,6 +275,20 @@ async function renderContent(content, accounts, transactions, year, month, fromC
                   <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
               </div>
+              ${validCount >= 2 ? `
+              <div id="budget-summary-bar" style="padding:0 18px 10px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+                  <span style="font-size:11px;color:var(--mid);">合計</span>
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <span style="font-size:12px;font-weight:600;color:${totalColor};">¥${fmt(totalSpent)}</span>
+                    <span style="font-size:11px;color:var(--mid-lt);">/ ¥${fmt(totalBudget)}</span>
+                    <span style="font-size:11px;font-weight:700;color:${totalColor};min-width:30px;text-align:right;">${totalPct}%</span>
+                  </div>
+                </div>
+                <div style="height:5px;border-radius:3px;background:var(--mist);overflow:hidden;">
+                  <div style="height:100%;width:${Math.min(100,totalPct)}%;border-radius:3px;background:${totalColor};transition:width 0.4s;"></div>
+                </div>
+              </div>` : ''}
               <div id="budget-body" style="overflow:hidden;transition:max-height 0.28s ease;">
                 <div style="padding:4px 18px 16px;">${rows}${totalRow}</div>
               </div>
