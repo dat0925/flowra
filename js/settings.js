@@ -943,7 +943,7 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
           </svg>
         </div>
         <div class="row-body">
-          <div class="row-value">タグ管理</div>
+          <div class="row-value">タグ・予算管理</div>
           <div class="row-label" id="tag-count-label">—</div>
         </div>
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--mid-lt)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
@@ -1628,6 +1628,7 @@ function openTagAddSheet(tags) {
     if (e.key === 'Enter') doAdd();
   });
 }
+
 
 
 
