@@ -28,12 +28,10 @@ export async function openSummarySheet() {
   overlay.innerHTML = `
     <div id="summary-sheet" style="width:100%;max-width:640px;background:var(--stone);border-radius:20px 20px 0 0;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
       <!-- ヘッダー -->
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 8px;border-bottom:none;flex-shrink:0;">
         <div style="font-size:15px;font-weight:700;color:var(--ink);">タグ別集計</div>
         <div style="display:flex;align-items:center;gap:6px;">
-          <!-- 今月ボタン -->
           <button id="ss-today-btn" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--stone);color:var(--mid);cursor:pointer;white-space:nowrap;display:none;">今月</button>
-          <!-- 月ナビ（ラベルタップでピッカー） -->
           <div style="display:flex;align-items:center;gap:4px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:4px 8px;">
             <button id="ss-prev-month" style="background:none;border:none;padding:2px 6px;cursor:pointer;color:var(--sage);font-size:16px;line-height:1;">‹</button>
             <span id="ss-month-label" style="font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;min-width:80px;text-align:center;cursor:pointer;border-bottom:1px dotted var(--mid-lt);"></span>
@@ -45,6 +43,11 @@ export async function openSummarySheet() {
             </svg>
           </button>
         </div>
+      </div>
+      <!-- 主タグ/サブタグ切り替えタブ -->
+      <div style="display:flex;padding:0 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;gap:4px;">
+        <button id="ss-tab-primary" style="flex:1;padding:7px 0;font-size:12px;font-weight:700;border:none;border-bottom:2px solid var(--sage);background:none;color:var(--sage-dk);cursor:pointer;">主タグ集計</button>
+        <button id="ss-tab-sub" style="flex:1;padding:7px 0;font-size:12px;font-weight:600;border:none;border-bottom:2px solid transparent;background:none;color:var(--mid);cursor:pointer;">サブタグ集計</button>
       </div>
       <div id="summary-sheet-body" style="overflow:auto;flex:1;padding:0;">
         <div style="padding:32px;text-align:center;color:var(--mid);font-size:13px;">読み込み中…</div>
@@ -66,6 +69,35 @@ export async function openSummarySheet() {
   document.getElementById('btn-close-summary').addEventListener('click', close);
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 
+  let mode = 'primary'; // 'primary' or 'sub'
+
+  const setTab = (newMode) => {
+    mode = newMode;
+    const pBtn = document.getElementById('ss-tab-primary');
+    const sBtn = document.getElementById('ss-tab-sub');
+    if (pBtn) {
+      pBtn.style.borderBottom = newMode === 'primary' ? '2px solid var(--sage)' : '2px solid transparent';
+      pBtn.style.color = newMode === 'primary' ? 'var(--sage-dk)' : 'var(--mid)';
+      pBtn.style.fontWeight = newMode === 'primary' ? '700' : '600';
+    }
+    if (sBtn) {
+      sBtn.style.borderBottom = newMode === 'sub' ? '2px solid var(--sage)' : '2px solid transparent';
+      sBtn.style.color = newMode === 'sub' ? 'var(--sage-dk)' : 'var(--mid)';
+      sBtn.style.fontWeight = newMode === 'sub' ? '700' : '600';
+    }
+  };
+
+  document.getElementById('ss-tab-primary')?.addEventListener('click', () => {
+    if (mode === 'primary') return;
+    setTab('primary');
+    renderSheet();
+  });
+  document.getElementById('ss-tab-sub')?.addEventListener('click', () => {
+    if (mode === 'sub') return;
+    setTab('sub');
+    renderSheet();
+  });
+
   const updateLabel = () => {
     document.getElementById('ss-month-label').textContent = `〜${baseYear}年${baseMonth}月`;
     const now = new Date();
@@ -82,7 +114,7 @@ export async function openSummarySheet() {
     body.style.opacity = '0.4';
     body.style.transition = 'opacity 0.15s';
     updateLabel();
-    await loadAndRender(baseYear, baseMonth);
+    await loadAndRender(baseYear, baseMonth, mode);
     body.style.opacity = '1';
   };
 
@@ -142,10 +174,10 @@ export async function openSummarySheet() {
   });
 
   updateLabel();
-  await loadAndRender(baseYear, baseMonth);
+  await loadAndRender(baseYear, baseMonth, 'primary');
 }
 
-async function loadAndRender(baseYear, baseMonth) {
+async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
   const el = document.getElementById('summary-sheet-body');
   try {
     const months = getMonths(baseYear, baseMonth);
@@ -199,15 +231,25 @@ async function loadAndRender(baseYear, baseMonth) {
       for (const tx of txs) {
         if (tx.type !== 'expense') continue;
         const validTags = (tx.tags || []).filter(t => t?.id);
-        if (validTags.length > 0) {
+        if (mode === 'primary') {
           // 主タグ（先頭）のみ集計
-          const primaryTag = validTags[0];
-          if (!matrix[primaryTag.id]) matrix[primaryTag.id] = {};
-          matrix[primaryTag.id][key] = (matrix[primaryTag.id][key] || 0) + tx.amount;
+          if (validTags.length > 0) {
+            const primaryTag = validTags[0];
+            if (!matrix[primaryTag.id]) matrix[primaryTag.id] = {};
+            matrix[primaryTag.id][key] = (matrix[primaryTag.id][key] || 0) + tx.amount;
+          } else {
+            if (!matrix['__untagged__']) matrix['__untagged__'] = {};
+            matrix['__untagged__'][key] = (matrix['__untagged__'][key] || 0) + tx.amount;
+          }
         } else {
-          // タグなし
-          if (!matrix['__untagged__']) matrix['__untagged__'] = {};
-          matrix['__untagged__'][key] = (matrix['__untagged__'][key] || 0) + tx.amount;
+          // サブタグ（2番目以降）のみ集計
+          const subTags = validTags.slice(1);
+          if (subTags.length > 0) {
+            for (const tag of subTags) {
+              if (!matrix[tag.id]) matrix[tag.id] = {};
+              matrix[tag.id][key] = (matrix[tag.id][key] || 0) + tx.amount;
+            }
+          }
         }
       }
     }
@@ -310,8 +352,9 @@ async function loadAndRender(baseYear, baseMonth) {
         </table>
       </div>
       <div style="padding:10px 16px;font-size:11px;color:var(--mid-lt);line-height:1.8;">
-        ※ 支出のみ集計。複数タグがある場合は「主」タグのみで集計します（二重カウントなし）。<br>
-        ※ 合計行 = 主タグ別合計 + タグなし合計 = その月の支出合計と一致します。
+        ${mode === 'primary'
+          ? '※ 支出のみ集計。複数タグがある場合は「主」タグのみで集計します（二重カウントなし）。<br>※ 合計行 = 主タグ別合計 + タグなし合計 = その月の支出合計と一致します。'
+          : '※ 2番目以降のサブタグで集計します。1件の支出が複数サブタグにまたがる場合は重複カウントされます。'}
       </div>`;
 
   } catch (e) {
