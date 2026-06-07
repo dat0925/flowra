@@ -932,6 +932,8 @@ body.page-records #mobile-month-label {
 
 /* ACCOUNT LIST */
 .acct-item { display: flex; align-items: center; justify-content: space-between; padding: 11px 14px 11px 6px; cursor: default; transition: background 0.12s; gap: 8px; position: relative; border-bottom: 1px solid var(--border); }
+.acct-item.has-bar { display: block; padding: 10px 14px 4px 6px; }
+.acct-item.has-bar .acct-item-row { display: flex; align-items: center; gap: 8px; }
 .acct-item:last-of-type { border-bottom: none; }
 .acct-item:hover { background: var(--warm); }
 .acct-item.is-dragging { background: var(--white); box-shadow: 0 6px 20px rgba(28,43,34,0.13); border-radius: 12px; z-index: 100; opacity: 0.97; border-bottom: none; }

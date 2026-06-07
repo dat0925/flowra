@@ -108,8 +108,8 @@ async function renderAccountsContent(content, accounts) {
         </div>`;
 
       return `
-      <div class="acct-item" data-id="${a.id}" data-idx="${i}" style="flex-direction:column;align-items:stretch;gap:0;padding:10px 16px 4px;">
-        <div style="display:flex;align-items:center;gap:8px;">
+      <div class="acct-item has-bar" data-id="${a.id}" data-idx="${i}">
+        <div class="acct-item-row">
           <div class="drag-handle" style="flex-shrink:0;">
             <svg viewBox="0 0 10 16" width="10" height="16" fill="var(--mid-lt)" stroke="none">
               <circle cx="3" cy="3"  r="1.5"/><circle cx="7" cy="3"  r="1.5"/>
