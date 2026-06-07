@@ -268,7 +268,7 @@ async function renderContent(content, accounts, transactions, year, month, fromC
             <div class="panel" style="margin-bottom:0;">
               <div class="panel-head ac-head" data-ac="budget-body" style="cursor:pointer;">
                 <div style="display:flex;align-items:center;gap:5px;">
-                  <div class="panel-title">今月の予算</div>
+                  <div class="panel-title">予算 <span style="font-size:11px;font-weight:400;color:var(--mid);margin-left:4px;">${year}年${month}月</span></div>
                   <svg id="ac-chevron-budget" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--sage)" stroke-width="2.5" style="transition:transform 0.25s;flex-shrink:0;"><polyline points="6 9 12 15 18 9"/></svg>
                 </div>
                 <div class="panel-link" id="link-budget-setting">設定
