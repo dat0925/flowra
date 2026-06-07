@@ -316,14 +316,16 @@ async function renderBudgetList(tags) {
           '<span style="font-size:10px;font-weight:600;color:var(--mid);min-width:28px;text-align:right;">' + pct + '%</span>' +
           '</div>'
         : '';
-      return '<div class="budget-tag-row" style="padding:10px 0;border-bottom:1px solid var(--border);">' +
+      return '<div class="budget-tag-row" style="padding:6px 0;border-bottom:1px solid var(--border);">' +
         '<label class="budget-row" data-tag-id="' + tag.id + '" style="display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:text;">' +
         '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' +
         '<span style="width:10px;height:10px;border-radius:50%;background:' + (tag.color||'var(--sage)') + ';flex-shrink:0;display:inline-block;"></span>' +
         '<span style="font-size:14px;">' + tag.name + '</span></div>' +
         '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
-        '<span style="font-size:12px;color:var(--mid);">¥</span>' +
-        '<input type="text" inputmode="numeric" class="text-input budget-input" data-tag-id="' + tag.id + '" value="' + (b ? Number(b.amount).toLocaleString() : '') + '" placeholder="未設定" style="width:90px;text-align:right;font-size:14px;padding:4px 6px;">' +
+        '<div style="display:flex;align-items:center;border:1px solid var(--border);border-radius:8px;padding:3px 8px;background:var(--white);">' +
+        '<span style="font-size:12px;color:var(--mid);margin-right:2px;">¥</span>' +
+        '<input type="text" inputmode="numeric" class="text-input budget-input" data-tag-id="' + tag.id + '" value="' + (b ? Number(b.amount).toLocaleString() : '') + '" placeholder="−" style="width:72px;text-align:right;font-size:14px;padding:0;border:none;background:transparent;" />' +
+        '</div>' +
         '<button class="btn-budget-month" data-tag-id="' + tag.id + '" style="font-size:11px;color:var(--sage);background:var(--sage-bg);border:none;border-radius:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">月別</button>' +
         '</div></label>' + barHTML + '</div>';
     }).join('');
@@ -335,7 +337,7 @@ async function renderBudgetList(tags) {
     '<div id="budget-total-row" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--border);margin-top:2px;">' +
     '<span style="font-size:13px;font-weight:600;color:var(--ink);">合計</span>' +
     '<span id="budget-total-amount" style="font-size:14px;font-weight:600;color:var(--ink);">¥0</span></div>' +
-    '<button id="btn-save-budgets" class="btn-primary" style="margin-top:8px;"><svg viewBox="0 0 24 24" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>予算を保存</button>';
+    '';
 
   wrap.innerHTML = buildHTML();
 
