@@ -254,6 +254,8 @@ export const Router = {
 
     // records 画面のときは月が変わったらコンテンツを再描画
     if (this.currentPage === 'records' && dir) {
+      const content = document.getElementById('page-content');
+      if (content) content.scrollTop = 0;
       const handler = this._pageHandlers['records'];
       if (handler) handler();
     }
@@ -268,6 +270,8 @@ export const Router = {
   _jumpToMonth(year, month) {
     MonthState.goTo(year, month);
     this._updateMonthLabels();
+    const content = document.getElementById('page-content');
+    if (content) content.scrollTop = 0;
     // dashboard or records を再描画
     if (this.currentPage === 'dashboard' || this.currentPage === 'records') {
       const handler = this._pageHandlers[this.currentPage];
