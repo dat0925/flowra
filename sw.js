@@ -1,42 +1,26 @@
-// ─────────────────────────────────────
-//  sw.js  Service Worker
-//  Network Only：常にネットワークから取得（開発中はキャッシュなし）
-// ─────────────────────────────────────
+// sw.js - Flowra Service Worker
+const CACHE_NAME = 'flowra-v315';
 
-const CACHE_NAME = 'flowra-v314';
-
-// インストール時：即座にアクティベート
 self.addEventListener('install', event => {
   self.skipWaiting();
 });
 
-// アプリからSKIP_WAITINGメッセージを受け取ったら即座に切り替え
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
-
-// アクティベート時：古いキャッシュを全削除
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
 
-// フェッチ：Supabaseのみネットワーク、他はNetwork First（フォント含む）
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
-  // Supabase API → ネットワークのみ
   if (url.hostname.includes('supabase.co')) {
     event.respondWith(fetch(event.request));
     return;
   }
 
-  // Google Fonts → キャッシュ優先（フォントは変わらない）
   if (url.hostname.includes('fonts.googleapis.com') ||
       url.hostname.includes('fonts.gstatic.com')) {
     event.respondWith(
@@ -52,18 +36,9 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // アプリファイル（JS/CSS/HTML）→ Network Only（常に最新）
   if (event.request.method === 'GET') {
     event.respondWith(
       fetch(event.request).catch(() => caches.match(event.request))
     );
   }
 });
-
-
-
-
-
-
-
-
