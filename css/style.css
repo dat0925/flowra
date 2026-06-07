@@ -1057,6 +1057,7 @@ body.page-records #mobile-month-label {
   width: calc(100% + 56px);
   margin-left: -28px;
   padding: 4px 28px 0;
+  isolation: isolate;
 }
 #records-sticky.scrolled {
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
