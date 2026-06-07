@@ -190,10 +190,9 @@ export const DB = {
       .from('tags')
       .update(payload)
       .eq('id', id)
-      .select()
-      .single();
+      .select();
     if (error) throw error;
-    return data;
+    return data?.[0];
   },
 
   async deleteTag(id) {
