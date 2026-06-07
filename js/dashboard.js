@@ -955,6 +955,7 @@ function setupAccordions() {
     var body = document.getElementById(key + '-body');
     var chevron = document.getElementById('ac-chevron-' + key);
     var head = document.querySelector('[data-ac="' + key + '-body"]');
+    var summaryBar = document.getElementById('budget-summary-bar');
     if (!body || !head) return;
 
     var stored = localStorage.getItem('ac-' + key);
@@ -963,9 +964,11 @@ function setupAccordions() {
     // 初期状態設定
     if (isOpen) {
       body.style.maxHeight = body.scrollHeight + 'px';
+      if (summaryBar) summaryBar.style.display = 'none';
     } else {
       body.style.maxHeight = '0px';
       if (chevron) chevron.style.transform = 'rotate(-90deg)';
+      if (summaryBar) summaryBar.style.display = '';
     }
 
     head.addEventListener('click', function(e) {
@@ -974,10 +977,12 @@ function setupAccordions() {
       if (open) {
         body.style.maxHeight = '0px';
         if (chevron) chevron.style.transform = 'rotate(-90deg)';
+        if (summaryBar) summaryBar.style.display = '';
         localStorage.setItem('ac-' + key, 'closed');
       } else {
         body.style.maxHeight = body.scrollHeight + 'px';
         if (chevron) chevron.style.transform = 'rotate(0deg)';
+        if (summaryBar) summaryBar.style.display = 'none';
         localStorage.setItem('ac-' + key, 'open');
       }
     });
