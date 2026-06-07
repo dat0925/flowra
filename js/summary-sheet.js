@@ -287,7 +287,7 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
 
     const displayTags = mode === 'primary'
       ? [
-          ...tags.filter(t => !t.is_archived && (matrix[t.id] || budgetMap[t.id])),
+          ...tags.filter(t => !t.is_archived && budgetMap[t.id]),
           ...(matrix['__untagged__'] ? [{ id: '__untagged__', name: 'タグなし', color: '#999' }] : []),
         ]
       : [
@@ -398,3 +398,4 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
     console.error('[SummarySheet]', e);
   }
 }
+
