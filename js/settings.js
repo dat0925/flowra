@@ -28,10 +28,9 @@ function openSubPage(title, renderFn, { showSave = false, onSave = null, onAdd =
   page.id = 'settings-subpage';
   page.style.cssText = 'position:fixed;inset:0;z-index:500;background:var(--stone);display:flex;flex-direction:column;animation:slideInRight 0.25s ease;';
 
-  // 下部バー（タグ管理: 戻る＋追加、予算管理: 戻る＋保存）
-  const bottomBtn = showSave
-    ? '<button id="btn-subpage-save" class="btn-primary" style="flex:1;">保存</button>'
-    : '<button id="btn-subpage-add" style="flex:1;padding:12px;background:var(--sage-bg);border:1.5px solid var(--sage);border-radius:12px;font-size:14px;font-weight:600;color:var(--sage);cursor:pointer;">＋ タグを追加</button>';
+  // 下部バー（タグ管理: 戻る＋追加＋保存の3ボタン）
+  const bottomBtn = '<button id="btn-subpage-add" style="flex:1;padding:12px;background:var(--sage-bg);border:1.5px solid var(--sage);border-radius:12px;font-size:14px;font-weight:600;color:var(--sage);cursor:pointer;">＋ 追加</button>'
+    + '<button id="btn-subpage-save" class="btn-primary" style="flex:1;">保存</button>';
 
   page.innerHTML =
     // タイトルのみのヘッダー（操作なし）
@@ -57,8 +56,16 @@ function openSubPage(title, renderFn, { showSave = false, onSave = null, onAdd =
   };
 
   document.getElementById('btn-subpage-back')?.addEventListener('click', closeSubPage);
-  document.getElementById('btn-subpage-save')?.addEventListener('click', () => {
-    if (onSave) onSave(closeSubPage);
+  document.getElementById('btn-subpage-save')?.addEventListener('click', async () => {
+    if (_currentSaveBudgetsFn) {
+      try {
+        await _currentSaveBudgetsFn();
+      } catch(e) {
+        showToast('エラー: ' + e.message);
+        return;
+      }
+    }
+    closeSubPage();
   });
   document.getElementById('btn-subpage-add')?.addEventListener('click', () => {
     if (onAdd) onAdd();
@@ -140,14 +147,20 @@ async function renderTagList(tags) {
   const wrap = document.getElementById('tag-list-wrap');
   if (!wrap) return;
 
+  _currentSaveBudgetsFn = null;
+
   if (tags.length === 0) {
     wrap.innerHTML = '<div class="empty-state" style="padding:24px;"><div class="empty-state-sub">タグがありません</div></div>';
     return;
   }
 
-  // 予算情報を取得
+  // 予算情報を取得（今月 or デフォルト）
   let budgetMap = {};
-  try { budgetMap = await DB.getBudgets(null); } catch(_) {}
+  try {
+    const now = new Date();
+    const currentMonth = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    budgetMap = await DB.getBudgets(currentMonth);
+  } catch(_) {}
 
   wrap.innerHTML = tags.map(t => {
     const ico = getTagIcon(t);
@@ -158,30 +171,60 @@ async function renderTagList(tags) {
       : '<div style="width:28px;height:28px;border-radius:8px;background:' + c + '33;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
         + '<div style="width:10px;height:10px;border-radius:50%;background:' + c + ';"></div></div>';
     const budget = budgetMap[t.id];
-    const budgetLabel = budget
-      ? '<span style="font-size:11px;color:var(--sage);font-weight:600;margin-left:6px;">¥' + Number(budget.amount).toLocaleString() + '</span>'
-      : '';
-    return '<div class="tag-item" data-tag-id="' + t.id + '" style="cursor:pointer;">'
+    const budgetVal = budget ? Number(budget.amount).toLocaleString() : '';
+    return '<div class="tag-item" data-tag-id="' + t.id + '">'
       + '<div class="drag-handle" style="width:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--mid-lt);touch-action:none;cursor:grab;padding:8px 4px;">'
       + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="1" fill="currentColor"/><circle cx="15" cy="7" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="17" r="1" fill="currentColor"/><circle cx="15" cy="17" r="1" fill="currentColor"/></svg>'
       + '</div>'
-      + '<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
+      + '<div class="tag-item-main" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;">'
       + dotOrIcon
       + '<span style="font-size:14px;">' + t.name + '</span>'
-      + budgetLabel
       + '</div>'
-      + '<svg viewBox="0 0 24 24" width="13" height="13" style="color:var(--mid-lt);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>'
+      + '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">'
+      + '<span style="font-size:12px;color:var(--mid-lt);">¥</span>'
+      + '<input type="text" inputmode="numeric" class="budget-input-inline" data-tag-id="' + t.id + '"'
+      + ' value="' + budgetVal + '" placeholder="−"'
+      + ' style="width:64px;text-align:right;font-size:13px;font-weight:600;color:var(--ink);'
+      + 'padding:4px 6px;border:1.5px solid var(--border);border-radius:8px;background:var(--white);'
+      + 'font-family:\'Noto Sans JP\',sans-serif;" />'
+      + '</div>'
       + '</div>';
   }).join('');
 
-  // 行全体タップ → 編集シート（シェブロンだけでなく行全体）
-  wrap.querySelectorAll('.tag-item').forEach(row => {
-    row.addEventListener('click', e => {
-      if (e.target.closest('.drag-handle')) return; // ドラッグハンドルは除外
+  // タグ名・アイコン部分タップ → 編集シート
+  wrap.querySelectorAll('.tag-item-main').forEach(main => {
+    main.addEventListener('click', e => {
+      const row = main.closest('.tag-item');
       const tag = tags.find(t => t.id === row.dataset.tagId);
-      if (tag) openTagEditSheet(tag, tags);
+      if (tag) openTagEditSheet(tag, tags, budgetMap);
     });
   });
+
+  // 予算入力: フォーカスでコンマ除去、blurで再フォーマット
+  wrap.querySelectorAll('.budget-input-inline').forEach(input => {
+    input.addEventListener('focus', () => {
+      input.value = input.value.replace(/,/g, '');
+    });
+    input.addEventListener('blur', () => {
+      const n = parseInt(input.value.replace(/,/g, '') || '0', 10);
+      input.value = n > 0 ? n.toLocaleString() : '';
+    });
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/[^0-9,]/g, '');
+    });
+  });
+
+  // 保存関数をモジュール変数に登録
+  _currentSaveBudgetsFn = async () => {
+    const inputs = wrap.querySelectorAll('.budget-input-inline');
+    for (const input of inputs) {
+      const tagId = input.dataset.tagId;
+      const amount = parseInt((input.value || '0').replace(/,/g, ''), 10);
+      await DB.upsertBudget(tagId, amount || 0, null);
+    }
+    showToast('✓ 予算を保存しました');
+    Sound.playTap();
+  };
 
   // ドラッグ並び替え
   initTagDragSort(wrap, tags, async (newOrder) => {
@@ -590,7 +633,7 @@ function renderTagColorPicker(containerId, selectedColor, onChange) {
   });
 }
 
-function openTagEditSheet(tag, allTags) {
+function openTagEditSheet(tag, allTags, budgetMap = {}) {
   Sound.playOpen();
 
   const sheet = document.createElement('div');
@@ -643,6 +686,23 @@ function openTagEditSheet(tag, allTags) {
           </div>
         </div>
       </div>
+      <!-- 予算 -->
+      <div class="form-section" style="margin-bottom:14px;">
+        <div class="form-row no-tap" style="border-bottom:none;">
+          <div class="row-body">
+            <div class="row-label">月次予算（デフォルト）</div>
+            <div style="display:flex;align-items:center;gap:4px;margin-top:4px;">
+              <span style="font-size:13px;color:var(--mid);">¥</span>
+              <input type="text" inputmode="numeric" id="edit-tag-budget"
+                placeholder="未設定"
+                style="flex:1;font-size:16px;font-weight:600;padding:4px 6px;
+                border:none;border-bottom:1.5px solid var(--border);background:transparent;
+                font-family:'Noto Sans JP',sans-serif;color:var(--ink);">
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div id="edit-tag-error" style="display:none;font-size:11.5px;color:var(--red);margin:-8px 0 10px 2px;"></div>
 
       <!-- キャンセル・保存を横並び（記録画面と同じパターン） -->
@@ -719,6 +779,20 @@ function openTagEditSheet(tag, allTags) {
   let selectedTagColor = tag.color || '#7A9485';
   renderTagColorPicker('edit-tag-color-picker', selectedTagColor, c => { selectedTagColor = c; });
 
+  // 予算初期値
+  const budgetEl = document.getElementById('edit-tag-budget');
+  const existingBudget = budgetMap[tag.id];
+  if (budgetEl && existingBudget) {
+    budgetEl.value = Number(existingBudget.amount).toLocaleString();
+  }
+  budgetEl?.addEventListener('focus', () => {
+    budgetEl.value = budgetEl.value.replace(/,/g, '');
+  });
+  budgetEl?.addEventListener('blur', () => {
+    const n = parseInt(budgetEl.value.replace(/,/g, '') || '0', 10);
+    budgetEl.value = n > 0 ? n.toLocaleString() : '';
+  });
+
   // 保存
   document.getElementById('btn-save-tag')?.addEventListener('click', async () => {
     const name     = document.getElementById('edit-tag-name').value.trim();
@@ -738,6 +812,12 @@ function openTagEditSheet(tag, allTags) {
 
     try {
       await DB.updateTag(tag.id, { name, color: selectedTagColor, icon: selectedTagIcon });
+      // 予算も保存
+      const budgetInputEl = document.getElementById('edit-tag-budget');
+      if (budgetInputEl) {
+        const amount = parseInt((budgetInputEl.value || '0').replace(/,/g, ''), 10);
+        await DB.upsertBudget(tag.id, amount || 0, null);
+      }
       await warmupAddRecord();
       Sound.playTap();
       closeSheet();
@@ -872,7 +952,7 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
 
     <!-- タグ管理・予算管理（別画面へ） -->
     <div class="panel" style="margin-bottom:16px;">
-      <div class="form-row" id="btn-open-tag-page" style="cursor:pointer;">
+      <div class="form-row" id="btn-open-tag-page" style="cursor:pointer;border-bottom:none;">
         <div class="row-icon" style="background:var(--sage-bg);">
           <svg viewBox="0 0 24 24" style="stroke:var(--sage);width:15px;height:15px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;">
             <path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/>
@@ -885,18 +965,7 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
         </div>
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--mid-lt)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
-      <div class="form-row" id="btn-open-budget-page" style="cursor:pointer;border-bottom:none;">
-        <div class="row-icon" style="background:#E8F0F8;">
-          <svg viewBox="0 0 24 24" style="stroke:#4870A0;width:15px;height:15px;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;">
-            <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>
-          </svg>
-        </div>
-        <div class="row-body">
-          <div class="row-value">予算管理</div>
-          <div class="row-label" id="budget-count-label">—</div>
-        </div>
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--mid-lt)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
-      </div>
+
     </div>
 
     <!-- 自分のチーム（常に表示） -->
@@ -968,14 +1037,6 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
   } catch(_) {}
 
   // 予算件数ラベル（非同期で取得）
-  const budgetCountEl = document.getElementById('budget-count-label');
-  if (budgetCountEl) {
-    DB.getBudgets(null).then(map => {
-      const n = Object.keys(map).length;
-      budgetCountEl.textContent = n > 0 ? n + '個設定済み' : '未設定';
-    }).catch(() => { budgetCountEl.textContent = ''; });
-  }
-
   // タグ管理・予算管理ページ遷移（初回描画時）
   setupTagBudgetPageEvents(tags);
 
@@ -1069,35 +1130,14 @@ function setupTagBudgetPageEvents(tags) {
     tagBtn.dataset.bound = '1';
     tagBtn.addEventListener('click', () => {
       Sound.playOpen();
-      openSubPage('タグ管理', (container) => {
+      openSubPage('タグ管理・予算', (container) => {
         container.innerHTML = '<div id="tag-list-wrap"></div>';
         renderTagList(tags);
       }, { onAdd: () => openTagAddSheet(tags) });
     });
   }
 
-  const budgetBtn = document.getElementById('btn-open-budget-page');
-  if (budgetBtn && !budgetBtn.dataset.bound) {
-    budgetBtn.dataset.bound = '1';
-    budgetBtn.addEventListener('click', () => {
-      Sound.playOpen();
-      openSubPage('予算管理', (container) => {
-        container.innerHTML = '<div id="budget-list-wrap" style="padding:0 16px 12px;"><div style="font-size:12px;color:var(--mid-lt);padding:12px 0;">読み込み中…</div></div>';
-        renderBudgetList(tags).catch(e => console.error('renderBudgetList error:', e));
-      }, {
-        showSave: true,
-        onSave: async (close) => {
-          if (_currentSaveBudgetsFn) {
-            await _currentSaveBudgetsFn();
-          } else {
-            showToast('まだ読み込み中です。少し待ってください');
-            return;
-          }
-          setTimeout(close, 400);
-        }
-      });
-    });
-  }
+
 }
 
 function renderMembersListSkeleton() {
@@ -1603,6 +1643,7 @@ function openTagAddSheet(tags) {
     if (e.key === 'Enter') doAdd();
   });
 }
+
 
 
 
