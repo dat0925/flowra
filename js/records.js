@@ -149,6 +149,16 @@ function renderShell(transactions, year, month, focusSearch = false) {
             style="font-size:12px;font-weight:600;color:var(--sage);background:var(--sage-bg);
               border-radius:8px;padding:3px 8px;white-space:nowrap;flex-shrink:0;">
           </div>
+          <button id="btn-summary-sheet"
+            style="flex-shrink:0;padding:6px 10px;border-radius:10px;border:1.5px solid var(--border);
+              background:var(--white);color:var(--mid);font-size:11px;font-weight:600;
+              cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap;">
+            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>
+              <line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/>
+            </svg>
+            集計
+          </button>
         </div>
       </div>
     </div>
@@ -197,6 +207,11 @@ function renderShell(transactions, year, month, focusSearch = false) {
 
   const searchInput = document.getElementById('records-search');
   const clearBtn    = document.getElementById('btn-search-clear');
+
+  // 集計シートを開く
+  document.getElementById('btn-summary-sheet')?.addEventListener('click', () => {
+    import('./summary-sheet.js').then(({ openSummarySheet }) => openSummarySheet());
+  });
 
   // focusSearchフラグ：描画直後にキーボードを出す
   if (focusSearch && searchInput) {
