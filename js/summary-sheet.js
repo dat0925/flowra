@@ -130,9 +130,11 @@ export async function openSummarySheet() {
     const colWidth = 72;
     const headerRow = `
       <tr>
-        <th style="position:sticky;left:0;background:var(--stone);z-index:2;
+        <th style="position:sticky;left:0;z-index:2;
+          background:#f0ede8;
           padding:10px 12px;text-align:left;font-size:11px;color:var(--mid);
-          font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;min-width:90px;">タグ</th>
+          font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;min-width:90px;
+          box-shadow:2px 0 4px rgba(0,0,0,0.06);">タグ</th>
         ${monthLabels.map((l, i) => `
           <th style="padding:10px 8px;text-align:right;font-size:11px;color:${i === monthLabels.length-1 ? 'var(--sage-dk)' : 'var(--mid)'};
             font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;min-width:${colWidth}px;">
@@ -169,9 +171,11 @@ export async function openSummarySheet() {
       const bg = ri % 2 === 0 ? '' : 'background:rgba(0,0,0,0.015);';
       return `
         <tr style="${bg}">
-          <td style="position:sticky;left:0;${bg}z-index:1;
+          <td style="position:sticky;left:0;z-index:1;
+            background:#f8f6f2;
             padding:9px 12px;font-size:13px;color:var(--ink);
-            border-bottom:1px solid var(--border);white-space:nowrap;">
+            border-bottom:1px solid var(--border);white-space:nowrap;
+            box-shadow:2px 0 4px rgba(0,0,0,0.06);">
             <div style="display:flex;align-items:center;gap:6px;">
               <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;
                 background:${tag.color || 'var(--sage)'}"></span>
@@ -186,9 +190,11 @@ export async function openSummarySheet() {
     // 合計行
     const totalRow = `
       <tr style="background:var(--sage-bg);">
-        <td style="position:sticky;left:0;background:var(--sage-bg);z-index:1;
+        <td style="position:sticky;left:0;z-index:1;
+          background:#eef4ef;
           padding:10px 12px;font-size:13px;font-weight:700;color:var(--ink);
-          border-top:2px solid var(--border);white-space:nowrap;">合計</td>
+          border-top:2px solid var(--border);white-space:nowrap;
+          box-shadow:2px 0 4px rgba(0,0,0,0.06);">合計</td>
         ${monthKeys.map((key, i) => {
           const total = monthTotals[key] || 0;
           const isCurrent = i === monthKeys.length - 1;
