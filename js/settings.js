@@ -1021,17 +1021,11 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
 
 // ── メンバーリスト描画（自分のチーム用）──
 // メンバー情報だけ後から差し込む（画面全体を再描画しない）
-function updateMembersSection(ownTeamId, ownMembers, joinedTeams, tags) {
+async function updateMembersSection(ownTeamId, ownMembers, joinedTeams, tags) {
+  const { data: { user } } = await supabase.auth.getUser();
+
   // パートナー共有メンバーリスト
-  const membersEl = document.getElementById('members-list');
-  if (membersEl) {
-    if (ownMembers.length === 0) {
-      membersEl.innerHTML = '<div style="padding:12px 16px;font-size:13px;color:var(--mid-lt);">まだ招待していません</div>';
-    } else {
-      membersEl.innerHTML = ownMembers.map(m => renderMemberRow(m, ownTeamId)).join('');
-      bindMemberRowEvents(ownMembers, ownTeamId);
-    }
-  }
+  renderMembersList(ownMembers, user);
 
   // 参加中のチーム
   const joinedPanel = document.getElementById('joined-teams-panel');
@@ -1042,13 +1036,7 @@ function updateMembersSection(ownTeamId, ownMembers, joinedTeams, tags) {
           <div class="panel-head"><div class="panel-title">参加中のチーム</div></div>
           <div id="joined-teams-list"></div>
         </div>`;
-      const joinedEl = document.getElementById('joined-teams-list');
-      if (joinedEl) {
-        joinedEl.innerHTML = joinedTeams.map(({ entry, members }) =>
-          renderJoinedTeamSection(entry, members)
-        ).join('');
-        bindJoinedTeamEvents(joinedTeams);
-      }
+      renderJoinedTeamsList(joinedTeams, user);
     }
   }
 
