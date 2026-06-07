@@ -492,7 +492,17 @@ export async function openEditRecord(tx, onSave) {
           + '</div>';
       }).join('');
       if (tags.length === 0) return '<div style="font-size:12.5px;color:var(--mid-lt);padding:4px 0 8px;">タグがありません</div>';
-      return '<div style="font-size:11px;color:var(--sage-dk);font-weight:600;margin-bottom:6px;padding:0 4px;">主タグ（予算あり・1つまで）</div>'
+      const selectedPrimaryCount = [...state.selectedTags].filter(tid => budgetTagIds.has(tid)).length;
+      const firstPrimaryId = [...state.selectedTags].find(tid => budgetTagIds.has(tid));
+      const firstPrimaryName = firstPrimaryId ? (tags.find(t => t.id === firstPrimaryId)?.name || '') : '';
+      const warningBanner = selectedPrimaryCount >= 2
+        ? '<div style="display:flex;align-items:flex-start;gap:6px;background:#FEF3CD;border:1px solid #F0C060;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:11.5px;color:#7A5500;line-height:1.5;">'
+          + '<span style="flex-shrink:0;">⚠️</span>'
+          + '<span>主タグが' + selectedPrimaryCount + 'つ選ばれています。集計では最初の1つ（<b>' + firstPrimaryName + '</b>）のみ使われます。</span>'
+          + '</div>'
+        : '';
+      return warningBanner
+        + '<div style="font-size:11px;color:var(--sage-dk);font-weight:600;margin-bottom:6px;padding:0 4px;">主タグ（予算あり・1つまで）</div>'
         + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">' + renderTagGrid(primaryTags) + '</div>'
         + (subTags.length > 0
           ? '<div style="font-size:11px;color:var(--mid);font-weight:600;margin-bottom:6px;padding:0 4px;">サブタグ（複数選択可）</div>'
@@ -760,5 +770,6 @@ function calcFn(left, right, op) {
   }
   return Math.max(0, r);
 }
+
 
 
