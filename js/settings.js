@@ -191,15 +191,22 @@ async function renderTagList(tags) {
       + '</div>';
   }).join('');
 
-  // 行全体タップ → 編集シート（drag-handle と input は除外）
-  wrap.querySelectorAll('.tag-item').forEach(row => {
-    row.addEventListener('click', e => {
-      if (e.target.closest('.drag-handle')) return;
-      if (e.target.closest('.budget-cell')) return;
-      const tag = tags.find(t => t.id === row.dataset.tagId);
-      if (tag) openTagEditSheet(tag, tags, budgetMap);
-    });
-  });
+  // 行全体タップ → 編集シート
+  // iOSではdivのclickが発火しないことがあるのでtouchstart/endで実装
+  let _tagTapStartY = 0;
+  wrap.addEventListener('touchstart', e => {
+    _tagTapStartY = e.touches[0].clientY;
+  }, { passive: true });
+  wrap.addEventListener('touchend', e => {
+    const dy = Math.abs(e.changedTouches[0].clientY - _tagTapStartY);
+    if (dy > 8) return; // スクロール中はスキップ
+    if (e.target.closest('.drag-handle')) return;
+    if (e.target.closest('.budget-cell')) return;
+    const row = e.target.closest('.tag-item');
+    if (!row) return;
+    const tag = tags.find(t => t.id === row.dataset.tagId);
+    if (tag) openTagEditSheet(tag, tags, budgetMap);
+  }, { passive: true });
 
   // 予算入力: タップ伝播を止める + コンマ整形
   wrap.querySelectorAll('.budget-input-inline').forEach(input => {
@@ -1656,6 +1663,7 @@ function openTagAddSheet(tags) {
     if (e.key === 'Enter') doAdd();
   });
 }
+
 
 
 
