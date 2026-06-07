@@ -292,7 +292,9 @@ async function renderBudgetList(tags) {
 
   let budgetMap = {};
   try {
-    budgetMap = await DB.getBudgets(null);
+    const now = new Date();
+    const currentMonth = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+    budgetMap = await DB.getBudgets(currentMonth);
   } catch(e) {
     wrap.innerHTML = '<div style="font-size:12px;color:var(--red);padding:8px 0;">読み込みエラー</div>';
     return;
@@ -1076,12 +1078,17 @@ function setupTagBudgetPageEvents(tags) {
       Sound.playOpen();
       openSubPage('予算管理', (container) => {
         container.innerHTML = '<div id="budget-list-wrap" style="padding:0 16px 12px;"><div style="font-size:12px;color:var(--mid-lt);padding:12px 0;">読み込み中…</div></div>';
-        renderBudgetList(tags);
+        renderBudgetList(tags).catch(e => console.error('renderBudgetList error:', e));
       }, {
         showSave: true,
         onSave: async (close) => {
           const wrap = document.getElementById('budget-list-wrap');
-          if (wrap?._saveBudgets) await wrap._saveBudgets();
+          if (wrap?._saveBudgets) {
+            await wrap._saveBudgets();
+          } else {
+            showToast('まだ読み込み中です。少し待ってください');
+            return;
+          }
           setTimeout(close, 400);
         }
       });
@@ -1592,4 +1599,5 @@ function openTagAddSheet(tags) {
     if (e.key === 'Enter') doAdd();
   });
 }
+
 
