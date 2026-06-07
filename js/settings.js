@@ -192,26 +192,38 @@ async function renderTagList(tags) {
       + '</div>';
   }).join('');
 
-  // 行全体タップ → 編集シート
-  // iOSではdivのclickが発火しないことがあるのでtouchstart/endで実装
+  // タッチ開始Y座標を記録
   let _tagTapStartY = 0;
   wrap.addEventListener('touchstart', e => {
     _tagTapStartY = e.touches[0].clientY;
   }, { passive: true });
+
   wrap.addEventListener('touchend', e => {
     const dy = Math.abs(e.changedTouches[0].clientY - _tagTapStartY);
     if (dy > 8) return; // スクロール中はスキップ
     if (e.target.closest('.drag-handle')) return;
-    if (e.target.closest('.budget-cell')) return;
+
+    // 月別ボタン
+    const monthBtn = e.target.closest('.btn-monthly-budget');
+    if (monthBtn) {
+      const tagId = monthBtn.dataset.tagId;
+      const tag = tags.find(t => t.id === tagId);
+      if (tag) openBudgetMonthSheet(tag, budgetMap[tagId]);
+      return;
+    }
+
+    // 予算入力欄はスキップ（フォーカスに任せる）
+    if (e.target.closest('.budget-input-inline')) return;
+
+    // 行タップ → タグ編集シート
     const row = e.target.closest('.tag-item');
     if (!row) return;
     const tag = tags.find(t => t.id === row.dataset.tagId);
     if (tag) openTagEditSheet(tag, tags, budgetMap);
   }, { passive: true });
 
-  // 予算入力: タップ伝播を止める + コンマ整形
+  // 予算入力: コンマ整形
   wrap.querySelectorAll('.budget-input-inline').forEach(input => {
-    input.addEventListener('click', e => e.stopPropagation());
     input.addEventListener('focus', () => {
       input.value = input.value.replace(/,/g, '');
     });
@@ -221,16 +233,6 @@ async function renderTagList(tags) {
     });
     input.addEventListener('input', () => {
       input.value = input.value.replace(/[^0-9,]/g, '');
-    });
-  });
-
-  // 月別ボタン → openBudgetMonthSheet を直接起動
-  wrap.querySelectorAll('.btn-monthly-budget').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const tagId = btn.dataset.tagId;
-      const tag = tags.find(t => t.id === tagId);
-      if (tag) openBudgetMonthSheet(tag, budgetMap[tagId]);
     });
   });
 
@@ -666,7 +668,8 @@ function openTagEditSheet(tag, allTags, budgetMap = {}) {
 
   sheet.innerHTML = `
     <div style="background:var(--stone);width:100%;max-width:480px;
-      border-radius:20px 20px 0 0;padding:0 16px 36px;">
+      border-radius:20px 20px 0 0;padding:0 16px 36px;
+      max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 16px;"></div>
 
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
@@ -1515,7 +1518,8 @@ function openTeamNameSheet(team, teamId) {
 
   sheet.innerHTML = `
     <div style="background:var(--stone);width:100%;max-width:480px;
-      border-radius:20px 20px 0 0;padding:0 16px 36px;">
+      border-radius:20px 20px 0 0;padding:0 16px 36px;
+      max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 16px;"></div>
 
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
@@ -1601,7 +1605,8 @@ function openTagAddSheet(tags) {
 
   sheet.innerHTML = `
     <div style="background:var(--stone);width:100%;max-width:480px;
-      border-radius:20px 20px 0 0;padding:0 16px 36px;">
+      border-radius:20px 20px 0 0;padding:0 16px 36px;
+      max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
       <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 16px;"></div>
 
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
@@ -1674,6 +1679,7 @@ function openTagAddSheet(tags) {
     if (e.key === 'Enter') doAdd();
   });
 }
+
 
 
 
