@@ -172,36 +172,38 @@ async function renderTagList(tags) {
         + '<div style="width:10px;height:10px;border-radius:50%;background:' + c + ';"></div></div>';
     const budget = budgetMap[t.id];
     const budgetVal = budget ? Number(budget.amount).toLocaleString() : '';
-    return '<div class="tag-item" data-tag-id="' + t.id + '">'
-      + '<div class="drag-handle" style="width:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--mid-lt);touch-action:none;cursor:grab;padding:8px 4px;">'
+    return '<div class="tag-item" data-tag-id="' + t.id + '" style="display:flex;align-items:center;padding:0 16px;border-bottom:1px solid var(--border);">'  
+      + '<div class="drag-handle" style="width:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--mid-lt);touch-action:none;cursor:grab;padding:14px 4px 14px 0;">'
       + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="1" fill="currentColor"/><circle cx="15" cy="7" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="17" r="1" fill="currentColor"/><circle cx="15" cy="17" r="1" fill="currentColor"/></svg>'
       + '</div>'
-      + '<div class="tag-item-main" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;cursor:pointer;">'
+      + '<div class="tag-item-main" style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;padding:12px 0;">'
       + dotOrIcon
       + '<span style="font-size:14px;">' + t.name + '</span>'
       + '</div>'
-      + '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">'
+      + '<div class="budget-cell" style="display:flex;align-items:center;gap:4px;flex-shrink:0;">'
       + '<span style="font-size:12px;color:var(--mid-lt);">¥</span>'
       + '<input type="text" inputmode="numeric" class="budget-input-inline" data-tag-id="' + t.id + '"'
       + ' value="' + budgetVal + '" placeholder="−"'
-      + ' style="width:64px;text-align:right;font-size:13px;font-weight:600;color:var(--ink);'
-      + 'padding:4px 6px;border:1.5px solid var(--border);border-radius:8px;background:var(--white);'
+      + ' style="width:88px;text-align:right;font-size:14px;font-weight:600;color:var(--ink);'
+      + 'padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;background:var(--white);'
       + 'font-family:\'Noto Sans JP\',sans-serif;" />'
       + '</div>'
       + '</div>';
   }).join('');
 
-  // タグ名・アイコン部分タップ → 編集シート
-  wrap.querySelectorAll('.tag-item-main').forEach(main => {
-    main.addEventListener('click', e => {
-      const row = main.closest('.tag-item');
+  // 行全体タップ → 編集シート（drag-handle と input は除外）
+  wrap.querySelectorAll('.tag-item').forEach(row => {
+    row.addEventListener('click', e => {
+      if (e.target.closest('.drag-handle')) return;
+      if (e.target.closest('.budget-cell')) return;
       const tag = tags.find(t => t.id === row.dataset.tagId);
       if (tag) openTagEditSheet(tag, tags, budgetMap);
     });
   });
 
-  // 予算入力: フォーカスでコンマ除去、blurで再フォーマット
+  // 予算入力: タップ伝播を止める + コンマ整形
   wrap.querySelectorAll('.budget-input-inline').forEach(input => {
+    input.addEventListener('click', e => e.stopPropagation());
     input.addEventListener('focus', () => {
       input.value = input.value.replace(/,/g, '');
     });
@@ -1654,6 +1656,7 @@ function openTagAddSheet(tags) {
     if (e.key === 'Enter') doAdd();
   });
 }
+
 
 
 
