@@ -255,9 +255,12 @@ export async function openEditRecord(tx, onSave) {
                   const selectedArr = [...state.selectedTags];
                   return tags.map(t => {
                     const isSelected = state.selectedTags.has(t.id);
-                    return `<div class="tag-chip ${isSelected?'on':'off'}" data-tag-id="${t.id}">
+                    const isPrimary = isSelected && selectedArr[0] === t.id;
+                    return `<div class="tag-chip ${isSelected?'on':'off'}" data-tag-id="${t.id}" style="position:relative;">
+                      ${isPrimary ? '<span style="position:absolute;top:-5px;right:-5px;background:var(--sage-dk);color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;font-weight:600;">主</span>' : ''}
                       ${t.name}
                     </div>`;
+                  }).join('');
                   }).join('');
                 })()
             }
@@ -496,12 +499,24 @@ export async function openEditRecord(tx, onSave) {
             state.selectedTags.add(id);
           }
           // 全チップの表示を更新
+          const selectedArr = [...state.selectedTags];
           sheet.querySelectorAll('.tag-chip[data-tag-id]').forEach(c => {
             const sel = state.selectedTags.has(c.dataset.tagId);
+            const isPrimary = sel && selectedArr[0] === c.dataset.tagId;
             c.className = 'tag-chip ' + (sel ? 'on' : 'off');
             c.style.background = '';
             c.style.color = '';
             c.style.borderColor = '';
+            c.style.position = 'relative';
+            const existing = c.querySelector('.primary-badge');
+            if (existing) existing.remove();
+            if (isPrimary) {
+              const badge = document.createElement('span');
+              badge.className = 'primary-badge';
+              badge.style.cssText = 'position:absolute;top:-5px;right:-5px;background:var(--sage-dk);color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;font-weight:600;';
+              badge.textContent = '主';
+              c.appendChild(badge);
+            }
           });
           Sound.playTap();
         });

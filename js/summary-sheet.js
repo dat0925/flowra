@@ -198,15 +198,16 @@ async function loadAndRender(baseYear, baseMonth) {
       const key = `${year}-${String(month).padStart(2,'0')}`;
       for (const tx of txs) {
         if (tx.type !== 'expense') continue;
-        for (const tag of (tx.tags || [])) {
-          if (!tag?.id) continue;
-          if (!matrix[tag.id]) matrix[tag.id] = {};
-          matrix[tag.id][key] = (matrix[tag.id][key] || 0) + tx.amount;
-        }
-        if (!tx.tags || tx.tags.filter(t => t).length === 0) {
+        const validTags = (tx.tags || []).filter(t => t?.id);
+        if (validTags.length > 0) {
+          // 主タグ（先頭）のみ集計
+          const primaryTag = validTags[0];
+          if (!matrix[primaryTag.id]) matrix[primaryTag.id] = {};
+          matrix[primaryTag.id][key] = (matrix[primaryTag.id][key] || 0) + tx.amount;
+        } else {
+          // タグなし
           if (!matrix['__untagged__']) matrix['__untagged__'] = {};
-          const key2 = `${year}-${String(month).padStart(2,'0')}`;
-          matrix['__untagged__'][key2] = (matrix['__untagged__'][key2] || 0) + tx.amount;
+          matrix['__untagged__'][key] = (matrix['__untagged__'][key] || 0) + tx.amount;
         }
       }
     }
@@ -309,7 +310,7 @@ async function loadAndRender(baseYear, baseMonth) {
         </table>
       </div>
       <div style="padding:10px 16px;font-size:11px;color:var(--mid-lt);line-height:1.6;">
-        ※ 支出のみ集計。赤字は予算超過、黄色は80%超。
+        ※ 支出のみ集計。主タグで集計（二重カウントなし）。赤字は予算超過、黄色は80%超。
       </div>`;
 
   } catch (e) {

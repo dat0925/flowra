@@ -227,7 +227,7 @@ export const DB = {
           *,
           account:accounts!account_id(id, name, type, icon, color),
           to_account:accounts!to_account_id(id, name, type),
-          transaction_tags(tag:tags(id, name, color))
+          transaction_tags(tag:tags(id, name, color, sort_order))
         `)
         .eq('id', id)
         .eq('team_id', teamId)
@@ -280,6 +280,7 @@ export const DB = {
     const rows = (data || []).map(tx => ({
       ...tx,
       tags: (tx.transaction_tags || []).map(tt => tt.tag).filter(t => t)
+        .sort((a, b) => (a.sort_order ?? 999) - (b.sort_order ?? 999))
     }));
 
     return {

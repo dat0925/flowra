@@ -463,14 +463,15 @@ async function startImport() {
       const tagLinks = [];
       txData.forEach((tx, idx) => {
         const rec = chunk[idx];
-        const linkedTagIds = new Set();
-        // Categoryタグ
+        // Categoryを先頭（主タグ）、NOTEタグをその後に追加
+        const linkedTagIds = [];
         if (rec.category && tagMap[rec.category]) {
-          linkedTagIds.add(tagMap[rec.category]);
+          linkedTagIds.push(tagMap[rec.category]);
         }
-        // NOTE列タグ
         (rec.noteTags || []).forEach(t => {
-          if (tagMap[t]) linkedTagIds.add(tagMap[t]);
+          if (tagMap[t] && !linkedTagIds.includes(tagMap[t])) {
+            linkedTagIds.push(tagMap[t]);
+          }
         });
         linkedTagIds.forEach(tagId => {
           tagLinks.push({ transaction_id: tx.id, tag_id: tagId });
