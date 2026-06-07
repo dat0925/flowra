@@ -691,13 +691,18 @@ function openTagEditSheet(tag, allTags, budgetMap = {}) {
         <div class="form-row no-tap" style="border-bottom:none;">
           <div class="row-body">
             <div class="row-label">月次予算（デフォルト）</div>
-            <div style="display:flex;align-items:center;gap:4px;margin-top:4px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
               <span style="font-size:13px;color:var(--mid);">¥</span>
               <input type="text" inputmode="numeric" id="edit-tag-budget"
                 placeholder="未設定"
                 style="flex:1;font-size:16px;font-weight:600;padding:4px 6px;
                 border:none;border-bottom:1.5px solid var(--border);background:transparent;
                 font-family:'Noto Sans JP',sans-serif;color:var(--ink);">
+              <button id="btn-tag-budget-month"
+                style="font-size:11px;color:var(--sage);background:var(--sage-bg);border:none;
+                border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0;">
+                月で調整
+              </button>
             </div>
           </div>
         </div>
@@ -791,6 +796,12 @@ function openTagEditSheet(tag, allTags, budgetMap = {}) {
   budgetEl?.addEventListener('blur', () => {
     const n = parseInt(budgetEl.value.replace(/,/g, '') || '0', 10);
     budgetEl.value = n > 0 ? n.toLocaleString() : '';
+  });
+
+  // 月で調整ボタン
+  document.getElementById('btn-tag-budget-month')?.addEventListener('click', () => {
+    const defaultBudget = existingBudget || null;
+    openBudgetMonthSheet(tag, defaultBudget);
   });
 
   // 保存
