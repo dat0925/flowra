@@ -110,11 +110,12 @@ export async function openSummarySheet() {
     tip.id = 'ss-tooltip';
     tip.style.cssText = 'position:fixed;bottom:120px;left:50%;transform:translateX(-50%);' +
       'background:rgba(28,43,34,0.92);color:#fff;font-size:12px;line-height:1.7;' +
-      'padding:10px 16px;border-radius:12px;max-width:300px;z-index:900;' +
-      'text-align:center;pointer-events:none;';
-    tip.textContent = msg;
+      'padding:10px 16px 10px 16px;border-radius:12px;max-width:300px;z-index:900;' +
+      'text-align:left;display:flex;align-items:flex-start;gap:10px;';
+    tip.innerHTML = '<span style="flex:1;">' + msg + '</span>' +
+      '<button style="background:none;border:none;color:rgba(255,255,255,0.7);font-size:16px;cursor:pointer;padding:0;line-height:1;flex-shrink:0;">×</button>';
+    tip.querySelector('button').addEventListener('click', () => tip.remove());
     document.body.appendChild(tip);
-    setTimeout(() => tip.remove(), 4000);
   };
   document.getElementById('ss-help-primary')?.addEventListener('click', (e) => {
     e.stopPropagation();
