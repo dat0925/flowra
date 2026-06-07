@@ -26,7 +26,7 @@ export async function openSummarySheet() {
   overlay.id = 'summary-sheet-overlay';
   overlay.style.cssText = `position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.45);display:flex;align-items:flex-end;justify-content:center;`;
   overlay.innerHTML = `
-    <div id="summary-sheet" style="width:100%;max-width:640px;background:var(--stone);border-radius:20px 20px 0 0;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div id="summary-sheet" style="width:100%;max-width:640px;background:var(--stone);border-radius:20px 20px 0 0;height:90vh;display:flex;flex-direction:column;overflow:hidden;">
       <!-- ヘッダー -->
       <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;border-bottom:none;flex-shrink:0;">
         <div style="font-size:15px;font-weight:700;color:var(--ink);">タグ別集計</div>
