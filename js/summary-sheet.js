@@ -76,10 +76,13 @@ export async function openSummarySheet() {
   };
 
   const renderSheet = async () => {
-    document.getElementById('summary-sheet-body').innerHTML =
-      '<div style="padding:32px;text-align:center;color:var(--mid);font-size:13px;">読み込み中…</div>';
+    const body = document.getElementById('summary-sheet-body');
+    // シートを上下させず、その場でフェードして更新
+    body.style.opacity = '0.4';
+    body.style.transition = 'opacity 0.15s';
     updateLabel();
     await loadAndRender(baseYear, baseMonth);
+    body.style.opacity = '1';
   };
 
   // 月ラベルタップでピッカー表示
