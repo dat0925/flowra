@@ -125,7 +125,6 @@ function renderShell(transactions, year, month, focusSearch = false) {
           <div class="rsb-amount ${balance>=0?'income':'expense'}">${balance>=0?'+':'−'}¥${fmt(Math.abs(balance))}</div>
         </div>
       </div>
-
       <div class="records-filter-bar" style="flex-direction:column;gap:0;padding:0;">
         <!-- 1行目：フィルタータブ -->
         <div class="filter-tabs" id="filter-tabs" style="padding:6px 12px;border-bottom:none;">

@@ -1073,7 +1073,7 @@ body.page-records #mobile-month-label {
   gap: 10px;
   margin-bottom: 0;
   flex-wrap: wrap;
-  padding-bottom: 8px;
+  padding-bottom: 0;
 }
 .filter-tabs { display: flex; gap: 6px; }
 .filter-tab {
