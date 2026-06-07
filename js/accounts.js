@@ -98,7 +98,7 @@ async function renderAccountsContent(content, accounts) {
     const itemsHTML = accounts.map((a, i) => {
       const isNeg = a.balance < 0;
       const pct = totalPositive > 0 ? Math.min(100, Math.abs(a.balance) / totalPositive * 100) : 0;
-      const barColor = isNeg ? '#B83232' : (a.color || '#4A7C59');
+      const barColor = isNeg ? '#B83232' : (a.color && a.color.trim() ? a.color : '#4A7C59');
       const barHTML = `
         <div style="padding:4px 0 2px;">
           <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;">
