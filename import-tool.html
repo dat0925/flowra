@@ -286,11 +286,15 @@ document.getElementById('csv-input').addEventListener('change', async function()
       const month = parseInt(row['Month']);
       const day   = parseInt(row['Day']);
       const date  = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+      // NOTE列から [tag:xxx] を全て抽出
+      const note = (row['Note'] || '').trim();
+      const noteTags = [...note.matchAll(/\[tag:(.+?)\]/g)].map(m => m[1].trim());
       parsedRecords.push({
         date,
         amount,
         category: (row['Category'] || '').trim(),
         memo: (row['Name'] || '').trim(),
+        noteTags,
       });
       totalRows++;
     }
@@ -382,7 +386,13 @@ async function startImport() {
     setProgress(1, 4, 'Step 2/4: タグを作成中...');
     log('■ タグ作成');
 
-    const uniqueCats = [...new Set(parsedRecords.map(r => r.category).filter(Boolean))];
+    // CategoryとNOTE列のタグを合わせてユニーク化
+    const allTagNames = new Set();
+    parsedRecords.forEach(r => {
+      if (r.category) allTagNames.add(r.category);
+      r.noteTags.forEach(t => allTagNames.add(t));
+    });
+    const uniqueCats = [...allTagNames];
     const tagMap = {};
 
     for (let i = 0; i < uniqueCats.length; i++) {
@@ -449,13 +459,22 @@ async function startImport() {
         continue;
       }
 
-      // タグの紐付け
+      // タグの紐付け（Category + NOTE列タグ）
       const tagLinks = [];
       txData.forEach((tx, idx) => {
-        const cat = chunk[idx].category;
-        if (cat && tagMap[cat]) {
-          tagLinks.push({ transaction_id: tx.id, tag_id: tagMap[cat] });
+        const rec = chunk[idx];
+        const linkedTagIds = new Set();
+        // Categoryタグ
+        if (rec.category && tagMap[rec.category]) {
+          linkedTagIds.add(tagMap[rec.category]);
         }
+        // NOTE列タグ
+        (rec.noteTags || []).forEach(t => {
+          if (tagMap[t]) linkedTagIds.add(tagMap[t]);
+        });
+        linkedTagIds.forEach(tagId => {
+          tagLinks.push({ transaction_id: tx.id, tag_id: tagId });
+        });
       });
 
       if (tagLinks.length > 0) {
