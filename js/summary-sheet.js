@@ -288,9 +288,10 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
             font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;min-width:${colWidth}px;">
             ${l}${i === monthLabels.length-1 ? '<br><span style="font-size:9px;opacity:0.7;">今月</span>' : ''}
           </th>`).join('')}
-        <th style="position:sticky;top:0;z-index:2;background:#f0ede8;
+        ${mode === 'primary' ? `<th style="position:sticky;top:0;z-index:2;background:#f0ede8;
           padding:8px 8px;text-align:right;font-size:11px;color:var(--sage);
-          font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;min-width:${colWidth}px;">今月予算</th>
+          font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;min-width:${colWidth}px;">今月予算</th>`
+        : ''}
       </tr>`;
 
     const dataRows = displayTags.map((tag, ri) => {
@@ -309,9 +310,9 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
         </td>`;
       }).join('');
 
-      const budgetCell = budget > 0
+      const budgetCell = mode === 'sub' ? '' : (budget > 0
         ? `<td style="padding:9px 8px;text-align:right;font-size:13px;color:var(--sage);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap;">${fmt(budget)}</td>`
-        : `<td style="padding:9px 8px;text-align:right;font-size:13px;color:var(--mid-lt);border-bottom:1px solid var(--border);">−</td>`;
+        : `<td style="padding:9px 8px;text-align:right;font-size:13px;color:var(--mid-lt);border-bottom:1px solid var(--border);">−</td>`);
 
       const bg = ri % 2 === 0 ? '' : 'background:rgba(0,0,0,0.015);';
       return `
@@ -344,9 +345,9 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
             : 'var(--ink)';
           return `<td style="padding:10px 8px;text-align:right;font-size:13px;font-weight:700;color:${color};border-top:2px solid var(--border);white-space:nowrap;">${fmt(total)}</td>`;
         }).join('')}
-        <td style="padding:10px 8px;text-align:right;font-size:13px;font-weight:700;color:var(--sage);border-top:2px solid var(--border);white-space:nowrap;">
+        ${mode === 'primary' ? `<td style="padding:10px 8px;text-align:right;font-size:13px;font-weight:700;color:var(--sage);border-top:2px solid var(--border);white-space:nowrap;">
           ${currentBudgetTotal > 0 ? fmt(currentBudgetTotal) : '−'}
-        </td>
+        </td>` : ''}
       </tr>`;
 
     el.innerHTML = `
