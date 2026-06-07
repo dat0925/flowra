@@ -1,48 +1,25 @@
 // ─────────────────────────────────────
 //  sw.js  Service Worker
-//  Network First戦略：常に最新を取得、失敗時のみキャッシュで返す
+//  Network Only：常にネットワークから取得（開発中はキャッシュなし）
 // ─────────────────────────────────────
 
-const CACHE_NAME = 'flowra-v305';
+const CACHE_NAME = 'flowra-v306';
 
-const SHELL_ASSETS = [
-  '/',
-  '/index.html',
-  '/css/style.css',
-  '/js/app.js',
-  '/js/auth.js',
-  '/js/config.js',
-  '/js/db.js',
-  '/js/router.js',
-  '/js/dashboard.js',
-  '/js/add-record.js',
-  '/js/accounts.js',
-  '/js/records.js',
-  '/js/settings.js',
-  '/js/sound.js',
-  '/js/utils.js',
-  '/manifest.json',
-];
-
-// インストール時：シェルアセットをキャッシュ
+// インストール時：即座にアクティベート
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache =>
-      Promise.allSettled(SHELL_ASSETS.map(url => cache.add(url).catch(() => {})))
-    ).then(() => self.skipWaiting())
-  );
+  self.skipWaiting();
 });
 
-// アクティベート時：古いキャッシュを削除
+// アクティベート時：古いキャッシュを全削除
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+      Promise.all(keys.map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
 
-// フェッチ戦略
+// フェッチ：Supabaseのみネットワーク、他はNetwork First（フォント含む）
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
 
@@ -59,7 +36,7 @@ self.addEventListener('fetch', event => {
       caches.match(event.request).then(cached => {
         if (cached) return cached;
         return fetch(event.request).then(res => {
-          const clone = res.clone(); // 先にクローン（非同期then内で clone すると body 消費後になる）
+          const clone = res.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
           return res;
         });
@@ -68,23 +45,10 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // アプリシェル（JS/CSS/HTML）→ Network First
-  // ネットワーク成功 → キャッシュ更新して返す
-  // ネットワーク失敗 → キャッシュで返す（オフライン対応）
+  // アプリファイル（JS/CSS/HTML）→ Network Only（常に最新）
   if (event.request.method === 'GET') {
     event.respondWith(
-      fetch(event.request).then(response => {
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-        }
-        return response;
-      }).catch(() => caches.match(event.request))
+      fetch(event.request).catch(() => caches.match(event.request))
     );
   }
 });
-
-
-
-
-
