@@ -276,16 +276,16 @@ async function renderContent(content, accounts, transactions, year, month, fromC
                 </div>
               </div>
               ${validCount >= 2 ? `
-              <div id="budget-summary-bar" style="padding:0 18px 10px;">
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-                  <span style="font-size:11px;color:var(--mid);">合計</span>
+              <div id="budget-summary-bar" style="padding:12px 18px 14px;border-top:1px solid var(--border);">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+                  <span style="font-size:12px;font-weight:600;color:var(--mid);">合計</span>
                   <div style="display:flex;align-items:center;gap:6px;">
-                    <span style="font-size:12px;font-weight:600;color:${totalColor};">¥${fmt(totalSpent)}</span>
-                    <span style="font-size:11px;color:var(--mid-lt);">/ ¥${fmt(totalBudget)}</span>
-                    <span style="font-size:11px;font-weight:700;color:${totalColor};min-width:30px;text-align:right;">${totalPct}%</span>
+                    <span style="font-size:13px;font-weight:700;color:${totalColor};">¥${fmt(totalSpent)}</span>
+                    <span style="font-size:12px;color:var(--mid-lt);">/ ¥${fmt(totalBudget)}</span>
+                    <span style="font-size:12px;font-weight:700;color:${totalColor};min-width:34px;text-align:right;">${totalPct}%</span>
                   </div>
                 </div>
-                <div style="height:5px;border-radius:3px;background:var(--mist);overflow:hidden;">
+                <div style="height:7px;border-radius:3px;background:var(--mist);overflow:hidden;">
                   <div style="height:100%;width:${Math.min(100,totalPct)}%;border-radius:3px;background:${totalColor};transition:width 0.4s;"></div>
                 </div>
               </div>` : ''}
