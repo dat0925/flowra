@@ -125,7 +125,7 @@ function renderShell(transactions, year, month, focusSearch = false) {
           <div class="rsb-amount ${balance>=0?'income':'expense'}">${balance>=0?'+':'−'}¥${fmt(Math.abs(balance))}</div>
         </div>
       </div>
-      <div class="records-filter-bar" style="flex-direction:column;gap:0;padding:0;">
+      <div class="records-filter-bar" id="records-filter-bar" style="flex-direction:column;gap:0;padding:0;">
         <!-- 1行目：フィルタータブ -->
         <div class="filter-tabs" id="filter-tabs" style="padding:4px 12px;border-bottom:none;">
           <button class="filter-tab active" data-filter="all">すべて</button>
@@ -134,7 +134,7 @@ function renderShell(transactions, year, month, focusSearch = false) {
           <button class="filter-tab" data-filter="transfer">振替</button>
         </div>
         <!-- 2行目：検索窓＋集計ボタン -->
-        <div style="display:flex;align-items:center;gap:8px;padding:4px 12px 6px;">
+        <div id="records-search-row" style="display:flex;align-items:center;gap:8px;padding:4px 12px 6px;">
           <div class="search-wrap" style="flex:1;min-width:0;">
             <svg viewBox="0 0 24 24" class="search-icon"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
             <input type="text" class="search-input" placeholder="メモ・口座・タグで検索" id="records-search">
@@ -211,6 +211,33 @@ function renderShell(transactions, year, month, focusSearch = false) {
   const clearBtn    = document.getElementById('btn-search-clear');
 
   // 集計シートを開く
+  // 480px以上で1行レイアウトに切り替え
+  const applyFilterLayout = () => {
+    const bar = document.getElementById('records-filter-bar');
+    const tabs = document.getElementById('filter-tabs');
+    const row = document.getElementById('records-search-row');
+    if (!bar || !tabs || !row) return;
+    if (window.innerWidth >= 480) {
+      bar.style.flexDirection = 'row';
+      bar.style.alignItems = 'center';
+      bar.style.gap = '8px';
+      bar.style.padding = '4px 12px 6px';
+      tabs.style.padding = '0';
+      row.style.padding = '0';
+      row.style.flex = '1';
+    } else {
+      bar.style.flexDirection = 'column';
+      bar.style.alignItems = '';
+      bar.style.gap = '0';
+      bar.style.padding = '0';
+      tabs.style.padding = '4px 12px';
+      row.style.padding = '4px 12px 6px';
+      row.style.flex = '';
+    }
+  };
+  applyFilterLayout();
+  window.addEventListener('resize', applyFilterLayout);
+
   document.getElementById('btn-summary-sheet')?.addEventListener('click', () => {
     import('./summary-sheet.js').then(({ openSummarySheet }) => openSummarySheet());
   });
