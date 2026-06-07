@@ -27,16 +27,16 @@ export async function openSummarySheet() {
   overlay.style.cssText = `position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.45);display:flex;align-items:flex-end;justify-content:center;`;
   overlay.innerHTML = `
     <div id="summary-sheet" style="width:100%;max-width:640px;background:var(--stone);border-radius:20px 20px 0 0;height:90vh;display:flex;flex-direction:column;overflow:hidden;">
-      <!-- ヘッダー -->
-      <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px 8px;border-bottom:none;flex-shrink:0;">
+      <!-- ヘッダー（ホームと同じレイアウト：左タイトル、中央月ナビ、右今月+閉じる） -->
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 16px 8px;border-bottom:none;flex-shrink:0;">
         <div style="font-size:15px;font-weight:700;color:var(--ink);">タグ別集計</div>
-        <div style="display:flex;align-items:center;gap:6px;">
+        <div style="display:flex;align-items:center;gap:0;">
+          <button id="ss-prev-month" style="background:none;border:none;padding:4px 8px;cursor:pointer;color:var(--sage);font-size:18px;line-height:1;">‹</button>
+          <span id="ss-month-label" style="font-size:14px;font-weight:600;color:var(--ink);white-space:nowrap;min-width:96px;text-align:center;cursor:pointer;padding:4px 2px;"></span>
+          <button id="ss-next-month" style="background:none;border:none;padding:4px 8px;cursor:pointer;color:var(--sage);font-size:18px;line-height:1;">›</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
           <button id="ss-today-btn" style="font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--white);color:var(--mid);cursor:pointer;white-space:nowrap;display:none;">今月</button>
-          <div style="display:flex;align-items:center;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:4px 4px;">
-            <button id="ss-prev-month" style="background:none;border:none;padding:4px 8px;cursor:pointer;color:var(--sage);font-size:18px;line-height:1;">‹</button>
-            <span id="ss-month-label" style="font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap;min-width:90px;text-align:center;cursor:pointer;"></span>
-            <button id="ss-next-month" style="background:none;border:none;padding:4px 8px;cursor:pointer;color:var(--sage);font-size:18px;line-height:1;">›</button>
-          </div>
           <button id="btn-close-summary" style="background:none;border:none;padding:4px;cursor:pointer;color:var(--mid);">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -146,39 +146,68 @@ export async function openSummarySheet() {
     body.style.opacity = '1';
   };
 
-  // 月ラベルタップでピッカー表示
+  // 月ラベルタップでボトムシート式ピッカー（ホームと同じUI）
   document.getElementById('ss-month-label').addEventListener('click', () => {
+    Sound.playOpen();
     const now = new Date();
-    const picker = document.createElement('div');
-    picker.style.cssText = 'position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;';
-    picker.innerHTML = `
-      <div style="background:var(--white);border-radius:20px;padding:24px;width:280px;max-width:90vw;">
-        <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:16px;text-align:center;">表示する月を選択</div>
-        <div style="display:flex;gap:8px;margin-bottom:20px;">
-          <select id="ss-pick-year" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--white);">
-            ${Array.from({length: 6}, (_, i) => now.getFullYear() - i).map(y =>
-              `<option value="${y}" ${y === baseYear ? 'selected' : ''}>${y}年</option>`
-            ).join('')}
-          </select>
-          <select id="ss-pick-month" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--white);">
-            ${Array.from({length: 12}, (_, i) => i + 1).map(m =>
-              `<option value="${m}" ${m === baseMonth ? 'selected' : ''}>${m}月</option>`
-            ).join('')}
-          </select>
+    const minYear = 2010;
+    const maxYear = now.getFullYear() + 1;
+    const years = [];
+    for (let y = maxYear; y >= minYear; y--) years.push(y);
+
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.45);display:flex;align-items:flex-end;justify-content:center;';
+    overlay.innerHTML = `
+      <div style="background:var(--stone);border-radius:20px 20px 0 0;width:100%;max-width:480px;
+        padding:0 0 env(safe-area-inset-bottom,16px);max-height:80vh;display:flex;flex-direction:column;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;border-bottom:1px solid var(--border);">
+          <span style="font-size:15px;font-weight:600;">年月を選択</span>
+          <button id="ss-mp-close" style="background:none;border:none;font-size:22px;color:var(--mid);cursor:pointer;line-height:1;">×</button>
         </div>
-        <div style="display:flex;gap:8px;">
-          <button id="ss-pick-cancel" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:none;font-size:14px;cursor:pointer;">キャンセル</button>
-          <button id="ss-pick-ok" style="flex:1;padding:10px;border-radius:10px;border:none;background:var(--sage);color:#fff;font-size:14px;font-weight:600;cursor:pointer;">確定</button>
+        <div style="overflow-y:auto;padding:12px 16px 8px;flex:1;">
+          ${years.map(y => `
+            <div style="margin-bottom:12px;">
+              <div style="font-size:12px;color:var(--mid);font-weight:600;margin-bottom:6px;padding-left:4px;">${y}年</div>
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+                ${[1,2,3,4,5,6,7,8,9,10,11,12].map(mo => {
+                  const isCur  = y === baseYear && mo === baseMonth;
+                  const isNow  = y === now.getFullYear() && mo === now.getMonth() + 1;
+                  const future = y > now.getFullYear() || (y === now.getFullYear() && mo > now.getMonth() + 1);
+                  return `<button data-y="${y}" data-m="${mo}"
+                    style="padding:8px 4px;border-radius:10px;border:none;cursor:pointer;font-size:13px;
+                      background:${isCur ? 'var(--sage)' : 'var(--mist)'};
+                      color:${isCur ? '#fff' : future ? 'var(--mid-lt)' : 'var(--ink)'};
+                      font-weight:${isCur || isNow ? '700' : '400'};
+                      outline:${isNow && !isCur ? '2px solid var(--sage)' : 'none'};
+                    ">${mo}月</button>`;
+                }).join('')}
+              </div>
+            </div>
+          `).join('')}
         </div>
       </div>`;
-    document.body.appendChild(picker);
-    document.getElementById('ss-pick-cancel').addEventListener('click', () => picker.remove());
-    document.getElementById('ss-pick-ok').addEventListener('click', () => {
-      const y = parseInt(document.getElementById('ss-pick-year').value);
-      const m = parseInt(document.getElementById('ss-pick-month').value);
-      picker.remove();
-      baseYear = y; baseMonth = m;
-      renderSheet();
+    document.body.appendChild(overlay);
+
+    // 選択した月にスクロール
+    setTimeout(() => {
+      const selected = overlay.querySelector('button[data-y][style*="var(--sage)"]');
+      if (selected) selected.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 50);
+
+    overlay.addEventListener('click', e => {
+      const btn = e.target.closest('button[data-y]');
+      if (btn) {
+        Sound.playTap();
+        baseYear = +btn.dataset.y;
+        baseMonth = +btn.dataset.m;
+        overlay.remove();
+        renderSheet();
+        return;
+      }
+      if (e.target === overlay || e.target.id === 'ss-mp-close') {
+        Sound.playClose();
+        overlay.remove();
+      }
     });
   });
 
@@ -396,5 +425,6 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
     console.error('[SummarySheet]', e);
   }
 }
+
 
 
