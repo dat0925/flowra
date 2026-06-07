@@ -222,11 +222,11 @@ export const DB = {
     const teamId = await this.getTeamId();
     const { data, error } = await supabase
       .from('transactions')
-      .select(`*, account:accounts!account_id(id,name,type,icon,color), to_account:accounts!to_account_id(id,name,type), transaction_tags(tag:tags(id,name,color))`)
+      .select('*, account:accounts!account_id(id,name,type,icon,color), to_account:accounts!to_account_id(id,name,type), transaction_tags(tag:tags(id,name,color))')
       .eq('id', id)
       .eq('team_id', teamId)
-      .single();
-    if (error) return null;
+      .maybeSingle();
+    if (error || !data) return null;
     return { ...data, tags: (data.transaction_tags||[]).map(tt=>tt.tag).filter(Boolean) };
   },
 

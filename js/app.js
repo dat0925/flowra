@@ -169,13 +169,11 @@ function showApp(user) {
     window.history.replaceState({}, '', window.location.pathname);
     setTimeout(async () => {
       try {
-        const { DB } = await import('./db.js');
         const tx = await DB.getTransactionById(txId);
         if (tx) {
           const { openEditRecord } = await import('./edit-record.js');
           openEditRecord(tx, () => {});
         } else {
-          const { showToast } = await import('./utils.js');
           showToast('記録が見つかりませんでした');
         }
       } catch(e) {
