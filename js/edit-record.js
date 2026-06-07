@@ -245,27 +245,36 @@ export async function openEditRecord(tx, onSave) {
         </div>
 
         <!-- タグ -->
-        <div class="form-section" style="margin-bottom:12px;">
-          <div style="padding:10px 18px 4px;display:flex;align-items:center;justify-content:space-between;gap:6px;">
-            <span style="font-size:12px;color:var(--mid);font-weight:500;">タグ</span>
-            <span style="font-size:10px;color:var(--mid-lt);line-height:1.5;text-align:right;">主タグ（予算あり）は1つまで<br>サブタグ（予算なし）は自由に</span>
-          </div>
-          <div class="tags-wrap" style="padding-top:6px;">
-            ${tags.length === 0
-              ? `<div style="font-size:12.5px;color:var(--mid-lt);padding:4px 0 8px;">タグがありません</div>`
-              : (() => {
-                  const selectedArr = [...state.selectedTags];
-                  return tags.map(t => {
-                    const isSelected = state.selectedTags.has(t.id);
-                    const isPrimary = isSelected && !!budgetMapRaw[t.id] && [...state.selectedTags].filter(tid => !!budgetMapRaw[tid])[0] === t.id;
-                    return `<div class="tag-chip ${isSelected?'on':'off'}" data-tag-id="${t.id}" style="position:relative;">
-                      ${isPrimary ? '<span style="position:absolute;top:-5px;right:-5px;background:var(--sage-dk);color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;font-weight:600;">主</span>' : ''}
-                      ${t.name}
-                    </div>`;
-                  }).join('');
-                })()
-            }
-          </div>
+        <div class="form-section" style="margin-bottom:12px;padding:10px 14px 14px;">
+          ${(() => {
+            const primaryTags = tags.filter(t => !!budgetMapRaw[t.id]);
+            const subTags = tags.filter(t => !budgetMapRaw[t.id]);
+            const renderTagGrid = (tagList) => tagList.map(tag => {
+              const isSelected = state.selectedTags.has(tag.id);
+              const isPrimary = isSelected && !!budgetMapRaw[tag.id] && [...state.selectedTags].filter(tid => !!budgetMapRaw[tid])[0] === tag.id;
+              const borderColor = isPrimary ? 'var(--sage)' : (isSelected ? 'var(--sage-lt)' : 'transparent');
+              const bgColor = isSelected ? 'var(--sage-bg)' : 'var(--stone)';
+              const badge = isPrimary
+                ? '<span style="position:absolute;top:-5px;right:-5px;background:var(--sage);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:5px;line-height:1.6;">主</span>'
+                : (isSelected
+                  ? '<span style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:var(--sage-lt);display:flex;align-items:center;justify-content:center;"><svg viewBox=\'0 0 24 24\' width=\'9\' height=\'9\' fill=\'none\' stroke=\'#fff\' stroke-width=\'3\' stroke-linecap=\'round\'><polyline points=\'20 6 9 17 4 12\'/></svg></span>'
+                  : '');
+              return '<div class="tag-chip er-tag-btn" data-tag-id="' + tag.id + '"'
+                + ' style="display:flex;flex-direction:column;align-items:center;gap:5px;'
+                + 'padding:10px 4px 8px;border-radius:12px;border:2px solid ' + borderColor + ';'
+                + 'background:' + bgColor + ';cursor:pointer;transition:all 0.12s;position:relative;">'
+                + badge
+                + '<span style="font-size:10px;color:' + (isSelected ? 'var(--sage-dk)' : 'var(--ink)') + ';font-weight:' + (isSelected ? '600' : '500') + ';text-align:center;line-height:1.3;word-break:keep-all;">' + tag.name + '</span>'
+                + '</div>';
+            }).join('');
+            if (tags.length === 0) return '<div style="font-size:12.5px;color:var(--mid-lt);padding:4px 0 8px;">タグがありません</div>';
+            return '<div style="font-size:11px;color:var(--sage-dk);font-weight:600;margin-bottom:6px;padding:0 4px;">主タグ（予算あり・1つまで）</div>'
+              + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">' + renderTagGrid(primaryTags) + '</div>'
+              + (subTags.length > 0
+                ? '<div style="font-size:11px;color:var(--mid);font-weight:600;margin-bottom:6px;padding:0 4px;">サブタグ（複数選択可）</div>'
+                  + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">' + renderTagGrid(subTags) + '</div>'
+                : '');
+          })()}
         </div>
 
         <!-- 未精算 -->
@@ -491,7 +500,7 @@ export async function openEditRecord(tx, onSave) {
 
     // タグ（render後に再バインドできるよう関数化）
     function bindTags() {
-      sheet.querySelectorAll('.tag-chip[data-tag-id]').forEach(chip => {
+      sheet.querySelectorAll('.er-tag-btn[data-tag-id]').forEach(chip => {
         chip.addEventListener('click', () => {
           const id = chip.dataset.tagId;
           if (state.selectedTags.has(id)) {
@@ -504,27 +513,9 @@ export async function openEditRecord(tx, onSave) {
             }
             state.selectedTags.add(id);
           }
-          // 全チップの表示を更新
-          const selectedArr = [...state.selectedTags];
-          sheet.querySelectorAll('.tag-chip[data-tag-id]').forEach(c => {
-            const sel = state.selectedTags.has(c.dataset.tagId);
-            const isPrimary = sel && !!budgetMapRaw[c.dataset.tagId] && selectedArr.filter(tid => !!budgetMapRaw[tid])[0] === c.dataset.tagId;
-            c.className = 'tag-chip ' + (sel ? 'on' : 'off');
-            c.style.background = '';
-            c.style.color = '';
-            c.style.borderColor = '';
-            c.style.position = 'relative';
-            const existing = c.querySelector('.primary-badge');
-            if (existing) existing.remove();
-            if (isPrimary) {
-              const badge = document.createElement('span');
-              badge.className = 'primary-badge';
-              badge.style.cssText = 'position:absolute;top:-5px;right:-5px;background:var(--sage-dk);color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;font-weight:600;';
-              badge.textContent = '主';
-              c.appendChild(badge);
-            }
-          });
           Sound.playTap();
+          // グリッドを再描画
+          render();
         });
       });
     }
