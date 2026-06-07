@@ -416,62 +416,40 @@ export const DB = {
     const q = keyword.trim();
     if (!q) return [];
 
-    // タグ名でヒットするtag_idを先に取得
-    const { data: matchedTags } = await supabase
-      .from('tags')
-      .select('id')
-      .eq('team_id', teamId)
-      .ilike('name', `%${q}%`);
-    const tagIds = (matchedTags || []).map(t => t.id);
-
-    // 口座名でヒットするaccount_idを取得
-    const { data: matchedAccounts } = await supabase
-      .from('accounts')
-      .select('id')
-      .eq('team_id', teamId)
-      .ilike('name', `%${q}%`);
-    const acctIds = (matchedAccounts || []).map(a => a.id);
-
-    // transaction_tagsでtagIdsに紐づくtransaction_idを取得
-    let tagTxIds = [];
-    if (tagIds.length > 0) {
-      const { data: tagTxRows } = await supabase
-        .from('transaction_tags')
-        .select('transaction_id')
-        .in('tag_id', tagIds);
-      tagTxIds = (tagTxRows || []).map(r => r.transaction_id);
-    }
-
-    // メイン検索: memo ilike OR account_id in OR id in(tagTxIds)
-    let query = supabase
-      .from('transactions')
-      .select(`
-        *,
-        account:accounts!account_id(id, name, type, icon, color),
-        to_account:accounts!to_account_id(id, name, type),
-        transaction_tags(tag:tags(id, name, color))
-      `)
-      .eq('team_id', teamId)
-      .order('date', { ascending: false })
-      .order('created_at', { ascending: false })
-      .limit(500);
-
-    // OR条件を構築
-    const orParts = [`memo.ilike.%${q}%`];
-    if (acctIds.length > 0) orParts.push(`account_id.in.(${acctIds.join(',')})`);
-    if (tagTxIds.length > 0) orParts.push(`id.in.(${tagTxIds.join(',')})`);
-    query = query.or(orParts.join(','));
-
-    if (type !== 'all') query = query.eq('type', type);
-
-    const { data, error } = await query;
+    const { data, error } = await supabase.rpc('search_transactions', {
+      p_team_id: teamId,
+      p_keyword: q,
+      p_type: type,
+    });
     if (error) throw error;
 
-    return (data || []).map(tx => ({
-      ...tx,
-      tags: (tx.transaction_tags || []).map(tt => tt.tag).filter(t => t)
+    // transaction_tagsを別途取得してマージ
+    const txIds = (data || []).map(t => t.id);
+    let tagMap = {};
+    if (txIds.length > 0) {
+      const { data: tagRows } = await supabase
+        .from('transaction_tags')
+        .select('transaction_id, tag:tags(id, name, color)')
+        .in('transaction_id', txIds);
+      (tagRows || []).forEach(r => {
+        if (!tagMap[r.transaction_id]) tagMap[r.transaction_id] = [];
+        if (r.tag) tagMap[r.transaction_id].push(r.tag);
+      });
+    }
+
+    // 口座情報を取得してマージ
+    const accounts = await this.getAccounts();
+    const acctMap = {};
+    accounts.forEach(a => { acctMap[a.id] = a; });
+
+    return (data || []).map(t => ({
+      ...t,
+      tags: tagMap[t.id] || [],
+      account: acctMap[t.account_id] || null,
+      to_account: acctMap[t.to_account_id] || null,
     }));
   },
+
 
   // 差分インポート用: 既存レコードの "date|amount|type" キーセットを返す
   async getAllTransactionKeys() {
