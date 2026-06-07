@@ -1040,7 +1040,7 @@ body.page-records #mobile-month-label {
   align-items: center;
   background: var(--white);
   border-radius: var(--radius);
-  padding: 8px 20px;
+  padding: 6px 20px;
   margin-bottom: 0;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
