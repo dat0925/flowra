@@ -127,12 +127,11 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
           const primaryTags = tags.filter(t => budgetMap.has(t.id));
           const subTags = tags.filter(t => !budgetMap.has(t.id));
           const renderTagGrid = (tagList) => tagList.map(tag => {
-            const icon = resolveTagIcon(tag) || { bg: DEFAULT_BG, stroke: DEFAULT_STROKE, path: DEFAULT_PATH };
-            const selectedArr = [...state.selectedTags];
             const isSelected = state.selectedTags.has(tag.id);
             const isPrimary = isSelected && budgetMap.has(tag.id) && [...state.selectedTags].filter(tid => budgetMap.has(tid))[0] === tag.id;
             const borderColor = isPrimary ? 'var(--sage)' : (isSelected ? 'var(--sage-lt)' : 'transparent');
-            const bgColor = isSelected ? 'var(--sage-bg)' : icon.bg;
+            const bgColor = isSelected ? 'var(--sage-bg)' : 'var(--stone)';
+            const tagColor = tag.color || 'var(--sage)';
             const badge = isPrimary
               ? '<span style="position:absolute;top:-5px;right:-5px;background:var(--sage);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:5px;line-height:1.6;">主</span>'
               : (isSelected
@@ -141,7 +140,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
             return '<button class="ar-tag-btn' + (isSelected ? ' ar-tag-selected' : '') + '" data-tag-id="' + tag.id + '"'
               + ' style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px 8px;border-radius:12px;border:2px solid ' + borderColor + ';background:' + bgColor + ';cursor:pointer;transition:all 0.12s;position:relative;">'
               + badge
-              + '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="' + (isSelected ? 'var(--sage)' : icon.stroke) + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="' + icon.path + '"/></svg>'
+              + '<div style="width:10px;height:10px;border-radius:50%;background:' + tagColor + ';margin-top:2px;"></div>'
               + '<span style="font-size:10px;color:' + (isSelected ? 'var(--sage-dk)' : 'var(--ink)') + ';font-weight:' + (isSelected ? '600' : '500') + ';text-align:center;line-height:1.3;word-break:keep-all;">' + tag.name + '</span>'
               + '</button>';
           }).join('');
@@ -918,4 +917,5 @@ function calculate(left, right, op) {
   }
   return Math.max(0, result);
 }
+
 
