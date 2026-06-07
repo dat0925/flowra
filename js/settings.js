@@ -385,7 +385,8 @@ async function renderBudgetList(tags) {
 
   updateBudgetTotal();
 
-  document.getElementById('btn-save-budgets')?.addEventListener('click', async () => {
+  // 保存処理を外から呼べるようにwrapに保持
+  wrap._saveBudgets = async () => {
     const inputs = wrap.querySelectorAll('.budget-input');
     try {
       for (const input of inputs) {
@@ -398,7 +399,7 @@ async function renderBudgetList(tags) {
     } catch(e) {
       showToast('エラー: ' + e.message);
     }
-  });
+  };
 
   wrap.querySelectorAll('.budget-input').forEach(input => {
     input.addEventListener('focus', () => { input.value = input.value.replace(/,/g, ''); });
@@ -1078,9 +1079,10 @@ function setupTagBudgetPageEvents(tags) {
         renderBudgetList(tags);
       }, {
         showSave: true,
-        onSave: (close) => {
-          document.getElementById('btn-save-budgets')?.click();
-          setTimeout(close, 800);
+        onSave: async (close) => {
+          const wrap = document.getElementById('budget-list-wrap');
+          if (wrap?._saveBudgets) await wrap._saveBudgets();
+          setTimeout(close, 400);
         }
       });
     });
@@ -1590,3 +1592,4 @@ function openTagAddSheet(tags) {
     if (e.key === 'Enter') doAdd();
   });
 }
+
