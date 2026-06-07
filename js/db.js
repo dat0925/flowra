@@ -713,32 +713,46 @@ export const DB = {
   // 予算をUpsert（デフォルト or 月別）
   async upsertBudget(tagId, amount, month = null) {
     const teamId = await this.getTeamId();
-    // 既存レコードを検索
-    let query = supabase.from('budgets')
-      .select('id')
-      .eq('team_id', teamId)
-      .eq('tag_id', tagId);
-    if (month) query = query.eq('month', month);
-    else       query = query.is('month', null);
-    const { data: existing } = await query.maybeSingle();
 
     if (amount === 0 || amount === null) {
       // 金額0は削除
-      if (existing) {
-        const { error } = await supabase.from('budgets').delete().eq('id', existing.id);
-        if (error) throw error;
-      }
+      let delQuery = supabase.from('budgets')
+        .delete()
+        .eq('team_id', teamId)
+        .eq('tag_id', tagId);
+      if (month) delQuery = delQuery.eq('month', month);
+      else       delQuery = delQuery.is('month', null);
+      const { error } = await delQuery;
+      if (error) throw error;
       return null;
     }
 
+    // 既存レコードをSELECT
+    let selQuery = supabase.from('budgets')
+      .select('id')
+      .eq('team_id', teamId)
+      .eq('tag_id', tagId);
+    if (month) selQuery = selQuery.eq('month', month);
+    else       selQuery = selQuery.is('month', null);
+    const { data: existing, error: selError } = await selQuery.maybeSingle();
+    if (selError) throw selError;
+
     const payload = { team_id: teamId, tag_id: tagId, amount, month };
-    let error;
     if (existing) {
-      ({ error } = await supabase.from('budgets').update({ amount }).eq('id', existing.id));
+      // UPDATE → select()でRLS静かな失敗を検知
+      const { data, error } = await supabase
+        .from('budgets').update({ amount }).eq('id', existing.id).select();
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('予算の更新が拒否されました（RLS）');
+      return data[0];
     } else {
-      ({ error } = await supabase.from('budgets').insert(payload));
+      // INSERT
+      const { data, error } = await supabase
+        .from('budgets').insert(payload).select();
+      if (error) throw error;
+      if (!data || data.length === 0) throw new Error('予算の登録が拒否されました（RLS）');
+      return data[0];
     }
-    if (error) throw error;
   },
 
   async getDelta(since) {
@@ -836,4 +850,5 @@ export const DB = {
     return plan === 'premium' || plan === 'admin';
   },
 };
+
 
