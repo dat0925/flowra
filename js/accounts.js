@@ -99,22 +99,22 @@ async function renderAccountsContent(content, accounts) {
       const isNeg = a.balance < 0;
       const pct = totalPositive > 0 ? Math.min(100, Math.abs(a.balance) / totalPositive * 100) : 0;
       const barColor = isNeg ? '#B83232' : (a.color && a.color.trim() ? a.color : '#4A7C59');
-      const barHTML = `
-        <div style="padding:4px 0 2px;">
-          <div style="height:3px;background:var(--border);border-radius:2px;overflow:hidden;">
-            <div style="height:100%;width:${pct.toFixed(1)}%;background:${barColor};border-radius:2px;transition:width 0.4s ease;"></div>
+      const barHTML = pct > 0 ? `
+        <div style="display:flex;align-items:center;gap:6px;margin-top:4px;margin-bottom:2px;">
+          <div style="flex:1;height:5px;border-radius:3px;background:var(--mist);overflow:hidden;">
+            <div style="height:100%;width:${pct.toFixed(1)}%;background:${barColor};border-radius:3px;transition:width 0.4s;"></div>
           </div>
-          <div style="font-size:10px;color:var(--mid-lt);text-align:right;margin-top:1px;">${pct < 0.5 ? '' : pct.toFixed(0) + '%'}</div>
-        </div>`;
+          <span style="font-size:10px;font-weight:600;color:${isNeg?'var(--red)':'var(--mid)'};min-width:28px;text-align:right;">${pct.toFixed(0)}%</span>
+        </div>` : `<div style="height:9px;"></div>`;
 
       return `
       <div class="acct-item has-bar" data-id="${a.id}" data-idx="${i}">
         <div class="acct-item-row">
           <div class="drag-handle" style="flex-shrink:0;">
-            <svg viewBox="0 0 10 16" width="10" height="16" fill="var(--mid-lt)" stroke="none">
-              <circle cx="3" cy="3"  r="1.5"/><circle cx="7" cy="3"  r="1.5"/>
-              <circle cx="3" cy="8"  r="1.5"/><circle cx="7" cy="8"  r="1.5"/>
-              <circle cx="3" cy="13" r="1.5"/><circle cx="7" cy="13" r="1.5"/>
+            <svg viewBox="0 0 8 14" width="8" height="14" fill="var(--mid-lt)" stroke="none">
+              <circle cx="2" cy="2"  r="1.2"/><circle cx="6" cy="2"  r="1.2"/>
+              <circle cx="2" cy="7"  r="1.2"/><circle cx="6" cy="7"  r="1.2"/>
+              <circle cx="2" cy="12" r="1.2"/><circle cx="6" cy="12" r="1.2"/>
             </svg>
           </div>
           ${acctIconHTML(a)}
