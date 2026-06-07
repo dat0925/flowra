@@ -3,11 +3,18 @@
 //  Network Only：常にネットワークから取得（開発中はキャッシュなし）
 // ─────────────────────────────────────
 
-const CACHE_NAME = 'flowra-v313';
+const CACHE_NAME = 'flowra-v314';
 
 // インストール時：即座にアクティベート
 self.addEventListener('install', event => {
   self.skipWaiting();
+});
+
+// アプリからSKIP_WAITINGメッセージを受け取ったら即座に切り替え
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // アクティベート時：古いキャッシュを全削除
@@ -52,6 +59,7 @@ self.addEventListener('fetch', event => {
     );
   }
 });
+
 
 
 
