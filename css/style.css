@@ -944,7 +944,7 @@ body.page-records #mobile-month-label {
 .acct-icon svg { width: 16px; height: 16px; }
 .acct-name { font-size: 13.5px; font-weight: 500; }
 .acct-type-label { font-size: 11px; color: var(--mid); margin-top: 1px; }
-.acct-balance { font-family: 'Noto Serif JP', serif; font-size: 15px; font-weight: 600; white-space: nowrap; }
+.acct-balance { font-family: 'Noto Sans JP', sans-serif; font-size: 15px; font-weight: 600; white-space: nowrap; }
 .acct-balance-cur { font-size: 11px; font-weight: 300; color: var(--mid); margin-right: 1px; }
 .acct-divider { height: 1px; background: var(--border); margin: 0 18px; }
 /* ── タグ並び替え ── */
@@ -953,7 +953,7 @@ body.page-records #mobile-month-label {
 .tag-item.is-dragging { background: var(--white); box-shadow: 0 6px 20px rgba(28,43,34,0.13); border-radius: 12px; z-index: 100; opacity: 0.97; border-bottom: none; }
 .acct-total { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; background: var(--mist); }
 .acct-total-label { font-size: 12px; font-weight: 500; color: var(--mid); }
-.acct-total-amount { font-family: 'Noto Serif JP', serif; font-size: 17px; font-weight: 600; color: var(--sage-dk); }
+.acct-total-amount { font-family: 'Noto Sans JP', sans-serif; font-size: 17px; font-weight: 600; color: var(--sage-dk); }
 
 /* MAIN GRID */
 .main-grid { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
