@@ -487,6 +487,7 @@ export async function openEditRecord(tx, onSave) {
           + 'padding:10px 4px 8px;border-radius:12px;border:2px solid ' + borderColor + ';'
           + 'background:' + bgColor + ';cursor:pointer;transition:all 0.12s;position:relative;">'
           + badge
+          + '<div style="width:10px;height:10px;border-radius:50%;background:' + (tag.color || 'var(--sage)') + ';margin-top:2px;"></div>'
           + '<span style="font-size:10px;color:' + (isSelected ? 'var(--sage-dk)' : 'var(--ink)') + ';font-weight:' + (isSelected ? '600' : '500') + ';text-align:center;line-height:1.3;word-break:keep-all;">' + tag.name + '</span>'
           + '</div>';
       }).join('');
@@ -759,4 +760,5 @@ function calcFn(left, right, op) {
   }
   return Math.max(0, r);
 }
+
 
