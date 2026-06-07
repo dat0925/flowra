@@ -94,11 +94,10 @@ function openSubPage(title, renderFn, { showSave = false, onSave = null, onAdd =
 
 export async function renderSettings() {
   const content = document.getElementById('page-content');
-
-  // スピナーを表示して全データが揃ってから一度だけ描画（CLSを根絶）
   content.innerHTML = '<div class="spinner"></div>';
 
   try {
+    // ユーザー・タグは即時取得して先に描画
     const [user, tags, allTeams] = await Promise.all([
       Auth.getUser(),
       DB.getTags(),
@@ -106,22 +105,28 @@ export async function renderSettings() {
     ]);
     await putTags(tags);
 
-    const ownEntry   = allTeams.find(t => t.role === 'owner');
-    const ownTeamId  = ownEntry?.team_id;
-    const ownTeam    = ownTeamId ? await DB.getTeamById(ownTeamId) : null;
+    const ownEntry  = allTeams.find(t => t.role === 'owner');
+    const ownTeamId = ownEntry?.team_id;
+    const ownTeam   = ownTeamId ? await DB.getTeamById(ownTeamId) : null;
+
+    // メンバー情報なしで先に描画（画面揺れを防ぐためスペーサーを確保）
+    renderSettingsContent(content, user, ownTeam, ownTeamId, tags, [], []);
+
+    // メンバー情報はバックグラウンドで取得して差し込む
     const ownMembers = ownTeamId
       ? await DB.getTeamMemberProfilesForTeam(ownTeamId)
       : [];
-
     const joinedEntries = allTeams.filter(t => t.role !== 'owner');
-    const joinedTeams   = await Promise.all(
+    const joinedTeams = await Promise.all(
       joinedEntries.map(async e => {
         const members = await DB.getTeamMemberProfilesForTeam(e.team_id);
         return { entry: e, members };
       })
     );
 
-    renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ownMembers, joinedTeams);
+    // メンバーリストだけ更新（画面全体を再描画しない）
+    updateMembersSection(ownTeamId, ownMembers, joinedTeams, tags);
+
   } catch (e) {
     content.innerHTML = '<div class="empty-state"><div class="empty-state-title">エラー: ' + e.message + '</div></div>';
   }
@@ -846,31 +851,6 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
       </div>
     </div>
 
-    <!-- 自分のチーム（常に表示） -->
-    <div class="panel" style="margin-bottom:16px;">
-      <div class="panel-head"><div class="panel-title">パートナー共有</div></div>
-      <div id="members-list" style="padding:0 0 4px;"></div>
-      <div style="padding:12px 16px 16px;">
-        <button class="btn-primary" id="btn-create-invite">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <line x1="19" y1="8" x2="19" y2="14"/>
-            <line x1="22" y1="11" x2="16" y2="11"/>
-          </svg>
-          招待リンクを発行
-        </button>
-      </div>
-    </div>
-
-    <!-- 参加中のチーム（他チームに招待されている場合のみ） -->
-    ${joinedTeams.length > 0 ? `
-    <div class="panel" style="margin-bottom:16px;">
-      <div class="panel-head"><div class="panel-title">参加中のチーム</div></div>
-      <div id="joined-teams-list"></div>
-    </div>
-    ` : ''}
-
     <!-- タグ管理・予算管理（別画面へ） -->
     <div class="panel" style="margin-bottom:16px;">
       <div class="form-row" id="btn-open-tag-page" style="cursor:pointer;">
@@ -899,6 +879,26 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
         <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="var(--mid-lt)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
       </div>
     </div>
+
+    <!-- 自分のチーム（常に表示） -->
+    <div class="panel" style="margin-bottom:16px;">
+      <div class="panel-head"><div class="panel-title">パートナー共有</div></div>
+      <div id="members-list" style="padding:0 0 4px;min-height:48px;"></div>
+      <div style="padding:12px 16px 16px;">
+        <button class="btn-primary" id="btn-create-invite">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <line x1="19" y1="8" x2="19" y2="14"/>
+            <line x1="22" y1="11" x2="16" y2="11"/>
+          </svg>
+          招待リンクを発行
+        </button>
+      </div>
+    </div>
+
+    <!-- 参加中のチーム -->
+    <div id="joined-teams-panel" style="margin-bottom:16px;"></div>
 
     <!-- アプリ設定 -->
     <div class="panel" style="margin-bottom:16px;">
@@ -957,16 +957,8 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
     }).catch(() => { budgetCountEl.textContent = ''; });
   }
 
-  // タグ管理・予算管理ページ遷移
+  // タグ管理・予算管理ページ遷移（初回描画時）
   setupTagBudgetPageEvents(tags);
-
-  // 自分のチームのメンバーリスト
-  renderMembersList(ownMembers, user);
-
-  // 参加中チームリスト
-  if (joinedTeams.length > 0) {
-    renderJoinedTeamsList(joinedTeams, user);
-  }
 
   // ── イベント ──
 
@@ -1028,6 +1020,42 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
 }
 
 // ── メンバーリスト描画（自分のチーム用）──
+// メンバー情報だけ後から差し込む（画面全体を再描画しない）
+function updateMembersSection(ownTeamId, ownMembers, joinedTeams, tags) {
+  // パートナー共有メンバーリスト
+  const membersEl = document.getElementById('members-list');
+  if (membersEl) {
+    if (ownMembers.length === 0) {
+      membersEl.innerHTML = '<div style="padding:12px 16px;font-size:13px;color:var(--mid-lt);">まだ招待していません</div>';
+    } else {
+      membersEl.innerHTML = ownMembers.map(m => renderMemberRow(m, ownTeamId)).join('');
+      bindMemberRowEvents(ownMembers, ownTeamId);
+    }
+  }
+
+  // 参加中のチーム
+  const joinedPanel = document.getElementById('joined-teams-panel');
+  if (joinedPanel) {
+    if (joinedTeams.length > 0) {
+      joinedPanel.innerHTML = `
+        <div class="panel">
+          <div class="panel-head"><div class="panel-title">参加中のチーム</div></div>
+          <div id="joined-teams-list"></div>
+        </div>`;
+      const joinedEl = document.getElementById('joined-teams-list');
+      if (joinedEl) {
+        joinedEl.innerHTML = joinedTeams.map(({ entry, members }) =>
+          renderJoinedTeamSection(entry, members)
+        ).join('');
+        bindJoinedTeamEvents(joinedTeams);
+      }
+    }
+  }
+
+  // タグ・予算ページのイベントを設定
+  setupTagBudgetPageEvents(tags);
+}
+
 function setupTagBudgetPageEvents(tags) {
   const tagBtn = document.getElementById('btn-open-tag-page');
   if (tagBtn && !tagBtn.dataset.bound) {
