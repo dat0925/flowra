@@ -11,6 +11,9 @@ import { warmupAddRecord } from './add-record.js';
 import { showOnboardingForReplay } from './onboarding.js';
 
 // サブページを全画面でオーバーレイ表示
+// 予算保存関数をモジュール変数で保持（DOMプロパティは不安定なため）
+let _currentSaveBudgetsFn = null;
+
 function openSubPage(title, renderFn, { showSave = false, onSave = null, onAdd = null } = {}) {
   document.getElementById('settings-subpage')?.remove();
 
@@ -290,6 +293,8 @@ async function renderBudgetList(tags) {
   const wrap = document.getElementById('budget-list-wrap');
   if (!wrap) return;
 
+  _currentSaveBudgetsFn = null; // 読み込み完了まで保存不可
+
   let budgetMap = {};
   try {
     const now = new Date();
@@ -387,8 +392,8 @@ async function renderBudgetList(tags) {
 
   updateBudgetTotal();
 
-  // 保存処理を外から呼べるようにwrapに保持
-  wrap._saveBudgets = async () => {
+  // 保存処理をモジュール変数に保持
+  _currentSaveBudgetsFn = async () => {
     const inputs = wrap.querySelectorAll('.budget-input');
     try {
       for (const input of inputs) {
@@ -1082,9 +1087,8 @@ function setupTagBudgetPageEvents(tags) {
       }, {
         showSave: true,
         onSave: async (close) => {
-          const wrap = document.getElementById('budget-list-wrap');
-          if (wrap?._saveBudgets) {
-            await wrap._saveBudgets();
+          if (_currentSaveBudgetsFn) {
+            await _currentSaveBudgetsFn();
           } else {
             showToast('まだ読み込み中です。少し待ってください');
             return;
@@ -1599,5 +1603,6 @@ function openTagAddSheet(tags) {
     if (e.key === 'Enter') doAdd();
   });
 }
+
 
 
