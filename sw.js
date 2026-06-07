@@ -3,7 +3,7 @@
 //  Network Only：常にネットワークから取得（開発中はキャッシュなし）
 // ─────────────────────────────────────
 
-const CACHE_NAME = 'flowra-v307';
+const CACHE_NAME = 'flowra-v308';
 
 // インストール時：即座にアクティベート
 self.addEventListener('install', event => {
@@ -52,4 +52,5 @@ self.addEventListener('fetch', event => {
     );
   }
 });
+
 
