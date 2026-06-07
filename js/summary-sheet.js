@@ -149,8 +149,8 @@ export async function openSummarySheet() {
       const cells = monthKeys.map((key, i) => {
         const amt = matrix[tag.id]?.[key] || 0;
         const isCurrent = i === monthKeys.length - 1;
-        const pct = budget > 0 && isCurrent ? amt / budget : 0;
-        const color = isCurrent && budget > 0
+        const pct = budget > 0 && amt > 0 ? amt / budget : 0;
+        const color = budget > 0 && amt > 0
           ? (pct > 1 ? '#B83232' : pct > 0.8 ? '#B8973E' : 'var(--ink)')
           : (amt === 0 ? 'var(--mid-lt)' : 'var(--ink)');
         return `<td style="padding:9px 8px;text-align:right;font-size:13px;
@@ -198,9 +198,9 @@ export async function openSummarySheet() {
         ${monthKeys.map((key, i) => {
           const total = monthTotals[key] || 0;
           const isCurrent = i === monthKeys.length - 1;
-          const pct = currentBudgetTotal > 0 && isCurrent ? total / currentBudgetTotal : 0;
-          const color = isCurrent && currentBudgetTotal > 0
-            ? (pct > 1 ? '#B83232' : pct > 0.8 ? '#B8973E' : 'var(--sage-dk)')
+          const pct = currentBudgetTotal > 0 && total > 0 ? total / currentBudgetTotal : 0;
+          const color = currentBudgetTotal > 0 && total > 0
+            ? (pct > 1 ? '#B83232' : pct > 0.8 ? '#B8973E' : (isCurrent ? 'var(--sage-dk)' : 'var(--ink)'))
             : 'var(--ink)';
           return `<td style="padding:10px 8px;text-align:right;font-size:13px;
             font-weight:700;color:${color};
