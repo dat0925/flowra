@@ -133,7 +133,7 @@ export async function renderSettings() {
 }
 
 // ── タグリスト再描画（モーダル内・設定画面共用）──
-function renderTagList(tags) {
+async function renderTagList(tags) {
   const wrap = document.getElementById('tag-list-wrap');
   if (!wrap) return;
 
@@ -141,6 +141,10 @@ function renderTagList(tags) {
     wrap.innerHTML = '<div class="empty-state" style="padding:24px;"><div class="empty-state-sub">タグがありません</div></div>';
     return;
   }
+
+  // 予算情報を取得
+  let budgetMap = {};
+  try { budgetMap = await DB.getBudgets(null); } catch(_) {}
 
   wrap.innerHTML = tags.map(t => {
     const ico = getTagIcon(t);
@@ -150,6 +154,10 @@ function renderTagList(tags) {
         + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="' + ico.stroke + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="' + ico.path + '"/></svg></div>'
       : '<div style="width:28px;height:28px;border-radius:8px;background:' + c + '33;display:flex;align-items:center;justify-content:center;flex-shrink:0;">'
         + '<div style="width:10px;height:10px;border-radius:50%;background:' + c + ';"></div></div>';
+    const budget = budgetMap[t.id];
+    const budgetLabel = budget
+      ? '<span style="font-size:11px;color:var(--sage);font-weight:600;margin-left:6px;">¥' + Number(budget.amount).toLocaleString() + '</span>'
+      : '';
     return '<div class="tag-item" data-tag-id="' + t.id + '" style="cursor:pointer;">'
       + '<div class="drag-handle" style="width:28px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--mid-lt);touch-action:none;cursor:grab;padding:8px 4px;">'
       + '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="1" fill="currentColor"/><circle cx="15" cy="7" r="1" fill="currentColor"/><circle cx="9" cy="12" r="1" fill="currentColor"/><circle cx="15" cy="12" r="1" fill="currentColor"/><circle cx="9" cy="17" r="1" fill="currentColor"/><circle cx="15" cy="17" r="1" fill="currentColor"/></svg>'
@@ -157,6 +165,7 @@ function renderTagList(tags) {
       + '<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">'
       + dotOrIcon
       + '<span style="font-size:14px;">' + t.name + '</span>'
+      + budgetLabel
       + '</div>'
       + '<svg viewBox="0 0 24 24" width="13" height="13" style="color:var(--mid-lt);flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>'
       + '</div>';
