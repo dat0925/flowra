@@ -309,8 +309,9 @@ async function loadAndRender(baseYear, baseMonth) {
           <tbody>${dataRows}${totalRow}</tbody>
         </table>
       </div>
-      <div style="padding:10px 16px;font-size:11px;color:var(--mid-lt);line-height:1.6;">
-        ※ 支出のみ集計。主タグで集計（二重カウントなし）。赤字は予算超過、黄色は80%超。
+      <div style="padding:10px 16px;font-size:11px;color:var(--mid-lt);line-height:1.8;">
+        ※ 支出のみ集計。複数タグがある場合は「主」タグのみで集計します（二重カウントなし）。<br>
+        ※ 合計行 = 主タグ別合計 + タグなし合計 = その月の支出合計と一致します。
       </div>`;
 
   } catch (e) {
