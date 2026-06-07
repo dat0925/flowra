@@ -180,13 +180,14 @@ async function renderTagList(tags) {
       + dotOrIcon
       + '<span style="font-size:14px;">' + t.name + '</span>'
       + '</div>'
-      + '<div class="budget-cell" style="display:flex;align-items:center;gap:4px;flex-shrink:0;">'
+       + '<div class="budget-cell" style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
       + '<span style="font-size:12px;color:var(--mid-lt);">¥</span>'
       + '<input type="text" inputmode="numeric" class="budget-input-inline" data-tag-id="' + t.id + '"'
       + ' value="' + budgetVal + '" placeholder="−"'
       + ' style="width:88px;text-align:right;font-size:14px;font-weight:600;color:var(--ink);'
       + 'padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;background:var(--white);'
       + 'font-family:\'Noto Sans JP\',sans-serif;" />'
+       + '<button class="btn-monthly-budget" data-tag-id="' + t.id + '" style="font-size:11px;color:var(--sage);background:var(--sage-bg);border:none;border-radius:6px;padding:5px 8px;cursor:pointer;white-space:nowrap;touch-action:manipulation;">月別</button>'
       + '</div>'
       + '</div>';
   }).join('');
@@ -220,6 +221,16 @@ async function renderTagList(tags) {
     });
     input.addEventListener('input', () => {
       input.value = input.value.replace(/[^0-9,]/g, '');
+    });
+  });
+
+  // 月別ボタン → openBudgetMonthSheet を直接起動
+  wrap.querySelectorAll('.btn-monthly-budget').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const tagId = btn.dataset.tagId;
+      const tag = tags.find(t => t.id === tagId);
+      if (tag) openBudgetMonthSheet(tag, budgetMap[tagId]);
     });
   });
 
@@ -1663,6 +1674,7 @@ function openTagAddSheet(tags) {
     if (e.key === 'Enter') doAdd();
   });
 }
+
 
 
 
