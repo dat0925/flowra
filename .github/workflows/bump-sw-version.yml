@@ -1,13 +1,7 @@
 name: Bump Service Worker Cache Version
 
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - 'sw.js'        # sw.js自身の変更でループしないよう除外
-      - 'HANDOFF.md'
-      - '**.md'
+  workflow_dispatch:  # 手動実行のみ（自動バンプは手動pushで管理）
 
 jobs:
   bump-sw:
@@ -19,7 +13,6 @@ jobs:
 
       - name: Bump SW cache version
         run: |
-          # 現在のバージョン番号を取得
           CURRENT=$(grep -o "flowra-v[0-9]*" sw.js | grep -o "[0-9]*")
           NEXT=$((CURRENT + 1))
           echo "Bumping SW cache: v${CURRENT} -> v${NEXT}"
