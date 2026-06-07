@@ -29,11 +29,13 @@ export async function openSummarySheet() {
       <!-- ヘッダー -->
       <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;">
         <div style="font-size:15px;font-weight:700;color:var(--ink);">タグ別集計</div>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <!-- 月ナビ -->
+        <div style="display:flex;align-items:center;gap:6px;">
+          <!-- 今月ボタン -->
+          <button id="ss-today-btn" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--border);background:var(--stone);color:var(--mid);cursor:pointer;white-space:nowrap;display:none;">今月</button>
+          <!-- 月ナビ（ラベルタップでピッカー） -->
           <div style="display:flex;align-items:center;gap:4px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:4px 8px;">
             <button id="ss-prev-month" style="background:none;border:none;padding:2px 6px;cursor:pointer;color:var(--sage);font-size:16px;line-height:1;">‹</button>
-            <span id="ss-month-label" style="font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;min-width:60px;text-align:center;"></span>
+            <span id="ss-month-label" style="font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;min-width:80px;text-align:center;cursor:pointer;border-bottom:1px dotted var(--mid-lt);"></span>
             <button id="ss-next-month" style="background:none;border:none;padding:2px 6px;cursor:pointer;color:var(--sage);font-size:16px;line-height:1;">›</button>
           </div>
           <button id="btn-close-summary" style="background:none;border:none;padding:4px;cursor:pointer;color:var(--mid);">
@@ -66,8 +68,11 @@ export async function openSummarySheet() {
   const updateLabel = () => {
     document.getElementById('ss-month-label').textContent = `〜${baseYear}年${baseMonth}月`;
     const now = new Date();
+    const isCurrentMonth = baseYear === now.getFullYear() && baseMonth === now.getMonth() + 1;
     document.getElementById('ss-next-month').disabled =
       baseYear > now.getFullYear() || (baseYear === now.getFullYear() && baseMonth >= now.getMonth() + 1);
+    const todayBtn = document.getElementById('ss-today-btn');
+    if (todayBtn) todayBtn.style.display = isCurrentMonth ? 'none' : '';
   };
 
   const renderSheet = async () => {
@@ -76,6 +81,50 @@ export async function openSummarySheet() {
     updateLabel();
     await loadAndRender(baseYear, baseMonth);
   };
+
+  // 月ラベルタップでピッカー表示
+  document.getElementById('ss-month-label').addEventListener('click', () => {
+    const now = new Date();
+    const picker = document.createElement('div');
+    picker.style.cssText = 'position:fixed;inset:0;z-index:900;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;';
+    picker.innerHTML = `
+      <div style="background:var(--white);border-radius:20px;padding:24px;width:280px;max-width:90vw;">
+        <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:16px;text-align:center;">表示する最終月を選択</div>
+        <div style="display:flex;gap:8px;margin-bottom:20px;">
+          <select id="ss-pick-year" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--white);">
+            ${Array.from({length: 6}, (_, i) => now.getFullYear() - i).map(y =>
+              `<option value="${y}" ${y === baseYear ? 'selected' : ''}>${y}年</option>`
+            ).join('')}
+          </select>
+          <select id="ss-pick-month" style="flex:1;padding:8px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;background:var(--white);">
+            ${Array.from({length: 12}, (_, i) => i + 1).map(m =>
+              `<option value="${m}" ${m === baseMonth ? 'selected' : ''}>${m}月</option>`
+            ).join('')}
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button id="ss-pick-cancel" style="flex:1;padding:10px;border-radius:10px;border:1.5px solid var(--border);background:none;font-size:14px;cursor:pointer;">キャンセル</button>
+          <button id="ss-pick-ok" style="flex:1;padding:10px;border-radius:10px;border:none;background:var(--sage);color:#fff;font-size:14px;font-weight:600;cursor:pointer;">確定</button>
+        </div>
+      </div>`;
+    document.body.appendChild(picker);
+    document.getElementById('ss-pick-cancel').addEventListener('click', () => picker.remove());
+    document.getElementById('ss-pick-ok').addEventListener('click', () => {
+      const y = parseInt(document.getElementById('ss-pick-year').value);
+      const m = parseInt(document.getElementById('ss-pick-month').value);
+      picker.remove();
+      baseYear = y; baseMonth = m;
+      renderSheet();
+    });
+  });
+
+  // 今月に戻るボタン
+  document.getElementById('ss-today-btn')?.addEventListener('click', () => {
+    const now = new Date();
+    baseYear = now.getFullYear();
+    baseMonth = now.getMonth() + 1;
+    renderSheet();
+  });
 
   document.getElementById('ss-prev-month').addEventListener('click', () => {
     baseMonth--;
