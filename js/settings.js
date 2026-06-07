@@ -173,13 +173,14 @@ async function renderTagList(tags) {
       + '</div>';
   }).join('');
 
-  // 編集ボタン → タグ編集シートを開く（touchendでスクロール干渉なし）
-  wrap.addEventListener('click', e => {
-    const btn = e.target.closest('.btn-edit-tag');
-    if (!btn) return;
-    const tagId = btn.dataset.tagId;
-    const tag = tags.find(t => t.id === tagId);
-    if (tag) openTagEditSheet(tag, tags, budgetMap);
+  // 編集ボタン → タグ編集シートを開く
+  wrap.querySelectorAll('.btn-edit-tag').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const tagId = btn.dataset.tagId;
+      const tag = tags.find(t => t.id === tagId);
+      if (tag) openTagEditSheet(tag, tags, budgetMap);
+    });
   });
 
   _currentSaveBudgetsFn = null; // 保存ボタン不使用
@@ -1570,6 +1571,7 @@ function openTagAddSheet(tags) {
     if (e.key === 'Enter') doAdd();
   });
 }
+
 
 
 
