@@ -151,8 +151,8 @@ function renderShell(transactions, year, month, focusSearch = false) {
               border-radius:8px;padding:3px 8px;white-space:nowrap;flex-shrink:0;">
           </div>
           <button id="btn-summary-sheet"
-            style="flex-shrink:0;padding:6px 10px;border-radius:10px;border:1.5px solid var(--border);
-              background:var(--white);color:var(--mid);font-size:11px;font-weight:600;
+            style="flex-shrink:0;padding:6px 12px;border-radius:10px;border:1.5px solid var(--sage);
+              background:var(--sage-bg);color:var(--sage-dk);font-size:11px;font-weight:700;
               cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap;">
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>
