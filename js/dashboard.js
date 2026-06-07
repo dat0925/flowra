@@ -132,7 +132,7 @@ export async function renderDashboard() {
   }
 
   // ── STEP 2: バックグラウンドで差分同期 ────────────
-  syncInBackground(year, month, hasCached);
+  syncInBackground(year, month, hasCached, cachedTxs.length);
 }
 
 // キャッシュ or 最新データで画面を描画
@@ -397,7 +397,7 @@ async function renderContent(content, accounts, transactions, year, month, fromC
 }
 
 // バックグラウンド差分同期
-async function syncInBackground(year, month, hadCache) {
+async function syncInBackground(year, month, hadCache, cachedTxCount = 0) {
   try {
     const lastSync = await getLastSync();
     const now = new Date().toISOString();
@@ -418,7 +418,7 @@ async function syncInBackground(year, month, hadCache) {
       const now = new Date();
       return year === now.getFullYear() && month === now.getMonth() + 1;
     })();
-    if (!hadCache || cachedTxs.length === 0 || !isCurrentMonth) {
+    if (!hadCache || cachedTxCount === 0 || !isCurrentMonth) {
       const content = document.getElementById('page-content');
       if (content) renderContent(content, accounts, result.data, year, month, false);
     } else {
