@@ -3,7 +3,7 @@
 //  Network First戦略：常に最新を取得、失敗時のみキャッシュで返す
 // ─────────────────────────────────────
 
-const CACHE_NAME = 'flowra-v41';
+const CACHE_NAME = 'flowra-v42';
 
 const SHELL_ASSETS = [
   '/',
