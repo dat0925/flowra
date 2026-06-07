@@ -173,10 +173,16 @@ function renderShell(transactions, year, month, focusSearch = false) {
   const pageContent = document.getElementById('page-content');
   const stickyEl    = document.getElementById('records-sticky');
   if (pageContent && stickyEl) {
+    // 月切り替え時にscrolledクラスを強制リセット
+    stickyEl.classList.remove('scrolled');
+    // 既存リスナーを外すためにページ固有のキーで管理
+    if (pageContent._recordsScrollHandler) {
+      pageContent.removeEventListener('scroll', pageContent._recordsScrollHandler);
+    }
     const onScroll = () => {
       stickyEl.classList.toggle('scrolled', pageContent.scrollTop > 4);
     };
-    pageContent.removeEventListener('scroll', onScroll);
+    pageContent._recordsScrollHandler = onScroll;
     pageContent.addEventListener('scroll', onScroll, { passive: true });
   }
 
