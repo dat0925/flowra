@@ -257,10 +257,15 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
     const monthKeys   = months.map(({ year, month }) => `${year}-${String(month).padStart(2,'0')}`);
     const monthLabels = months.map(({ month }) => `${month}月`);
 
-    const displayTags = [
-      ...tags.filter(t => !t.is_archived && (matrix[t.id] || budgetMap[t.id])),
-      ...(matrix['__untagged__'] ? [{ id: '__untagged__', name: 'タグなし', color: '#999' }] : []),
-    ];
+    const displayTags = mode === 'primary'
+      ? [
+          ...tags.filter(t => !t.is_archived && (matrix[t.id] || budgetMap[t.id])),
+          ...(matrix['__untagged__'] ? [{ id: '__untagged__', name: 'タグなし', color: '#999' }] : []),
+        ]
+      : [
+          // サブタグ集計は実績があるタグのみ表示（予算設定だけあるタグは除外）
+          ...tags.filter(t => !t.is_archived && matrix[t.id]),
+        ];
 
     const monthTotals = {};
     for (const key of monthKeys) {
