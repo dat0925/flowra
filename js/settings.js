@@ -11,7 +11,7 @@ import { warmupAddRecord } from './add-record.js';
 import { showOnboardingForReplay } from './onboarding.js';
 
 // サブページを全画面でオーバーレイ表示
-function openSubPage(title, renderFn, { showSave = false, onSave = null } = {}) {
+function openSubPage(title, renderFn, { showSave = false, onSave = null, onAdd = null } = {}) {
   document.getElementById('settings-subpage')?.remove();
 
   if (!document.getElementById('subpage-style')) {
@@ -58,7 +58,7 @@ function openSubPage(title, renderFn, { showSave = false, onSave = null } = {}) 
     if (onSave) onSave(closeSubPage);
   });
   document.getElementById('btn-subpage-add')?.addEventListener('click', () => {
-    document.getElementById('btn-add-tag-open')?.click();
+    if (onAdd) onAdd();
   });
 
   // 右スワイプで閉じる
@@ -1020,7 +1020,7 @@ function setupTagBudgetPageEvents(tags) {
       openSubPage('タグ管理', (container) => {
         container.innerHTML = '<div id="tag-list-wrap"></div>';
         renderTagList(tags);
-      });
+      }, { onAdd: () => openTagAddSheet(tags) });
     });
   }
 
