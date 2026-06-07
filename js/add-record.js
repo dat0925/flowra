@@ -14,33 +14,36 @@ import { resolveTagIcon as _resolveTagIcon } from './tag-icons.js';
 const today = () => new Date().toISOString().slice(0, 10);
 
 // メモリキャッシュ（同期的にモーダルを開くため）
-let _accounts = null;
-let _tags = null;
+let _accounts = null, _tags = null, _budgetMap = null;
 
 // アプリ起動時・保存後に呼ぶ（事前ウォームアップ）
 export async function warmupAddRecord() {
   try {
-    [_accounts, _tags] = await Promise.all([DB.getAccounts(), DB.getTags()]);
+    [_accounts, _tags, _budgetMap] = await Promise.all([
+      DB.getAccounts(), DB.getTags(), DB.getBudgets(null)
+    ]);
   } catch (e) { /* silent */ }
 }
 
 export async function renderAddRecord(onSave, onReady, initialState = {}) {
   // キャッシュがあれば同期的に開始、なければ取得
-  let accounts = _accounts ?? [];
-  let tags     = _tags     ?? [];
+  let accounts  = _accounts  ?? [];
+  let tags      = _tags      ?? [];
+  let budgetMap = _budgetMap ?? {};
 
   if (_accounts === null) {
     try {
-      [accounts, tags] = await Promise.all([DB.getAccounts(), DB.getTags()]);
-      _accounts = accounts;
-      _tags = tags;
+      [accounts, tags, budgetMap] = await Promise.all([
+        DB.getAccounts(), DB.getTags(), DB.getBudgets(null)
+      ]);
+      _accounts = accounts; _tags = tags; _budgetMap = budgetMap;
     } catch (e) {
       showToast('データ取得エラー: ' + e.message);
       return;
     }
   } else {
-    Promise.all([DB.getAccounts(), DB.getTags()])
-      .then(([a, t]) => { _accounts = a; _tags = t; })
+    Promise.all([DB.getAccounts(), DB.getTags(), DB.getBudgets(null)])
+      .then(([a, t, b]) => { _accounts = a; _tags = t; _budgetMap = b; })
       .catch(() => {});
   }
 
@@ -120,38 +123,35 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
         </div>
       </div>` : `
       <div class="form-section" style="padding:10px 14px 14px;">
-        <div style="font-size:11px;color:var(--mid);font-weight:500;margin-bottom:8px;padding:0 4px;">カテゴリ（任意）</div>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
-          ${tags.map(tag => {
+        ${(() => {
+          const primaryTags = tags.filter(t => !!budgetMap[t.id]);
+          const subTags = tags.filter(t => !budgetMap[t.id]);
+          const renderTagGrid = (tagList) => tagList.map(tag => {
             const icon = resolveTagIcon(tag) || { bg: DEFAULT_BG, stroke: DEFAULT_STROKE, path: DEFAULT_PATH };
             const selectedArr = [...state.selectedTags];
             const isSelected = state.selectedTags.has(tag.id);
             const isPrimary = isSelected && selectedArr[0] === tag.id;
-            // 主タグ: 濃い緑枠＋「主」バッジ / サブタグ: 薄い枠＋チェックマーク / 未選択: 透明枠
             const borderColor = isPrimary ? 'var(--sage)' : (isSelected ? 'var(--sage-lt)' : 'transparent');
             const bgColor = isSelected ? 'var(--sage-bg)' : icon.bg;
             const badge = isPrimary
-              ? '<span style="position:absolute;top:-5px;right:-5px;background:var(--sage);color:#fff;'
-                + 'font-size:9px;font-weight:700;padding:1px 5px;border-radius:5px;line-height:1.6;'
-                + 'letter-spacing:0.03em;">主</span>'
+              ? '<span style="position:absolute;top:-5px;right:-5px;background:var(--sage);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:5px;line-height:1.6;">主</span>'
               : (isSelected
-                ? '<span style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;'
-                  + 'background:var(--sage-lt);display:flex;align-items:center;justify-content:center;">'
-                  + '<svg viewBox="0 0 24 24" width="9" height="9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg></span>'
+                ? '<span style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:var(--sage-lt);display:flex;align-items:center;justify-content:center;"><svg viewBox=\'0 0 24 24\' width=\'9\' height=\'9\' fill=\'none\' stroke=\'#fff\' stroke-width=\'3\' stroke-linecap=\'round\'><polyline points=\'20 6 9 17 4 12\'/></svg></span>'
                 : '');
             return '<button class="ar-tag-btn' + (isSelected ? ' ar-tag-selected' : '') + '" data-tag-id="' + tag.id + '"'
-              + ' style="display:flex;flex-direction:column;align-items:center;gap:5px;'
-              + 'padding:10px 4px 8px;border-radius:12px;border:2px solid ' + borderColor + ';'
-              + 'background:' + bgColor + ';cursor:pointer;transition:all 0.12s;position:relative;">'
+              + ' style="display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 4px 8px;border-radius:12px;border:2px solid ' + borderColor + ';background:' + bgColor + ';cursor:pointer;transition:all 0.12s;position:relative;">'
               + badge
-              + '<svg viewBox="0 0 24 24" width="22" height="22" fill="none"'
-              + ' stroke="' + (isSelected ? 'var(--sage)' : icon.stroke) + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">'
-              + '<path d="' + icon.path + '"/></svg>'
-              + '<span style="font-size:10px;color:' + (isSelected ? 'var(--sage-dk)' : 'var(--ink)') + ';font-weight:' + (isSelected ? '600' : '500') + ';'
-              + 'text-align:center;line-height:1.3;word-break:keep-all;">' + tag.name + '</span>'
+              + '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="' + (isSelected ? 'var(--sage)' : icon.stroke) + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="' + icon.path + '"/></svg>'
+              + '<span style="font-size:10px;color:' + (isSelected ? 'var(--sage-dk)' : 'var(--ink)') + ';font-weight:' + (isSelected ? '600' : '500') + ';text-align:center;line-height:1.3;word-break:keep-all;">' + tag.name + '</span>'
               + '</button>';
-          }).join('')}
-        </div>
+          }).join('');
+          return '<div style="font-size:11px;color:var(--sage-dk);font-weight:600;margin-bottom:6px;padding:0 4px;">主タグ（予算あり・1つまで）</div>'
+            + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">' + renderTagGrid(primaryTags) + '</div>'
+            + (subTags.length > 0
+              ? '<div style="font-size:11px;color:var(--mid);font-weight:600;margin-bottom:6px;padding:0 4px;">サブタグ（複数選択可）</div>'
+                + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">' + renderTagGrid(subTags) + '</div>'
+              : '');
+        })()}
       </div>`;
 
     const html = `
@@ -505,6 +505,14 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
         if (state.selectedTags.has(id)) {
           state.selectedTags.delete(id);
         } else {
+          // 予算ありタグを2つ以上選ぼうとした場合は警告
+          if (budgetMap[id]) {
+            const currentBudgetTags = [...state.selectedTags].filter(tid => !!budgetMap[tid]);
+            if (currentBudgetTags.length >= 1) {
+              showToast('主タグ（予算あり）は1つまでです');
+              return;
+            }
+          }
           state.selectedTags.add(id);
         }
         Sound.playTap();
