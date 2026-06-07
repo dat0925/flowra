@@ -9,7 +9,6 @@ import { DB }        from './db.js';
 import { Sound }     from './sound.js';
 import { openModal, closeModal, showToast } from './utils.js';
 import { getCachedTransactions } from './cache.js';
-import { resolveTagIcon as _resolveTagIcon } from './tag-icons.js';
 
 const today = () => new Date().toISOString().slice(0, 10);
 
@@ -69,11 +68,6 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     return accounts.find(a => a.id === id)?.name || '選択してください';
   }
 
-  function resolveTagIcon(tagOrName) {
-    if (typeof tagOrName === 'string') return _resolveTagIcon({ name: tagOrName });
-    return _resolveTagIcon(tagOrName);
-  }
-
   // ── メインフォームを描画 ─────────────────────────
   function render() {
     const isTransfer = state.type === 'transfer';
@@ -111,9 +105,6 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       </div>`;
 
     // タグエリア（コンパクトなチップ形式）
-    const DEFAULT_BG = '#EEF0EE';
-    const DEFAULT_STROKE = '#6A8A6A';
-    const DEFAULT_PATH = 'M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16z';
 
     const tagsHTML = tags.length === 0 ? `
       <div class="form-section">
@@ -917,5 +908,6 @@ function calculate(left, right, op) {
   }
   return Math.max(0, result);
 }
+
 
 
