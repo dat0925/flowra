@@ -130,7 +130,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
             const icon = resolveTagIcon(tag) || { bg: DEFAULT_BG, stroke: DEFAULT_STROKE, path: DEFAULT_PATH };
             const selectedArr = [...state.selectedTags];
             const isSelected = state.selectedTags.has(tag.id);
-            const isPrimary = isSelected && selectedArr[0] === tag.id;
+            const isPrimary = isSelected && !!budgetMap[tag.id] && [...state.selectedTags].filter(tid => !!budgetMap[tid])[0] === tag.id;
             const borderColor = isPrimary ? 'var(--sage)' : (isSelected ? 'var(--sage-lt)' : 'transparent');
             const bgColor = isSelected ? 'var(--sage-bg)' : icon.bg;
             const badge = isPrimary
@@ -505,13 +505,10 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
         if (state.selectedTags.has(id)) {
           state.selectedTags.delete(id);
         } else {
-          // 予算ありタグを2つ以上選ぼうとした場合は警告
+          // 予算ありタグは排他：すでに別の主タグがあれば自動的に外す
           if (budgetMap[id]) {
             const currentBudgetTags = [...state.selectedTags].filter(tid => !!budgetMap[tid]);
-            if (currentBudgetTags.length >= 1) {
-              showToast('主タグ（予算あり）は1つまでです');
-              return;
-            }
+            currentBudgetTags.forEach(tid => state.selectedTags.delete(tid));
           }
           state.selectedTags.add(id);
         }

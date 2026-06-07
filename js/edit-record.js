@@ -257,7 +257,7 @@ export async function openEditRecord(tx, onSave) {
                   const selectedArr = [...state.selectedTags];
                   return tags.map(t => {
                     const isSelected = state.selectedTags.has(t.id);
-                    const isPrimary = isSelected && selectedArr[0] === t.id;
+                    const isPrimary = isSelected && !!budgetMapRaw[t.id] && [...state.selectedTags].filter(tid => !!budgetMapRaw[tid])[0] === t.id;
                     return `<div class="tag-chip ${isSelected?'on':'off'}" data-tag-id="${t.id}" style="position:relative;">
                       ${isPrimary ? '<span style="position:absolute;top:-5px;right:-5px;background:var(--sage-dk);color:#fff;font-size:8px;padding:1px 4px;border-radius:4px;font-weight:600;">主</span>' : ''}
                       ${t.name}
@@ -497,14 +497,10 @@ export async function openEditRecord(tx, onSave) {
           if (state.selectedTags.has(id)) {
             state.selectedTags.delete(id);
           } else {
-            // 予算ありタグを2つ以上選ぼうとした場合は警告
-            const isBudgetTag = !!budgetMapRaw[id];
-            if (isBudgetTag) {
+            // 予算ありタグは排他：すでに別の主タグがあれば自動的に外す
+            if (budgetMapRaw[id]) {
               const currentBudgetTags = [...state.selectedTags].filter(tid => !!budgetMapRaw[tid]);
-              if (currentBudgetTags.length >= 1) {
-                showToast('主タグ（予算あり）は1つまでです');
-                return;
-              }
+              currentBudgetTags.forEach(tid => state.selectedTags.delete(tid));
             }
             state.selectedTags.add(id);
           }
@@ -512,7 +508,7 @@ export async function openEditRecord(tx, onSave) {
           const selectedArr = [...state.selectedTags];
           sheet.querySelectorAll('.tag-chip[data-tag-id]').forEach(c => {
             const sel = state.selectedTags.has(c.dataset.tagId);
-            const isPrimary = sel && selectedArr[0] === c.dataset.tagId;
+            const isPrimary = sel && !!budgetMapRaw[c.dataset.tagId] && selectedArr.filter(tid => !!budgetMapRaw[tid])[0] === c.dataset.tagId;
             c.className = 'tag-chip ' + (sel ? 'on' : 'off');
             c.style.background = '';
             c.style.color = '';
