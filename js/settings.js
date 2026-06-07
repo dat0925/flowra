@@ -28,8 +28,9 @@ function openSubPage(title, renderFn, { showSave = false, onSave = null, onAdd =
   page.id = 'settings-subpage';
   page.style.cssText = 'position:fixed;inset:0;z-index:500;background:var(--stone);display:flex;flex-direction:column;animation:slideInRight 0.25s ease;';
 
-  // 下部バー（タグ管理: 戻る＋追加）
-  const bottomBtn = '<button id="btn-subpage-add" style="flex:1;padding:12px;background:var(--sage-bg);border:1.5px solid var(--sage);border-radius:12px;font-size:14px;font-weight:600;color:var(--sage);cursor:pointer;">＋ タグを追加</button>';
+  // 下部バー（タグ管理: 戻る＋追加＋保存の3ボタン）
+  const bottomBtn = '<button id="btn-subpage-add" style="flex:1;padding:12px;background:var(--sage-bg);border:1.5px solid var(--sage);border-radius:12px;font-size:14px;font-weight:600;color:var(--sage);cursor:pointer;">＋ 追加</button>'
+    + '<button id="btn-subpage-save" class="btn-primary" style="flex:1;">保存</button>';
 
   page.innerHTML =
     // タイトルのみのヘッダー（操作なし）
@@ -55,7 +56,17 @@ function openSubPage(title, renderFn, { showSave = false, onSave = null, onAdd =
   };
 
   document.getElementById('btn-subpage-back')?.addEventListener('click', closeSubPage);
-
+  document.getElementById('btn-subpage-save')?.addEventListener('click', async () => {
+    if (_currentSaveBudgetsFn) {
+      try {
+        await _currentSaveBudgetsFn();
+      } catch(e) {
+        showToast('エラー: ' + e.message);
+        return;
+      }
+    }
+    closeSubPage();
+  });
   document.getElementById('btn-subpage-add')?.addEventListener('click', () => {
     if (onAdd) onAdd();
   });
@@ -165,25 +176,73 @@ async function renderTagList(tags) {
       + dotOrIcon
       + '<span style="font-size:14px;">' + t.name + '</span>'
       + '</div>'
-      + '<div class="budget-cell" style="display:flex;align-items:center;gap:8px;flex-shrink:0;">'
-      + '<span style="font-size:13px;color:var(--mid-lt);">¥</span>'
-      + '<span class="budget-display" style="width:80px;text-align:right;font-size:14px;font-weight:600;color:var(--ink);">' + (budgetVal || '<span style="color:var(--mid-lt);">−</span>') + '</span>'
-      + '<button class="btn-edit-tag" data-tag-id="' + t.id + '" style="font-size:11px;color:var(--sage);background:var(--sage-bg);border:1px solid var(--sage-lt);border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap;touch-action:manipulation;flex-shrink:0;">編集</button>'
+       + '<div class="budget-cell" style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
+      + '<span style="font-size:12px;color:var(--mid-lt);">¥</span>'
+      + '<input type="text" inputmode="numeric" class="budget-input-inline" data-tag-id="' + t.id + '"'
+      + ' value="' + budgetVal + '" placeholder="−"'
+      + ' style="width:88px;text-align:right;font-size:14px;font-weight:600;color:var(--ink);'
+      + 'padding:6px 8px;border:1.5px solid var(--border);border-radius:8px;background:var(--white);'
+      + 'font-family:\'Noto Sans JP\',sans-serif;" />'
+       + '<button class="btn-monthly-budget" data-tag-id="' + t.id + '" style="font-size:11px;color:var(--sage);background:var(--sage-bg);border:none;border-radius:6px;padding:5px 8px;cursor:pointer;white-space:nowrap;touch-action:manipulation;">月別</button>'
       + '</div>'
       + '</div>';
   }).join('');
 
-  // 編集ボタン → タグ編集シートを開く（スクロールに干渉しない）
-  wrap.addEventListener('click', e => {
-    const btn = e.target.closest('.btn-edit-tag');
-    if (!btn) return;
-    const tagId = btn.dataset.tagId;
-    const tag = tags.find(t => t.id === tagId);
+  // タッチ開始Y座標を記録
+  let _tagTapStartY = 0;
+  wrap.addEventListener('touchstart', e => {
+    _tagTapStartY = e.touches[0].clientY;
+  }, { passive: true });
+
+  wrap.addEventListener('touchend', e => {
+    const dy = Math.abs(e.changedTouches[0].clientY - _tagTapStartY);
+    if (dy > 8) return; // スクロール中はスキップ
+    if (e.target.closest('.drag-handle')) return;
+
+    // 月別ボタン
+    const monthBtn = e.target.closest('.btn-monthly-budget');
+    if (monthBtn) {
+      const tagId = monthBtn.dataset.tagId;
+      const tag = tags.find(t => t.id === tagId);
+      if (tag) openBudgetMonthSheet(tag, budgetMap[tagId]);
+      return;
+    }
+
+    // 予算入力欄はスキップ（フォーカスに任せる）
+    if (e.target.closest('.budget-input-inline')) return;
+
+    // 行タップ → タグ編集シート
+    const row = e.target.closest('.tag-item');
+    if (!row) return;
+    const tag = tags.find(t => t.id === row.dataset.tagId);
     if (tag) openTagEditSheet(tag, tags, budgetMap);
+  }, { passive: true });
+
+  // 予算入力: コンマ整形
+  wrap.querySelectorAll('.budget-input-inline').forEach(input => {
+    input.addEventListener('focus', () => {
+      input.value = input.value.replace(/,/g, '');
+    });
+    input.addEventListener('blur', () => {
+      const n = parseInt(input.value.replace(/,/g, '') || '0', 10);
+      input.value = n > 0 ? n.toLocaleString() : '';
+    });
+    input.addEventListener('input', () => {
+      input.value = input.value.replace(/[^0-9,]/g, '');
+    });
   });
 
-  // 保存ボタンは非表示（編集シート内で個別保存）
-  _currentSaveBudgetsFn = null;
+  // 保存関数をモジュール変数に登録
+  _currentSaveBudgetsFn = async () => {
+    const inputs = wrap.querySelectorAll('.budget-input-inline');
+    for (const input of inputs) {
+      const tagId = input.dataset.tagId;
+      const amount = parseInt((input.value || '0').replace(/,/g, ''), 10);
+      await DB.upsertBudget(tagId, amount || 0, null);
+    }
+    showToast('✓ 予算を保存しました');
+    Sound.playTap();
+  };
 
   // ドラッグ並び替え
   initTagDragSort(wrap, tags, async (newOrder) => {
