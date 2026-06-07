@@ -72,13 +72,13 @@ export async function openEditRecord(tx, onSave) {
   }
 
   // 最新の口座・タグを取得
-  let accounts = [], tags = [], myRole = 'member', members = [], budgetMapRaw = {};
+  let accounts = [], tags = [], myRole = 'member', members = [], budgetTagIds = new Set();
   try {
     const teamId = await DB.getTeamId();
-    [accounts, tags, myRole, members, budgetMapRaw] = await Promise.all([
+    [accounts, tags, myRole, members, budgetTagIds] = await Promise.all([
       DB.getAccounts(), DB.getTags(), DB.getMyRole(),
       DB.getTeamMemberProfilesForTeam(teamId).catch(() => []),
-      DB.getBudgets(null).catch(() => ({}))
+      DB.getBudgetTagIds().catch(() => new Set())
     ]);
   } catch (e) {
     showToast('データ取得エラー: ' + e.message);
@@ -470,11 +470,11 @@ export async function openEditRecord(tx, onSave) {
 
     // タグ（render後に再バインドできるよう関数化）
     function buildTagGridHTML() {
-      const primaryTags = tags.filter(t => !!budgetMapRaw[t.id]);
-      const subTags = tags.filter(t => !budgetMapRaw[t.id]);
+      const primaryTags = tags.filter(t => budgetTagIds.has(t.id));
+      const subTags = tags.filter(t => !budgetTagIds.has(t.id));
       const renderTagGrid = (tagList) => tagList.map(tag => {
         const isSelected = state.selectedTags.has(tag.id);
-        const isPrimary = isSelected && !!budgetMapRaw[tag.id] && [...state.selectedTags].filter(tid => !!budgetMapRaw[tid])[0] === tag.id;
+        const isPrimary = isSelected && budgetTagIds.has(tag.id) && [...state.selectedTags].filter(tid => budgetTagIds.has(tid))[0] === tag.id;
         const borderColor = isPrimary ? 'var(--sage)' : (isSelected ? 'var(--sage-lt)' : 'transparent');
         const bgColor = isSelected ? 'var(--sage-bg)' : 'var(--stone)';
         const badge = isPrimary
@@ -513,8 +513,8 @@ export async function openEditRecord(tx, onSave) {
           if (state.selectedTags.has(id)) {
             state.selectedTags.delete(id);
           } else {
-            if (budgetMapRaw[id]) {
-              const currentBudgetTags = [...state.selectedTags].filter(tid => !!budgetMapRaw[tid]);
+            if (budgetTagIds.has(id)) {
+              const currentBudgetTags = [...state.selectedTags].filter(tid => budgetTagIds.has(tid));
               currentBudgetTags.forEach(tid => state.selectedTags.delete(tid));
             }
             state.selectedTags.add(id);
@@ -759,3 +759,4 @@ function calcFn(left, right, op) {
   }
   return Math.max(0, r);
 }
+
