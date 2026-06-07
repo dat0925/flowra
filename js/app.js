@@ -476,7 +476,6 @@ async function initTeamSwitcher() {
 
 // ── プルトゥリフレッシュ ──────────────────
 function initPullToRefresh() {
-  let startY = 0;
   let startX = 0, startY = 0;
   let pulling = false, swiping = false;
   let indicator = null;
