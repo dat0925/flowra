@@ -261,7 +261,6 @@ export async function openEditRecord(tx, onSave) {
                       ${t.name}
                     </div>`;
                   }).join('');
-                  }).join('');
                 })()
             }
           </div>
