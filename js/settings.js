@@ -648,10 +648,13 @@ function openTagEditSheet(tag, allTags, budgetMap = {}) {
                 style="flex:1;font-size:16px;font-weight:600;padding:4px 6px;
                 border:none;border-bottom:1.5px solid var(--border);background:transparent;
                 font-family:'Noto Sans JP',sans-serif;color:var(--ink);">
+            </div>
+            <div style="margin-top:10px;">
               <button id="btn-tag-budget-month"
-                style="font-size:11px;color:var(--sage);background:var(--sage-bg);border:none;
-                border-radius:6px;padding:5px 10px;cursor:pointer;white-space:nowrap;flex-shrink:0;">
-                月で調整
+                style="font-size:12px;color:var(--sage);background:var(--sage-bg);
+                border:1px solid var(--sage-lt);border-radius:8px;padding:7px 16px;
+                cursor:pointer;width:100%;text-align:center;">
+                📅 月ごとに金額を変更する
               </button>
             </div>
           </div>
@@ -1577,6 +1580,7 @@ function openTagAddSheet(tags) {
     if (e.key === 'Enter') doAdd();
   });
 }
+
 
 
 
