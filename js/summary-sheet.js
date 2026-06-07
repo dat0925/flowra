@@ -4,45 +4,44 @@ import { MonthState } from './router.js';
 
 const fmt = n => Math.abs(n).toLocaleString('ja-JP');
 
-export async function openSummarySheet() {
-  // 既存シートがあれば閉じる
-  document.getElementById('summary-sheet-overlay')?.remove();
-
-  // 直近6ヶ月を生成（当月含む）
+function getMonths(baseYear, baseMonth) {
   const months = [];
   for (let i = 5; i >= 0; i--) {
-    let y = MonthState.year;
-    let m = MonthState.month - i;
+    let y = baseYear, m = baseMonth - i;
     while (m <= 0) { m += 12; y--; }
     while (m > 12) { m -= 12; y++; }
     months.push({ year: y, month: m });
   }
+  return months;
+}
 
-  // オーバーレイ表示（ローディング）
+export async function openSummarySheet() {
+  document.getElementById('summary-sheet-overlay')?.remove();
+
+  let baseYear  = MonthState.year;
+  let baseMonth = MonthState.month;
+
   const overlay = document.createElement('div');
   overlay.id = 'summary-sheet-overlay';
-  overlay.style.cssText = `
-    position:fixed;inset:0;z-index:800;
-    background:rgba(0,0,0,0.45);
-    display:flex;align-items:flex-end;justify-content:center;
-  `;
+  overlay.style.cssText = `position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.45);display:flex;align-items:flex-end;justify-content:center;`;
   overlay.innerHTML = `
-    <div id="summary-sheet" style="
-      width:100%;max-width:640px;
-      background:var(--stone);
-      border-radius:20px 20px 0 0;
-      max-height:90vh;
-      display:flex;flex-direction:column;
-      overflow:hidden;
-    ">
-      <div style="display:flex;align-items:center;justify-content:space-between;
-        padding:16px 20px 12px;border-bottom:1px solid var(--border);">
+    <div id="summary-sheet" style="width:100%;max-width:640px;background:var(--stone);border-radius:20px 20px 0 0;max-height:90vh;display:flex;flex-direction:column;overflow:hidden;">
+      <!-- ヘッダー -->
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;">
         <div style="font-size:15px;font-weight:700;color:var(--ink);">タグ別集計</div>
-        <button id="btn-close-summary" style="background:none;border:none;padding:4px;cursor:pointer;color:var(--mid);">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
-            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-          </svg>
-        </button>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <!-- 月ナビ -->
+          <div style="display:flex;align-items:center;gap:4px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:4px 8px;">
+            <button id="ss-prev-month" style="background:none;border:none;padding:2px 6px;cursor:pointer;color:var(--sage);font-size:16px;line-height:1;">‹</button>
+            <span id="ss-month-label" style="font-size:12px;font-weight:600;color:var(--ink);white-space:nowrap;min-width:60px;text-align:center;"></span>
+            <button id="ss-next-month" style="background:none;border:none;padding:2px 6px;cursor:pointer;color:var(--sage);font-size:16px;line-height:1;">›</button>
+          </div>
+          <button id="btn-close-summary" style="background:none;border:none;padding:4px;cursor:pointer;color:var(--mid);">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
       </div>
       <div id="summary-sheet-body" style="overflow:auto;flex:1;padding:0;">
         <div style="padding:32px;text-align:center;color:var(--mid);font-size:13px;">読み込み中…</div>
@@ -50,7 +49,6 @@ export async function openSummarySheet() {
     </div>`;
   document.body.appendChild(overlay);
 
-  // アニメーション
   const sheet = document.getElementById('summary-sheet');
   sheet.style.transform = 'translateY(100%)';
   requestAnimationFrame(() => {
@@ -58,7 +56,6 @@ export async function openSummarySheet() {
     sheet.style.transform = 'translateY(0)';
   });
 
-  // 閉じる
   const close = () => {
     sheet.style.transform = 'translateY(100%)';
     setTimeout(() => overlay.remove(), 300);
@@ -66,25 +63,53 @@ export async function openSummarySheet() {
   document.getElementById('btn-close-summary').addEventListener('click', close);
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 
-  // データ取得
+  const updateLabel = () => {
+    document.getElementById('ss-month-label').textContent = `〜${baseYear}年${baseMonth}月`;
+    const now = new Date();
+    document.getElementById('ss-next-month').disabled =
+      baseYear > now.getFullYear() || (baseYear === now.getFullYear() && baseMonth >= now.getMonth() + 1);
+  };
+
+  const renderSheet = async () => {
+    document.getElementById('summary-sheet-body').innerHTML =
+      '<div style="padding:32px;text-align:center;color:var(--mid);font-size:13px;">読み込み中…</div>';
+    updateLabel();
+    await loadAndRender(baseYear, baseMonth);
+  };
+
+  document.getElementById('ss-prev-month').addEventListener('click', () => {
+    baseMonth--;
+    if (baseMonth <= 0) { baseMonth = 12; baseYear--; }
+    renderSheet();
+  });
+  document.getElementById('ss-next-month').addEventListener('click', () => {
+    baseMonth++;
+    if (baseMonth > 12) { baseMonth = 1; baseYear++; }
+    renderSheet();
+  });
+
+  updateLabel();
+  await loadAndRender(baseYear, baseMonth);
+}
+
+async function loadAndRender(baseYear, baseMonth) {
+  const el = document.getElementById('summary-sheet-body');
   try {
+    const months = getMonths(baseYear, baseMonth);
+    const currentKey = `${baseYear}-${String(baseMonth).padStart(2,'0')}`;
+
     const [tags, budgetMap] = await Promise.all([
       DB.getTags(),
-      DB.getBudgets(`${MonthState.year}-${String(MonthState.month).padStart(2,'0')}`),
+      DB.getBudgets(currentKey),
     ]);
 
-    // 各月の取引を取得
     const allTxData = await Promise.all(
       months.map(({ year, month }) =>
         DB.getTransactions({ year, month, pageSize: 2000 }).then(r => ({ year, month, txs: r.data || [] }))
       )
     );
 
-    // タグ×月の集計
-    // tagId -> monthKey -> amount
     const matrix = {};
-    const tagIds = tags.filter(t => !t.is_archived).map(t => t.id);
-
     for (const { year, month, txs } of allTxData) {
       const key = `${year}-${String(month).padStart(2,'0')}`;
       for (const tx of txs) {
@@ -94,53 +119,45 @@ export async function openSummarySheet() {
           if (!matrix[tag.id]) matrix[tag.id] = {};
           matrix[tag.id][key] = (matrix[tag.id][key] || 0) + tx.amount;
         }
-      }
-    }
-
-    // タグなし支出も集計
-    for (const { year, month, txs } of allTxData) {
-      const key = `${year}-${String(month).padStart(2,'0')}`;
-      for (const tx of txs) {
-        if (tx.type !== 'expense') continue;
         if (!tx.tags || tx.tags.filter(t => t).length === 0) {
           if (!matrix['__untagged__']) matrix['__untagged__'] = {};
-          matrix['__untagged__'][key] = (matrix['__untagged__'][key] || 0) + tx.amount;
+          const key2 = `${year}-${String(month).padStart(2,'0')}`;
+          matrix['__untagged__'][key2] = (matrix['__untagged__'][key2] || 0) + tx.amount;
         }
       }
     }
 
-    const monthKeys = months.map(({ year, month }) => `${year}-${String(month).padStart(2,'0')}`);
+    const monthKeys   = months.map(({ year, month }) => `${year}-${String(month).padStart(2,'0')}`);
     const monthLabels = months.map(({ month }) => `${month}月`);
-    const currentKey = monthKeys[monthKeys.length - 1];
 
-    // 表示するタグ（データがある or 予算設定がある）
     const displayTags = [
       ...tags.filter(t => !t.is_archived && (matrix[t.id] || budgetMap[t.id])),
       ...(matrix['__untagged__'] ? [{ id: '__untagged__', name: 'タグなし', color: '#999' }] : []),
     ];
 
-    // 月別合計
     const monthTotals = {};
     for (const key of monthKeys) {
       monthTotals[key] = displayTags.reduce((s, t) => s + (matrix[t.id]?.[key] || 0), 0);
     }
     const currentBudgetTotal = Object.values(budgetMap).reduce((s, b) => s + b.amount, 0);
-
-    // 表HTML生成
     const colWidth = 72;
+
+    // stickyヘッダー行
     const headerRow = `
       <tr>
-        <th style="position:sticky;left:0;z-index:2;
-          background:#f0ede8;
-          padding:10px 12px;text-align:left;font-size:11px;color:var(--mid);
-          font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;min-width:90px;
+        <th style="position:sticky;top:0;left:0;z-index:3;background:#f0ede8;
+          padding:8px 12px;text-align:left;font-size:11px;color:var(--mid);font-weight:600;
+          border-bottom:2px solid var(--border);white-space:nowrap;min-width:90px;
           box-shadow:2px 0 4px rgba(0,0,0,0.06);">タグ</th>
         ${monthLabels.map((l, i) => `
-          <th style="padding:10px 8px;text-align:right;font-size:11px;color:${i === monthLabels.length-1 ? 'var(--sage-dk)' : 'var(--mid)'};
+          <th style="position:sticky;top:0;z-index:2;background:#f0ede8;
+            padding:8px 8px;text-align:right;font-size:11px;
+            color:${i === monthLabels.length-1 ? 'var(--sage-dk)' : 'var(--mid)'};
             font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;min-width:${colWidth}px;">
             ${l}${i === monthLabels.length-1 ? '<br><span style="font-size:9px;opacity:0.7;">今月</span>' : ''}
           </th>`).join('')}
-        <th style="padding:10px 8px;text-align:right;font-size:11px;color:var(--sage);
+        <th style="position:sticky;top:0;z-index:2;background:#f0ede8;
+          padding:8px 8px;text-align:right;font-size:11px;color:var(--sage);
           font-weight:600;border-bottom:2px solid var(--border);white-space:nowrap;min-width:${colWidth}px;">今月予算</th>
       </tr>`;
 
@@ -161,37 +178,28 @@ export async function openSummarySheet() {
       }).join('');
 
       const budgetCell = budget > 0
-        ? `<td style="padding:9px 8px;text-align:right;font-size:13px;color:var(--sage);
-            font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap;">
-            ${fmt(budget)}
-          </td>`
-        : `<td style="padding:9px 8px;text-align:right;font-size:13px;color:var(--mid-lt);
-            border-bottom:1px solid var(--border);">−</td>`;
+        ? `<td style="padding:9px 8px;text-align:right;font-size:13px;color:var(--sage);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap;">${fmt(budget)}</td>`
+        : `<td style="padding:9px 8px;text-align:right;font-size:13px;color:var(--mid-lt);border-bottom:1px solid var(--border);">−</td>`;
 
       const bg = ri % 2 === 0 ? '' : 'background:rgba(0,0,0,0.015);';
       return `
         <tr style="${bg}">
-          <td style="position:sticky;left:0;z-index:1;
-            background:#f8f6f2;
+          <td style="position:sticky;left:0;z-index:1;background:#f8f6f2;
             padding:9px 12px;font-size:13px;color:var(--ink);
             border-bottom:1px solid var(--border);white-space:nowrap;
             box-shadow:2px 0 4px rgba(0,0,0,0.06);">
             <div style="display:flex;align-items:center;gap:6px;">
-              <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;
-                background:${tag.color || 'var(--sage)'}"></span>
+              <span style="width:8px;height:8px;border-radius:50%;flex-shrink:0;background:${tag.color || 'var(--sage)'}"></span>
               ${tag.name}
             </div>
           </td>
-          ${cells}
-          ${budgetCell}
+          ${cells}${budgetCell}
         </tr>`;
     }).join('');
 
-    // 合計行
     const totalRow = `
       <tr style="background:var(--sage-bg);">
-        <td style="position:sticky;left:0;z-index:1;
-          background:#eef4ef;
+        <td style="position:sticky;left:0;z-index:1;background:#eef4ef;
           padding:10px 12px;font-size:13px;font-weight:700;color:var(--ink);
           border-top:2px solid var(--border);white-space:nowrap;
           box-shadow:2px 0 4px rgba(0,0,0,0.06);">合計</td>
@@ -202,33 +210,26 @@ export async function openSummarySheet() {
           const color = currentBudgetTotal > 0 && total > 0
             ? (pct > 1 ? '#B83232' : pct > 0.8 ? '#B8973E' : (isCurrent ? 'var(--sage-dk)' : 'var(--ink)'))
             : 'var(--ink)';
-          return `<td style="padding:10px 8px;text-align:right;font-size:13px;
-            font-weight:700;color:${color};
-            border-top:2px solid var(--border);white-space:nowrap;">
-            ${fmt(total)}
-          </td>`;
+          return `<td style="padding:10px 8px;text-align:right;font-size:13px;font-weight:700;color:${color};border-top:2px solid var(--border);white-space:nowrap;">${fmt(total)}</td>`;
         }).join('')}
-        <td style="padding:10px 8px;text-align:right;font-size:13px;
-          font-weight:700;color:var(--sage);
-          border-top:2px solid var(--border);white-space:nowrap;">
+        <td style="padding:10px 8px;text-align:right;font-size:13px;font-weight:700;color:var(--sage);border-top:2px solid var(--border);white-space:nowrap;">
           ${currentBudgetTotal > 0 ? fmt(currentBudgetTotal) : '−'}
         </td>
       </tr>`;
 
-    document.getElementById('summary-sheet-body').innerHTML = `
+    el.innerHTML = `
       <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
         <table style="border-collapse:collapse;width:100%;min-width:max-content;">
           <thead>${headerRow}</thead>
           <tbody>${dataRows}${totalRow}</tbody>
         </table>
       </div>
-      <div style="padding:12px 16px;font-size:11px;color:var(--mid-lt);line-height:1.6;">
+      <div style="padding:10px 16px;font-size:11px;color:var(--mid-lt);line-height:1.6;">
         ※ 支出のみ集計。赤字は予算超過、黄色は80%超。
       </div>`;
 
   } catch (e) {
-    document.getElementById('summary-sheet-body').innerHTML =
-      `<div style="padding:32px;text-align:center;color:var(--red);font-size:13px;">読み込みに失敗しました</div>`;
+    el.innerHTML = `<div style="padding:32px;text-align:center;color:var(--red);font-size:13px;">読み込みに失敗しました</div>`;
     console.error('[SummarySheet]', e);
   }
 }
