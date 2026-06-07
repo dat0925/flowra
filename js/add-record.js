@@ -14,13 +14,13 @@ import { resolveTagIcon as _resolveTagIcon } from './tag-icons.js';
 const today = () => new Date().toISOString().slice(0, 10);
 
 // メモリキャッシュ（同期的にモーダルを開くため）
-let _accounts = null, _tags = null, _budgetMap = null;
+let _accounts = null, _tags = null, _budgetTagIds = null;
 
 // アプリ起動時・保存後に呼ぶ（事前ウォームアップ）
 export async function warmupAddRecord() {
   try {
-    [_accounts, _tags, _budgetMap] = await Promise.all([
-      DB.getAccounts(), DB.getTags(), DB.getBudgets(null)
+    [_accounts, _tags, _budgetTagIds] = await Promise.all([
+      DB.getAccounts(), DB.getTags(), DB.getBudgetTagIds()
     ]);
   } catch (e) { /* silent */ }
 }
@@ -29,21 +29,21 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
   // キャッシュがあれば同期的に開始、なければ取得
   let accounts  = _accounts  ?? [];
   let tags      = _tags      ?? [];
-  let budgetMap = _budgetMap ?? {};
+  let budgetMap = _budgetTagIds ?? new Set();
 
   if (_accounts === null) {
     try {
       [accounts, tags, budgetMap] = await Promise.all([
-        DB.getAccounts(), DB.getTags(), DB.getBudgets(null)
+        DB.getAccounts(), DB.getTags(), DB.getBudgetTagIds()
       ]);
-      _accounts = accounts; _tags = tags; _budgetMap = budgetMap;
+      _accounts = accounts; _tags = tags; _budgetTagIds = budgetMap;
     } catch (e) {
       showToast('データ取得エラー: ' + e.message);
       return;
     }
   } else {
-    Promise.all([DB.getAccounts(), DB.getTags(), DB.getBudgets(null)])
-      .then(([a, t, b]) => { _accounts = a; _tags = t; _budgetMap = b; })
+    Promise.all([DB.getAccounts(), DB.getTags(), DB.getBudgetTagIds()])
+      .then(([a, t, b]) => { _accounts = a; _tags = t; _budgetTagIds = b; })
       .catch(() => {});
   }
 
@@ -124,13 +124,13 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       </div>` : `
       <div class="form-section" style="padding:10px 14px 14px;">
         ${(() => {
-          const primaryTags = tags.filter(t => !!budgetMap[t.id]);
-          const subTags = tags.filter(t => !budgetMap[t.id]);
+          const primaryTags = tags.filter(t => budgetMap.has(t.id));
+          const subTags = tags.filter(t => !budgetMap.has(t.id));
           const renderTagGrid = (tagList) => tagList.map(tag => {
             const icon = resolveTagIcon(tag) || { bg: DEFAULT_BG, stroke: DEFAULT_STROKE, path: DEFAULT_PATH };
             const selectedArr = [...state.selectedTags];
             const isSelected = state.selectedTags.has(tag.id);
-            const isPrimary = isSelected && !!budgetMap[tag.id] && [...state.selectedTags].filter(tid => !!budgetMap[tid])[0] === tag.id;
+            const isPrimary = isSelected && budgetMap.has(tag.id) && [...state.selectedTags].filter(tid => budgetMap.has(tid))[0] === tag.id;
             const borderColor = isPrimary ? 'var(--sage)' : (isSelected ? 'var(--sage-lt)' : 'transparent');
             const bgColor = isSelected ? 'var(--sage-bg)' : icon.bg;
             const badge = isPrimary
@@ -506,8 +506,8 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
           state.selectedTags.delete(id);
         } else {
           // 予算ありタグは排他：すでに別の主タグがあれば自動的に外す
-          if (budgetMap[id]) {
-            const currentBudgetTags = [...state.selectedTags].filter(tid => !!budgetMap[tid]);
+          if (budgetMap.has(id)) {
+            const currentBudgetTags = [...state.selectedTags].filter(tid => budgetMap.has(tid));
             currentBudgetTags.forEach(tid => state.selectedTags.delete(tid));
           }
           state.selectedTags.add(id);
@@ -918,3 +918,4 @@ function calculate(left, right, op) {
   }
   return Math.max(0, result);
 }
+
