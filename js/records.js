@@ -152,13 +152,14 @@ function renderShell(transactions, year, month, focusSearch = false) {
               border-radius:8px;padding:3px 8px;white-space:nowrap;flex-shrink:0;">
           </div>
           <button id="btn-summary-sheet"
-            style="flex-shrink:0;width:36px;height:36px;border-radius:10px;border:1.5px solid var(--border);
-              background:var(--white);color:var(--mid);
-              cursor:pointer;display:flex;align-items:center;justify-content:center;">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+            style="flex-shrink:0;padding:6px 10px;border-radius:10px;border:1.5px solid var(--border);
+              background:var(--white);color:var(--mid);font-size:11px;font-weight:600;
+              cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap;">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/>
               <line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/><line x1="15" y1="9" x2="15" y2="21"/>
             </svg>
+            集計
           </button>
           </button>
         </div>
