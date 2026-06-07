@@ -245,37 +245,7 @@ export async function openEditRecord(tx, onSave) {
         </div>
 
         <!-- タグ -->
-        <div class="form-section" style="margin-bottom:12px;padding:10px 14px 14px;">
-          ${(() => {
-            const primaryTags = tags.filter(t => !!budgetMapRaw[t.id]);
-            const subTags = tags.filter(t => !budgetMapRaw[t.id]);
-            const renderTagGrid = (tagList) => tagList.map(tag => {
-              const isSelected = state.selectedTags.has(tag.id);
-              const isPrimary = isSelected && !!budgetMapRaw[tag.id] && [...state.selectedTags].filter(tid => !!budgetMapRaw[tid])[0] === tag.id;
-              const borderColor = isPrimary ? 'var(--sage)' : (isSelected ? 'var(--sage-lt)' : 'transparent');
-              const bgColor = isSelected ? 'var(--sage-bg)' : 'var(--stone)';
-              const badge = isPrimary
-                ? '<span style="position:absolute;top:-5px;right:-5px;background:var(--sage);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:5px;line-height:1.6;">主</span>'
-                : (isSelected
-                  ? '<span style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:var(--sage-lt);display:flex;align-items:center;justify-content:center;"><svg viewBox=\'0 0 24 24\' width=\'9\' height=\'9\' fill=\'none\' stroke=\'#fff\' stroke-width=\'3\' stroke-linecap=\'round\'><polyline points=\'20 6 9 17 4 12\'/></svg></span>'
-                  : '');
-              return '<div class="tag-chip er-tag-btn" data-tag-id="' + tag.id + '"'
-                + ' style="display:flex;flex-direction:column;align-items:center;gap:5px;'
-                + 'padding:10px 4px 8px;border-radius:12px;border:2px solid ' + borderColor + ';'
-                + 'background:' + bgColor + ';cursor:pointer;transition:all 0.12s;position:relative;">'
-                + badge
-                + '<span style="font-size:10px;color:' + (isSelected ? 'var(--sage-dk)' : 'var(--ink)') + ';font-weight:' + (isSelected ? '600' : '500') + ';text-align:center;line-height:1.3;word-break:keep-all;">' + tag.name + '</span>'
-                + '</div>';
-            }).join('');
-            if (tags.length === 0) return '<div style="font-size:12.5px;color:var(--mid-lt);padding:4px 0 8px;">タグがありません</div>';
-            return '<div style="font-size:11px;color:var(--sage-dk);font-weight:600;margin-bottom:6px;padding:0 4px;">主タグ（予算あり・1つまで）</div>'
-              + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">' + renderTagGrid(primaryTags) + '</div>'
-              + (subTags.length > 0
-                ? '<div style="font-size:11px;color:var(--mid);font-weight:600;margin-bottom:6px;padding:0 4px;">サブタグ（複数選択可）</div>'
-                  + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">' + renderTagGrid(subTags) + '</div>'
-                : '');
-          })()}
-        </div>
+        <div class="form-section" id="er-tag-section" style="margin-bottom:12px;padding:10px 14px 14px;"></div>
 
         <!-- 未精算 -->
         <div class="form-section" style="margin-bottom:20px;">
@@ -499,14 +469,50 @@ export async function openEditRecord(tx, onSave) {
     });
 
     // タグ（render後に再バインドできるよう関数化）
+    function buildTagGridHTML() {
+      const primaryTags = tags.filter(t => !!budgetMapRaw[t.id]);
+      const subTags = tags.filter(t => !budgetMapRaw[t.id]);
+      const renderTagGrid = (tagList) => tagList.map(tag => {
+        const isSelected = state.selectedTags.has(tag.id);
+        const isPrimary = isSelected && !!budgetMapRaw[tag.id] && [...state.selectedTags].filter(tid => !!budgetMapRaw[tid])[0] === tag.id;
+        const borderColor = isPrimary ? 'var(--sage)' : (isSelected ? 'var(--sage-lt)' : 'transparent');
+        const bgColor = isSelected ? 'var(--sage-bg)' : 'var(--stone)';
+        const badge = isPrimary
+          ? '<span style="position:absolute;top:-5px;right:-5px;background:var(--sage);color:#fff;font-size:9px;font-weight:700;padding:1px 5px;border-radius:5px;line-height:1.6;">主</span>'
+          : (isSelected
+            ? '<span style="position:absolute;top:-4px;right:-4px;width:14px;height:14px;border-radius:50%;background:var(--sage-lt);display:flex;align-items:center;justify-content:center;"><svg viewBox=\'0 0 24 24\' width=\'9\' height=\'9\' fill=\'none\' stroke=\'#fff\' stroke-width=\'3\' stroke-linecap=\'round\'><polyline points=\'20 6 9 17 4 12\'/></svg></span>'
+            : '');
+        return '<div class="er-tag-btn" data-tag-id="' + tag.id + '"'
+          + ' style="display:flex;flex-direction:column;align-items:center;gap:5px;'
+          + 'padding:10px 4px 8px;border-radius:12px;border:2px solid ' + borderColor + ';'
+          + 'background:' + bgColor + ';cursor:pointer;transition:all 0.12s;position:relative;">'
+          + badge
+          + '<span style="font-size:10px;color:' + (isSelected ? 'var(--sage-dk)' : 'var(--ink)') + ';font-weight:' + (isSelected ? '600' : '500') + ';text-align:center;line-height:1.3;word-break:keep-all;">' + tag.name + '</span>'
+          + '</div>';
+      }).join('');
+      if (tags.length === 0) return '<div style="font-size:12.5px;color:var(--mid-lt);padding:4px 0 8px;">タグがありません</div>';
+      return '<div style="font-size:11px;color:var(--sage-dk);font-weight:600;margin-bottom:6px;padding:0 4px;">主タグ（予算あり・1つまで）</div>'
+        + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:14px;">' + renderTagGrid(primaryTags) + '</div>'
+        + (subTags.length > 0
+          ? '<div style="font-size:11px;color:var(--mid);font-weight:600;margin-bottom:6px;padding:0 4px;">サブタグ（複数選択可）</div>'
+            + '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">' + renderTagGrid(subTags) + '</div>'
+          : '');
+    }
+
+    function renderTagSection() {
+      const sec = document.getElementById('er-tag-section');
+      if (sec) sec.innerHTML = buildTagGridHTML();
+    }
+
     function bindTags() {
-      sheet.querySelectorAll('.er-tag-btn[data-tag-id]').forEach(chip => {
+      const sec = document.getElementById('er-tag-section');
+      if (!sec) return;
+      sec.querySelectorAll('.er-tag-btn[data-tag-id]').forEach(chip => {
         chip.addEventListener('click', () => {
           const id = chip.dataset.tagId;
           if (state.selectedTags.has(id)) {
             state.selectedTags.delete(id);
           } else {
-            // 予算ありタグは排他：すでに別の主タグがあれば自動的に外す
             if (budgetMapRaw[id]) {
               const currentBudgetTags = [...state.selectedTags].filter(tid => !!budgetMapRaw[tid]);
               currentBudgetTags.forEach(tid => state.selectedTags.delete(tid));
@@ -514,11 +520,13 @@ export async function openEditRecord(tx, onSave) {
             state.selectedTags.add(id);
           }
           Sound.playTap();
-          // グリッドを再描画
-          render();
+          // タグ部分だけ再描画（スクロール位置を維持）
+          renderTagSection();
+          bindTags();
         });
       });
     }
+    renderTagSection();
     bindTags();
 
     // ？ツールチップ
