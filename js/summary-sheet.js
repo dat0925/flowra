@@ -351,7 +351,7 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
       </tr>`;
 
     el.innerHTML = `
-      <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+      <div id="summary-scroll-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
         <table style="border-collapse:collapse;width:100%;min-width:max-content;">
           <thead>${headerRow}</thead>
           <tbody>${dataRows}${totalRow}</tbody>
@@ -362,6 +362,12 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
           ? '※ 支出のみ集計。複数タグがある場合は「主」タグのみで集計します（二重カウントなし）。<br>※ 合計行 = 主タグ別合計 + タグなし合計 = その月の支出合計と一致します。'
           : '※ 2番目以降のサブタグで集計します。1件の支出が複数サブタグにまたがる場合は重複カウントされます。'}
       </div>`;
+
+    // 横スクロールを最右端（当月列）に移動
+    requestAnimationFrame(() => {
+      const wrap = document.getElementById('summary-scroll-wrap');
+      if (wrap) wrap.scrollLeft = wrap.scrollWidth;
+    });
 
   } catch (e) {
     el.innerHTML = `<div style="padding:32px;text-align:center;color:var(--red);font-size:13px;">読み込みに失敗しました</div>`;
