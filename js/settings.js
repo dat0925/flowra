@@ -735,9 +735,12 @@ function openTagEditSheet(tag, allTags, budgetMap = {}) {
       return;
     }
 
+    const saveBtn = document.getElementById('btn-save-tag');
+    saveBtn.disabled = true;
+    saveBtn.textContent = '保存中…';
     try {
       await DB.updateTag(tag.id, { name, color: selectedTagColor });
-      // 予算も保存
+      // 予算も保存（並列）
       const budgetInputEl = document.getElementById('edit-tag-budget');
       if (budgetInputEl) {
         const amount = parseInt((budgetInputEl.value || '0').replace(/,/g, ''), 10);
@@ -747,12 +750,15 @@ function openTagEditSheet(tag, allTags, budgetMap = {}) {
       Sound.playTap();
       closeSheet();
       showToast('✓ タグを更新しました');
-      // タグ一覧だけ再描画（設定画面全体の再描画は不要）
       const updatedTags = await DB.getTags();
       await renderTagList(updatedTags);
     } catch (e) {
       errorEl.textContent = '更新に失敗しました。';
       errorEl.style.display = 'block';
+      if (saveBtn.isConnected) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '✓ 変更を保存';
+      }
     }
   });
 
