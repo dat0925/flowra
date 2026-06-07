@@ -276,18 +276,9 @@ async function renderBudgetList(tags) {
   const wrap = document.getElementById('budget-list-wrap');
   if (!wrap) return;
 
-  const now = new Date();
-  let budgetMap = {}, spendByTag = {};
+  let budgetMap = {};
   try {
     budgetMap = await DB.getBudgets(null);
-    const txResult = await DB.getTransactions({ year: now.getFullYear(), month: now.getMonth()+1, pageSize: 2000 });
-    for (const tx of (txResult.data || [])) {
-      if (tx.type !== 'expense') continue;
-      for (const tag of (tx.tags || [])) {
-        if (!tag?.id) continue;
-        spendByTag[tag.id] = (spendByTag[tag.id] || 0) + tx.amount;
-      }
-    }
   } catch(e) {
     wrap.innerHTML = '<div style="font-size:12px;color:var(--red);padding:8px 0;">読み込みエラー</div>';
     return;
@@ -298,24 +289,29 @@ async function renderBudgetList(tags) {
     return;
   }
 
-  wrap.innerHTML =
-    '<div style="font-size:11px;color:var(--mid-lt);padding:10px 0 8px;line-height:1.6;">タグごとに毎月の予算を設定します。月別に上書きも可能です。</div>' +
-    tags.map(tag => {
+  const totalBudget = tags.reduce((s, tag) => {
+    const b = budgetMap[tag.id];
+    return s + (b ? b.amount : 0);
+  }, 0);
+
+  const renderRows = () => {
+    const currentTotal = wrap.querySelectorAll('.budget-input')
+      ? (() => { let t = 0; wrap.querySelectorAll('.budget-input').forEach(el => { t += parseInt((el.value||'0').replace(/,/g,''),10)||0; }); return t; })()
+      : totalBudget;
+
+    return tags.map(tag => {
       const b = budgetMap[tag.id];
-      const spent = spendByTag[tag.id] || 0;
       const budget = b ? b.amount : 0;
-      const rawPct = budget > 0 ? Math.round(spent / budget * 100) : 0;
-      const pct = Math.min(100, rawPct);
-      const color = rawPct > 100 ? 'var(--red)' : rawPct >= 80 ? 'var(--gold)' : 'var(--sage)';
-      const barHTML = budget > 0
+      const pct = currentTotal > 0 && budget > 0 ? Math.round(budget / currentTotal * 100) : 0;
+      const barHTML = currentTotal > 0 && budget > 0
         ? '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;">' +
           '<div style="flex:1;height:4px;border-radius:2px;background:var(--mist);overflow:hidden;">' +
-          '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:2px;transition:width 0.4s;"></div>' +
+          '<div style="height:100%;width:' + Math.min(100,pct) + '%;background:' + (tag.color||'var(--sage)') + ';border-radius:2px;transition:width 0.4s;"></div>' +
           '</div>' +
-          '<span style="font-size:10px;font-weight:600;color:' + color + ';min-width:28px;text-align:right;">' + rawPct + '%</span>' +
+          '<span style="font-size:10px;font-weight:600;color:var(--mid);min-width:28px;text-align:right;">' + pct + '%</span>' +
           '</div>'
         : '';
-      return '<div style="padding:10px 0;border-bottom:1px solid var(--border);">' +
+      return '<div class="budget-tag-row" style="padding:10px 0;border-bottom:1px solid var(--border);">' +
         '<label class="budget-row" data-tag-id="' + tag.id + '" style="display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:text;">' +
         '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' +
         '<span style="width:10px;height:10px;border-radius:50%;background:' + (tag.color||'var(--sage)') + ';flex-shrink:0;display:inline-block;"></span>' +
@@ -325,11 +321,18 @@ async function renderBudgetList(tags) {
         '<input type="text" inputmode="numeric" class="text-input budget-input" data-tag-id="' + tag.id + '" value="' + (b ? Number(b.amount).toLocaleString() : '') + '" placeholder="未設定" style="width:90px;text-align:right;font-size:14px;padding:4px 6px;">' +
         '<button class="btn-budget-month" data-tag-id="' + tag.id + '" style="font-size:11px;color:var(--sage);background:var(--sage-bg);border:none;border-radius:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">月別</button>' +
         '</div></label>' + barHTML + '</div>';
-    }).join('') +
+    }).join('');
+  };
+
+  const buildHTML = () =>
+    '<div style="font-size:11px;color:var(--mid-lt);padding:10px 0 8px;line-height:1.6;">タグごとに毎月の予算を設定します。月別に上書きも可能です。</div>' +
+    renderRows() +
     '<div id="budget-total-row" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--border);margin-top:2px;">' +
     '<span style="font-size:13px;font-weight:600;color:var(--ink);">合計</span>' +
     '<span id="budget-total-amount" style="font-size:14px;font-weight:600;color:var(--ink);">¥0</span></div>' +
     '<button id="btn-save-budgets" class="btn-primary" style="margin-top:8px;"><svg viewBox="0 0 24 24" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>予算を保存</button>';
+
+  wrap.innerHTML = buildHTML();
 
   function updateBudgetTotal() {
     const inputs = wrap.querySelectorAll('.budget-input');
@@ -340,6 +343,28 @@ async function renderBudgetList(tags) {
     });
     const el = document.getElementById('budget-total-amount');
     if (el) el.textContent = '¥' + total.toLocaleString('ja-JP');
+    // バーを再描画
+    const newTotal = total;
+    wrap.querySelectorAll('.budget-tag-row').forEach((row, i) => {
+      const tag = tags[i];
+      if (!tag) return;
+      const input = row.querySelector('.budget-input');
+      const budget = parseInt((input?.value||'0').replace(/,/g,''),10)||0;
+      const pct = newTotal > 0 && budget > 0 ? Math.round(budget / newTotal * 100) : 0;
+      let barEl = row.querySelector('.pct-bar-wrap');
+      if (!barEl && budget > 0) {
+        barEl = document.createElement('div');
+        barEl.className = 'pct-bar-wrap';
+        barEl.style.cssText = 'display:flex;align-items:center;gap:6px;margin-top:4px;';
+        row.appendChild(barEl);
+      }
+      if (barEl) {
+        barEl.innerHTML = newTotal > 0 && budget > 0
+          ? '<div style="flex:1;height:4px;border-radius:2px;background:var(--mist);overflow:hidden;"><div style="height:100%;width:' + Math.min(100,pct) + '%;background:' + (tag.color||'var(--sage)') + ';border-radius:2px;transition:width 0.4s;"></div></div>' +
+            '<span style="font-size:10px;font-weight:600;color:var(--mid);min-width:28px;text-align:right;">' + pct + '%</span>'
+          : '';
+      }
+    });
   }
 
   updateBudgetTotal();
