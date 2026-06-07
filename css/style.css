@@ -1041,7 +1041,7 @@ body.page-records #mobile-month-label {
   background: var(--white);
   border-radius: var(--radius);
   padding: 10px 20px;
-  margin-bottom: 6px;
+  margin-bottom: 0;
   box-shadow: 0 1px 4px rgba(0,0,0,0.06);
 }
 #records-sticky {
@@ -1054,7 +1054,7 @@ body.page-records #mobile-month-label {
   /* page-contentの左右padding(28px)を width+margin で全幅化 */
   width: calc(100% + 56px);
   margin-left: -28px;
-  padding: 8px 28px 0;
+  padding: 6px 28px 0;
 }
 #records-sticky.scrolled {
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
