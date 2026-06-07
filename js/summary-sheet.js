@@ -47,10 +47,10 @@ export async function openSummarySheet() {
       <!-- 主タグ/サブタグ切り替えタブ -->
       <div style="display:flex;padding:0 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;gap:4px;">
         <button id="ss-tab-primary" style="flex:1;padding:7px 0;font-size:12px;font-weight:700;border:none;border-bottom:2px solid var(--sage);background:none;color:var(--sage-dk);cursor:pointer;">
-          主タグ集計 <span id="ss-help-primary" style="font-size:10px;color:var(--sage);opacity:0.7;cursor:pointer;">?</span>
+          主タグ集計 <span id="ss-help-primary" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--sage);color:#fff;font-size:9px;font-weight:700;cursor:pointer;vertical-align:middle;margin-left:3px;line-height:1;">?</span>
         </button>
         <button id="ss-tab-sub" style="flex:1;padding:7px 0;font-size:12px;font-weight:600;border:none;border-bottom:2px solid transparent;background:none;color:var(--mid);cursor:pointer;">
-          サブタグ集計 <span id="ss-help-sub" style="font-size:10px;color:var(--mid);opacity:0.7;cursor:pointer;">?</span>
+          サブタグ集計 <span id="ss-help-sub" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--mid-lt);color:#fff;font-size:9px;font-weight:700;cursor:pointer;vertical-align:middle;margin-left:3px;line-height:1;">?</span>
         </button>
       </div>
       <div id="summary-sheet-body" style="overflow:auto;flex:1;padding:0;">
