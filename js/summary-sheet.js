@@ -291,8 +291,8 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
           ...(matrix['__untagged__'] ? [{ id: '__untagged__', name: 'タグなし', color: '#999' }] : []),
         ]
       : [
-          // サブタグ集計は実績があるタグのみ表示（予算設定だけあるタグは除外）
-          ...tags.filter(t => !t.is_archived && matrix[t.id]),
+          // サブタグ集計は実績があり、かつ予算なしタグのみ表示
+          ...tags.filter(t => !t.is_archived && matrix[t.id] && !budgetMap[t.id]),
         ];
 
     const monthTotals = {};
@@ -398,4 +398,5 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
     console.error('[SummarySheet]', e);
   }
 }
+
 
