@@ -314,6 +314,20 @@ export async function openEditRecord(tx, onSave) {
           この記録を複製する
         </button>
 
+        <button id="btn-share-record"
+          style="width:100%;padding:12px;border-radius:14px;margin-top:8px;
+          border:1.5px solid var(--border);background:none;
+          color:var(--mid);font-family:'Noto Sans JP',sans-serif;
+          font-size:13.5px;font-weight:500;cursor:pointer;
+          display:flex;align-items:center;justify-content:center;gap:6px;
+          transition:all 0.15s;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+          </svg>
+          共有リンクをコピー
+        </button>
+
         <!-- 削除（十分な余白と分離） -->
         <div style="margin-top:48px;padding-top:20px;border-top:1px solid var(--border);">
           <div style="font-size:11px;color:var(--mid-lt);text-align:center;margin-bottom:12px;">危険な操作</div>
@@ -587,7 +601,21 @@ export async function openEditRecord(tx, onSave) {
       );
     });
 
-    async function doSave() {
+    sheet.querySelector('#btn-share-record')?.addEventListener('click', () => {
+      const url = `${location.origin}/?tx=${tx.id}`;
+      navigator.clipboard.writeText(url).then(() => {
+        showToast('✓ 共有リンクをコピーしました');
+      }).catch(() => {
+        // fallback
+        const el = document.createElement('textarea');
+        el.value = url;
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        el.remove();
+        showToast('✓ 共有リンクをコピーしました');
+      });
+    });
       const amount = parseInt(state.amount, 10);
       if (!amount || amount <= 0) { showToast('金額を入力してください'); return; }
       if (!state.date)             { showToast('日付を入力してください'); return; }
