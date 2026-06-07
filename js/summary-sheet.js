@@ -46,8 +46,12 @@ export async function openSummarySheet() {
       </div>
       <!-- 主タグ/サブタグ切り替えタブ -->
       <div style="display:flex;padding:0 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;gap:4px;">
-        <button id="ss-tab-primary" style="flex:1;padding:7px 0;font-size:12px;font-weight:700;border:none;border-bottom:2px solid var(--sage);background:none;color:var(--sage-dk);cursor:pointer;">主タグ集計</button>
-        <button id="ss-tab-sub" style="flex:1;padding:7px 0;font-size:12px;font-weight:600;border:none;border-bottom:2px solid transparent;background:none;color:var(--mid);cursor:pointer;">サブタグ集計</button>
+        <button id="ss-tab-primary" style="flex:1;padding:7px 0;font-size:12px;font-weight:700;border:none;border-bottom:2px solid var(--sage);background:none;color:var(--sage-dk);cursor:pointer;">
+          主タグ集計 <span id="ss-help-primary" style="font-size:10px;color:var(--sage);opacity:0.7;cursor:pointer;">?</span>
+        </button>
+        <button id="ss-tab-sub" style="flex:1;padding:7px 0;font-size:12px;font-weight:600;border:none;border-bottom:2px solid transparent;background:none;color:var(--mid);cursor:pointer;">
+          サブタグ集計 <span id="ss-help-sub" style="font-size:10px;color:var(--mid);opacity:0.7;cursor:pointer;">?</span>
+        </button>
       </div>
       <div id="summary-sheet-body" style="overflow:auto;flex:1;padding:0;">
         <div style="padding:32px;text-align:center;color:var(--mid);font-size:13px;">読み込み中…</div>
@@ -96,6 +100,29 @@ export async function openSummarySheet() {
     if (mode === 'sub') return;
     setTab('sub');
     renderSheet();
+  });
+
+  // ツールチップ
+  const showTooltip = (msg) => {
+    const existing = document.getElementById('ss-tooltip');
+    if (existing) existing.remove();
+    const tip = document.createElement('div');
+    tip.id = 'ss-tooltip';
+    tip.style.cssText = 'position:fixed;bottom:120px;left:50%;transform:translateX(-50%);' +
+      'background:rgba(28,43,34,0.92);color:#fff;font-size:12px;line-height:1.7;' +
+      'padding:10px 16px;border-radius:12px;max-width:300px;z-index:900;' +
+      'text-align:center;pointer-events:none;';
+    tip.textContent = msg;
+    document.body.appendChild(tip);
+    setTimeout(() => tip.remove(), 4000);
+  };
+  document.getElementById('ss-help-primary')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showTooltip('予算設定ありのタグで集計。1レコード1タグで二重カウントなし。合計 = その月の支出合計と一致します。');
+  });
+  document.getElementById('ss-help-sub')?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    showTooltip('予算設定なしの品目タグで集計。肉・米・菓子など細かい推移を確認できます。1レコードに複数サブタグがある場合は重複カウントされます。');
   });
 
   const updateLabel = () => {
@@ -357,11 +384,7 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
           <tbody>${dataRows}${totalRow}</tbody>
         </table>
       </div>
-      <div style="padding:10px 16px;font-size:11px;color:var(--mid-lt);line-height:1.8;">
-        ${mode === 'primary'
-          ? '※ 支出のみ集計。複数タグがある場合は「主」タグのみで集計します（二重カウントなし）。<br>※ 合計行 = 主タグ別合計 + タグなし合計 = その月の支出合計と一致します。'
-          : '※ 2番目以降のサブタグで集計します。1件の支出が複数サブタグにまたがる場合は重複カウントされます。'}
-      </div>`;
+    `;
 
     // 横スクロールを最右端（当月列）に移動
     requestAnimationFrame(() => {
