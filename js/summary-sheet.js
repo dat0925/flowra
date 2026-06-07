@@ -260,23 +260,21 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
         if (tx.type !== 'expense') continue;
         const validTags = (tx.tags || []).filter(t => t?.id);
         if (mode === 'primary') {
-          // 主タグ（先頭）のみ集計
-          if (validTags.length > 0) {
-            const primaryTag = validTags[0];
+          // 主タグ＝予算ありタグ。該当タグが複数あれば先頭1つだけ集計
+          const primaryTag = validTags.find(t => budgetMap[t.id]);
+          if (primaryTag) {
             if (!matrix[primaryTag.id]) matrix[primaryTag.id] = {};
             matrix[primaryTag.id][key] = (matrix[primaryTag.id][key] || 0) + tx.amount;
-          } else {
+          } else if (validTags.length === 0) {
             if (!matrix['__untagged__']) matrix['__untagged__'] = {};
             matrix['__untagged__'][key] = (matrix['__untagged__'][key] || 0) + tx.amount;
           }
         } else {
-          // サブタグ（2番目以降）のみ集計
-          const subTags = validTags.slice(1);
-          if (subTags.length > 0) {
-            for (const tag of subTags) {
-              if (!matrix[tag.id]) matrix[tag.id] = {};
-              matrix[tag.id][key] = (matrix[tag.id][key] || 0) + tx.amount;
-            }
+          // サブタグ＝予算なしタグ（順番関係なく全て集計）
+          const subTags = validTags.filter(t => !budgetMap[t.id]);
+          for (const tag of subTags) {
+            if (!matrix[tag.id]) matrix[tag.id] = {};
+            matrix[tag.id][key] = (matrix[tag.id][key] || 0) + tx.amount;
           }
         }
       }
