@@ -474,36 +474,25 @@ async function initTeamSwitcher() {
   }
 }
 
-// ── プルトゥリフレッシュ＋横スワイプで月切り替え ──────────────────
+// ── プルトゥリフレッシュ ──────────────────
 function initPullToRefresh() {
-  let startX = 0, startY = 0;
-  let pulling = false, swiping = false;
+  let startY = 0;
+  let pulling = false;
   let indicator = null;
 
-  // スワイプは body 全体で検出
-  document.addEventListener('touchstart', e => {
-    startX = e.touches[0].clientX;
-    startY = e.touches[0].clientY;
-    pulling = false;
-    swiping = false;
-    // プルトゥリフレッシュはpage-contentの最上部のみ
-    const target = document.getElementById('page-content');
-    if (target && target.scrollTop === 0) pulling = true;
+  const target = document.getElementById('page-content');
+  if (!target) return;
+
+  target.addEventListener('touchstart', e => {
+    if (target.scrollTop === 0) {
+      startY = e.touches[0].clientY;
+      pulling = true;
+    }
   }, { passive: true });
 
-  document.addEventListener('touchmove', e => {
-    const dx = e.touches[0].clientX - startX;
+  target.addEventListener('touchmove', e => {
+    if (!pulling) return;
     const dy = e.touches[0].clientY - startY;
-
-    // 横方向が優勢なら月スワイプモード
-    if (!swiping && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 12) {
-      swiping = true;
-      pulling = false;
-      if (indicator) { indicator.remove(); indicator = null; }
-      return;
-    }
-
-    if (!pulling || swiping) return;
     if (dy > 10) {
       if (!indicator) {
         indicator = document.createElement('div');
@@ -518,25 +507,14 @@ function initPullToRefresh() {
     }
   }, { passive: true });
 
-  document.addEventListener('touchend', e => {
-    const dx = e.changedTouches[0].clientX - startX;
+  target.addEventListener('touchend', e => {
+    if (!pulling) return;
     const dy = e.changedTouches[0].clientY - startY;
-
     if (indicator) { indicator.remove(); indicator = null; }
-
-    if (swiping && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      import('./router.js').then(({ Router }) => {
-        if (dx < 0) Router.changeMonth('next');
-        else Router.changeMonth('prev');
-      });
-      swiping = false; pulling = false;
-      return;
-    }
-
-    if (pulling && dy > 80) {
+    if (dy > 80) {
       import('./router.js').then(({ Router }) => Router.navigate(Router.currentPage));
     }
-    pulling = false; swiping = false;
+    pulling = false;
   }, { passive: true });
 }
 
