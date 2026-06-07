@@ -93,8 +93,19 @@ export async function renderAccounts() {
 
 async function renderAccountsContent(content, accounts) {
     const total = accounts.reduce((s, a) => s + a.balance, 0);
+    const totalPositive = accounts.reduce((s, a) => s + (a.balance > 0 ? a.balance : 0), 0);
 
-    const itemsHTML = accounts.map((a, i) => `
+    const itemsHTML = accounts.map((a, i) => {
+      const isNeg = a.balance < 0;
+      const pct = totalPositive > 0 ? Math.min(100, Math.abs(a.balance) / totalPositive * 100) : 0;
+      const barColor = isNeg ? '#B83232' : (a.color || 'var(--sage)');
+      const barHTML = `
+        <div style="height:3px;background:var(--border);border-radius:2px;margin:4px 0 2px;overflow:hidden;">
+          <div style="height:100%;width:${pct.toFixed(1)}%;background:${barColor};border-radius:2px;transition:width 0.4s ease;"></div>
+        </div>
+        <div style="font-size:10px;color:var(--mid-lt);text-align:right;">${pct < 0.5 ? '' : pct.toFixed(0) + '%'}</div>`;
+
+      return `
       <div class="acct-item" data-id="${a.id}" data-idx="${i}">
         <div class="drag-handle">
           <svg viewBox="0 0 10 16" width="10" height="16" fill="var(--mid-lt)" stroke="none">
@@ -103,26 +114,31 @@ async function renderAccountsContent(content, accounts) {
             <circle cx="3" cy="13" r="1.5"/><circle cx="7" cy="13" r="1.5"/>
           </svg>
         </div>
-        <div class="acct-left">
+        <div class="acct-left" style="flex:1;min-width:0;">
           ${acctIconHTML(a)}
-          <div>
-            <div class="acct-name">${a.name}</div>
-            <div class="acct-type-label">${typeLabel(a.type)}</div>
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <div>
+                <div class="acct-name">${a.name}</div>
+                <div class="acct-type-label">${typeLabel(a.type)}</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                <div class="acct-balance" style="color:${isNeg?'var(--red)':'var(--ink)'}">
+                  ${isNeg ? '<span class="acct-balance-cur">−¥</span>' : '<span class="acct-balance-cur">¥</span>'}${fmt(Math.abs(a.balance))}
+                </div>
+                <button class="btn-acct-edit" data-id="${a.id}"
+                  style="width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--warm);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--mid);flex-shrink:0;">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+            ${barHTML}
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-          <div class="acct-balance" style="color:${a.balance<0?'var(--red)':'var(--ink)'}">
-            ${a.balance < 0 ? '<span class="acct-balance-cur">−¥</span>' : '<span class="acct-balance-cur">¥</span>'}${fmt(Math.abs(a.balance))}
-          </div>
-          <button class="btn-acct-edit" data-id="${a.id}"
-            style="width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--warm);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--mid);flex-shrink:0;">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-            </svg>
-          </button>
-        </div>
-      </div>`).join('');
+      </div>`}).join('');
 
     content.innerHTML = `
       <div class="panel" style="margin-bottom:16px;">
