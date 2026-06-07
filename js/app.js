@@ -474,28 +474,29 @@ async function initTeamSwitcher() {
   }
 }
 
-// ── プルトゥリフレッシュ ──────────────────
+// ── プルトゥリフレッシュ＋横スワイプで月切り替え ──────────────────
 function initPullToRefresh() {
   let startX = 0, startY = 0;
   let pulling = false, swiping = false;
   let indicator = null;
 
-  const target = document.getElementById('page-content');
-  if (!target) return;
-
-  target.addEventListener('touchstart', e => {
+  // スワイプは body 全体で検出
+  document.addEventListener('touchstart', e => {
     startX = e.touches[0].clientX;
     startY = e.touches[0].clientY;
-    if (target.scrollTop === 0) pulling = true;
+    pulling = false;
     swiping = false;
+    // プルトゥリフレッシュはpage-contentの最上部のみ
+    const target = document.getElementById('page-content');
+    if (target && target.scrollTop === 0) pulling = true;
   }, { passive: true });
 
-  target.addEventListener('touchmove', e => {
+  document.addEventListener('touchmove', e => {
     const dx = e.touches[0].clientX - startX;
     const dy = e.touches[0].clientY - startY;
 
     // 横方向が優勢なら月スワイプモード
-    if (!swiping && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 10) {
+    if (!swiping && Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 12) {
       swiping = true;
       pulling = false;
       if (indicator) { indicator.remove(); indicator = null; }
@@ -517,14 +518,13 @@ function initPullToRefresh() {
     }
   }, { passive: true });
 
-  target.addEventListener('touchend', e => {
+  document.addEventListener('touchend', e => {
     const dx = e.changedTouches[0].clientX - startX;
     const dy = e.changedTouches[0].clientY - startY;
 
     if (indicator) { indicator.remove(); indicator = null; }
 
     if (swiping && Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      // 横スワイプ：月切り替え
       import('./router.js').then(({ Router }) => {
         if (dx < 0) Router.changeMonth('next');
         else Router.changeMonth('prev');
