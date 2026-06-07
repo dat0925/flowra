@@ -276,12 +276,18 @@ async function renderBudgetList(tags) {
   const wrap = document.getElementById('budget-list-wrap');
   if (!wrap) return;
 
-  const now      = new Date();
-  const monthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-
-  let budgetMap = {};
+  const now = new Date();
+  let budgetMap = {}, spendByTag = {};
   try {
-    budgetMap = await DB.getBudgets(null); // デフォルト予算
+    budgetMap = await DB.getBudgets(null);
+    const txResult = await DB.getTransactions({ year: now.getFullYear(), month: now.getMonth()+1, pageSize: 2000 });
+    for (const tx of (txResult.data || [])) {
+      if (tx.type !== 'expense') continue;
+      for (const tag of (tx.tags || [])) {
+        if (!tag?.id) continue;
+        spendByTag[tag.id] = (spendByTag[tag.id] || 0) + tx.amount;
+      }
+    }
   } catch(e) {
     wrap.innerHTML = '<div style="font-size:12px;color:var(--red);padding:8px 0;">読み込みエラー</div>';
     return;
@@ -292,49 +298,39 @@ async function renderBudgetList(tags) {
     return;
   }
 
-  wrap.innerHTML = `
-    <div style="font-size:11px;color:var(--mid-lt);padding:10px 0 8px;line-height:1.6;">
-      タグごとに毎月の予算を設定します。月別に上書きも可能です。
-    </div>
-    ${tags.map(tag => {
+  wrap.innerHTML =
+    '<div style="font-size:11px;color:var(--mid-lt);padding:10px 0 8px;line-height:1.6;">タグごとに毎月の予算を設定します。月別に上書きも可能です。</div>' +
+    tags.map(tag => {
       const b = budgetMap[tag.id];
-      return `
-        <label class="budget-row" data-tag-id="${tag.id}"
-          style="display:flex;align-items:center;justify-content:space-between;
-            padding:12px 0;border-bottom:1px solid var(--border);gap:8px;cursor:text;">
-          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
-            <span style="width:10px;height:10px;border-radius:50%;background:${tag.color||'var(--sage)'};flex-shrink:0;display:inline-block;"></span>
-            <span style="font-size:14px;">${tag.name}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-            <span style="font-size:12px;color:var(--mid);">¥</span>
-            <input type="text" inputmode="numeric"
-              class="text-input budget-input" data-tag-id="${tag.id}"
-              value="${b ? Number(b.amount).toLocaleString() : ''}"
-              placeholder="未設定"
-              style="width:90px;text-align:right;font-size:14px;padding:4px 6px;">
-            <button class="btn-budget-month" data-tag-id="${tag.id}"
-              style="font-size:11px;color:var(--sage);background:var(--sage-bg);border:none;
-                border-radius:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">
-              月別
-            </button>
-          </div>
-        </label>`;
-    }).join('')}
-    <div id="budget-total-row" style="
-      display:flex;justify-content:space-between;align-items:center;
-      padding:10px 0;
-      border-top:1px solid var(--border);
-      margin-top:2px;">
-      <span style="font-size:13px;font-weight:600;color:var(--ink);">合計</span>
-      <span id="budget-total-amount" style="font-size:14px;font-weight:600;color:var(--ink);">¥0</span>
-    </div>
-    <button id="btn-save-budgets" class="btn-primary" style="margin-top:8px;">
-      <svg viewBox="0 0 24 24" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>
-      予算を保存
-    </button>`;
+      const spent = spendByTag[tag.id] || 0;
+      const budget = b ? b.amount : 0;
+      const rawPct = budget > 0 ? Math.round(spent / budget * 100) : 0;
+      const pct = Math.min(100, rawPct);
+      const color = rawPct > 100 ? 'var(--red)' : rawPct >= 80 ? 'var(--gold)' : 'var(--sage)';
+      const barHTML = budget > 0
+        ? '<div style="display:flex;align-items:center;gap:6px;margin-top:4px;">' +
+          '<div style="flex:1;height:4px;border-radius:2px;background:var(--mist);overflow:hidden;">' +
+          '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:2px;transition:width 0.4s;"></div>' +
+          '</div>' +
+          '<span style="font-size:10px;font-weight:600;color:' + color + ';min-width:28px;text-align:right;">' + rawPct + '%</span>' +
+          '</div>'
+        : '';
+      return '<div style="padding:10px 0;border-bottom:1px solid var(--border);">' +
+        '<label class="budget-row" data-tag-id="' + tag.id + '" style="display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:text;">' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">' +
+        '<span style="width:10px;height:10px;border-radius:50%;background:' + (tag.color||'var(--sage)') + ';flex-shrink:0;display:inline-block;"></span>' +
+        '<span style="font-size:14px;">' + tag.name + '</span></div>' +
+        '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">' +
+        '<span style="font-size:12px;color:var(--mid);">¥</span>' +
+        '<input type="text" inputmode="numeric" class="text-input budget-input" data-tag-id="' + tag.id + '" value="' + (b ? Number(b.amount).toLocaleString() : '') + '" placeholder="未設定" style="width:90px;text-align:right;font-size:14px;padding:4px 6px;">' +
+        '<button class="btn-budget-month" data-tag-id="' + tag.id + '" style="font-size:11px;color:var(--sage);background:var(--sage-bg);border:none;border-radius:6px;padding:4px 8px;cursor:pointer;white-space:nowrap;">月別</button>' +
+        '</div></label>' + barHTML + '</div>';
+    }).join('') +
+    '<div id="budget-total-row" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--border);margin-top:2px;">' +
+    '<span style="font-size:13px;font-weight:600;color:var(--ink);">合計</span>' +
+    '<span id="budget-total-amount" style="font-size:14px;font-weight:600;color:var(--ink);">¥0</span></div>' +
+    '<button id="btn-save-budgets" class="btn-primary" style="margin-top:8px;"><svg viewBox="0 0 24 24" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>予算を保存</button>';
 
-  // 合計を計算して表示
   function updateBudgetTotal() {
     const inputs = wrap.querySelectorAll('.budget-input');
     let total = 0;
@@ -346,10 +342,8 @@ async function renderBudgetList(tags) {
     if (el) el.textContent = '¥' + total.toLocaleString('ja-JP');
   }
 
-  // 初期合計を表示
   updateBudgetTotal();
 
-  // 保存
   document.getElementById('btn-save-budgets')?.addEventListener('click', async () => {
     const inputs = wrap.querySelectorAll('.budget-input');
     try {
@@ -365,11 +359,8 @@ async function renderBudgetList(tags) {
     }
   });
 
-  // 予算入力欄：フォーカス時にコンマ除去、blur時にコンマ付き表示、input時に合計更新
   wrap.querySelectorAll('.budget-input').forEach(input => {
-    input.addEventListener('focus', () => {
-      input.value = input.value.replace(/,/g, '');
-    });
+    input.addEventListener('focus', () => { input.value = input.value.replace(/,/g, ''); });
     input.addEventListener('blur', () => {
       const n = parseInt(input.value.replace(/,/g, '') || '0', 10);
       input.value = n > 0 ? n.toLocaleString() : '';
@@ -377,6 +368,7 @@ async function renderBudgetList(tags) {
     });
     input.addEventListener('input', updateBudgetTotal);
   });
+
 
   // 月別上書きシート
   wrap.querySelectorAll('.btn-budget-month').forEach(btn => {
