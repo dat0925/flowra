@@ -382,7 +382,7 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
       <div id="summary-scroll-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
         <table style="border-collapse:collapse;width:100%;min-width:max-content;">
           <thead>${headerRow}</thead>
-          <tbody>${dataRows}${totalRow}</tbody>
+          <tbody>${dataRows}${mode === "primary" ? totalRow : ""}</tbody>
         </table>
       </div>
     `;
