@@ -97,6 +97,7 @@ export async function openEditRecord(tx, onSave) {
     memo:         tx.memo || '',
     url:          tx.url  || '',
     isUnsettled:  tx.is_unsettled || false,
+    isExcluded:   tx.is_excluded  || false,
     selectedTags: new Set(txTags.map(t => t.id)),
   };
 
@@ -266,6 +267,30 @@ export async function openEditRecord(tx, onSave) {
               </div>
             </div>
             <div class="toggle ${state.isUnsettled?'on':''}" id="toggle-unsettled">
+              <div class="toggle-knob"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 集計除外 -->
+        <div class="form-section" style="margin-bottom:20px;">
+          <div class="toggle-wrap">
+            <div class="toggle-left">
+              <div class="row-icon" style="background:#F0EDE8;">
+                <svg viewBox="0 0 24 24" style="stroke:#9A7A6A;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </div>
+              <div>
+                <div class="toggle-title" style="display:flex;align-items:center;gap:5px;">
+                  集計除外
+                  <span id="excluded-help" style="width:15px;height:15px;border-radius:50%;
+                    background:var(--mist);color:var(--mid);font-size:10px;font-weight:600;
+                    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+                    flex-shrink:0;">?</span>
+                </div>
+                <div class="toggle-sub">タグ別集計に含めない</div>
+              </div>
+            </div>
+            <div class="toggle ${state.isExcluded?'on':''}" id="toggle-excluded">
               <div class="toggle-knob"></div>
             </div>
           </div>
@@ -553,6 +578,17 @@ export async function openEditRecord(tx, onSave) {
       Sound.playTap();
     });
 
+    // 集計除外トグル
+    sheet.querySelector('#toggle-excluded')?.addEventListener('click', function() {
+      state.isExcluded = !state.isExcluded;
+      this.classList.toggle('on', state.isExcluded);
+      Sound.playTap();
+    });
+    sheet.querySelector('#excluded-help')?.addEventListener('click', e => {
+      e.stopPropagation();
+      showToast('集計除外にすると、タグ別集計シートに表示されなくなります。ホーム画面の収支合計には含まれます。');
+    });
+
     // 保存
     // save-barを表示（キーボード上部固定）：viewerは非表示
     const saveBar = document.getElementById('save-bar');
@@ -603,6 +639,7 @@ export async function openEditRecord(tx, onSave) {
         memo:         memo,
         url:          tx.url || '',
         isUnsettled:  false,
+        isExcluded:   false,
         isRecurring:  false,
         selectedTags: (tx.tags || []).map(t => t.id),
       };
@@ -652,6 +689,7 @@ export async function openEditRecord(tx, onSave) {
         memo:          state.memo  || null,
         url:           state.url   || null,
         is_unsettled:  state.isUnsettled,
+        is_excluded:   state.isExcluded,
       };
 
       try {
@@ -770,6 +808,7 @@ function calcFn(left, right, op) {
   }
   return Math.max(0, r);
 }
+
 
 
 
