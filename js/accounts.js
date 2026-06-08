@@ -97,7 +97,8 @@ async function renderAccountsContent(content, accounts) {
 
     const itemsHTML = accounts.map((a, i) => {
       const isNeg = a.balance < 0;
-      const pct = totalPositive > 0 ? Math.min(100, Math.abs(a.balance) / totalPositive * 100) : 0;
+      // マイナス残高（クレカ等）はバー非表示
+      const pct = (!isNeg && totalPositive > 0) ? Math.min(100, a.balance / totalPositive * 100) : 0;
       const barColor = isNeg ? '#B83232' : (a.color && a.color.trim() ? a.color : '#4A7C59');
       const barHTML = pct > 0 ? `
         <div style="display:flex;align-items:center;gap:6px;margin-top:4px;margin-bottom:2px;">
