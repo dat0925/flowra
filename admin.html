@@ -22,6 +22,7 @@
       --red:     #B83232;
       --red-bg:  #FBF0F0;
       --gold:    #B8973E;
+      --gold-bg: #FBF7ED;
     }
     body {
       font-family: 'Noto Sans JP', sans-serif;
@@ -60,14 +61,11 @@
       font-weight: 600;
     }
     .admin-header-title span { color: var(--sage-lt); }
-    .admin-user-badge {
-      font-size: 11px;
-      color: var(--mid-lt);
-    }
+    .admin-user-badge { font-size: 11px; color: var(--mid-lt); }
 
     /* コンテンツ */
     .admin-content {
-      max-width: 800px;
+      max-width: 900px;
       margin: 0 auto;
       padding: 24px 16px;
     }
@@ -85,24 +83,14 @@
       color: var(--mid);
       margin-bottom: 16px;
       text-transform: uppercase;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
-    /* フォーム */
-    .admin-form { display: flex; flex-direction: column; gap: 12px; }
-    .admin-input {
-      width: 100%;
-      padding: 11px 14px;
-      border: 1.5px solid var(--border);
-      border-radius: 10px;
-      font-size: 14px;
-      font-family: inherit;
-      color: var(--ink);
-      background: var(--stone);
-      outline: none;
-    }
-    .admin-input:focus { border-color: var(--sage); background: var(--white); }
+    /* ボタン */
     .admin-btn {
-      padding: 12px 20px;
+      padding: 10px 18px;
       border-radius: 10px;
       border: none;
       font-size: 14px;
@@ -114,37 +102,19 @@
     .admin-btn:active { opacity: 0.75; }
     .admin-btn:disabled { opacity: 0.4; cursor: default; }
     .btn-primary   { background: var(--sage); color: #fff; }
-    .btn-danger    { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
     .btn-secondary { background: var(--stone); color: var(--ink); border: 1px solid var(--border); }
-
-    /* ユーザーテーブル */
-    .user-table { width: 100%; border-collapse: collapse; }
-    .user-table th {
-      font-size: 11px;
-      font-weight: 600;
-      color: var(--mid);
-      text-align: left;
-      padding: 8px 12px;
-      border-bottom: 1px solid var(--border);
-      background: var(--stone);
-    }
-    .user-table td {
-      padding: 12px 12px;
+    .admin-input {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
       font-size: 13px;
-      border-bottom: 1px solid var(--border);
-      vertical-align: middle;
+      font-family: inherit;
+      color: var(--ink);
+      background: var(--stone);
+      outline: none;
     }
-    .user-table tr:last-child td { border-bottom: none; }
-    .plan-badge {
-      display: inline-block;
-      padding: 3px 10px;
-      border-radius: 100px;
-      font-size: 11px;
-      font-weight: 700;
-    }
-    .plan-free    { background: var(--stone); color: var(--mid); border: 1px solid var(--border); }
-    .plan-premium { background: var(--sage-bg); color: var(--sage-dk); border: 1px solid var(--sage-lt); }
-    .plan-admin   { background: #1C2B22; color: #fff; }
+    .admin-input:focus { border-color: var(--sage); background: var(--white); }
 
     /* 統計カード */
     .stats-grid {
@@ -163,6 +133,153 @@
     .stat-num  { font-family: 'Noto Serif JP', serif; font-size: 28px; font-weight: 600; color: var(--ink); }
     .stat-label { font-size: 11px; color: var(--mid); margin-top: 4px; }
 
+    /* ユーザーテーブル */
+    .user-table { width: 100%; border-collapse: collapse; }
+    .user-table th {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--mid);
+      text-align: left;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border);
+      background: var(--stone);
+      white-space: nowrap;
+    }
+    .user-table td {
+      padding: 10px 10px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    .user-table tr:last-child td { border-bottom: none; }
+
+    /* プランバッジ（クリック可能） */
+    .plan-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.1s;
+      user-select: none;
+    }
+    .plan-badge:hover { transform: scale(1.05); box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    .plan-badge:active { transform: scale(0.97); }
+    .plan-badge::after { content: ' ▾'; font-size: 9px; opacity: 0.6; }
+    .plan-free    { background: var(--stone); color: var(--mid); border: 1px solid var(--border); }
+    .plan-premium { background: var(--sage-bg); color: var(--sage-dk); border: 1px solid var(--sage-lt); }
+    .plan-admin   { background: var(--ink); color: #fff; }
+    .plan-expired { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
+
+    /* インラインプラン変更パネル */
+    .plan-edit-row td {
+      padding: 0 !important;
+      border-bottom: none !important;
+    }
+    .plan-edit-panel {
+      background: var(--sage-bg);
+      border: 1px solid var(--sage-lt);
+      border-radius: 12px;
+      padding: 16px;
+      margin: 4px 8px 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .plan-edit-panel label {
+      font-size: 11px;
+      color: var(--mid);
+      display: block;
+      margin-bottom: 4px;
+    }
+    .plan-edit-panel .field { flex: 1; min-width: 120px; }
+    .plan-edit-panel select,
+    .plan-edit-panel input[type="date"] {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--ink);
+      background: var(--white);
+      outline: none;
+    }
+    .plan-edit-panel select:focus,
+    .plan-edit-panel input[type="date"]:focus { border-color: var(--sage); }
+    .plan-edit-actions { display: flex; gap: 8px; align-items: center; margin-top: auto; }
+    .btn-save-plan {
+      padding: 8px 16px;
+      background: var(--sage);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .btn-cancel-plan {
+      padding: 8px 12px;
+      background: transparent;
+      color: var(--mid);
+      border: none;
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+
+    /* 検索 */
+    .search-wrap {
+      margin-bottom: 14px;
+      position: relative;
+    }
+    .search-wrap input { padding-left: 34px; }
+    .search-icon {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--mid-lt);
+      font-size: 15px;
+      pointer-events: none;
+    }
+
+    /* ページネーション */
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .page-btn {
+      padding: 5px 12px;
+      background: var(--stone);
+      color: var(--ink);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .page-btn:disabled { opacity: 0.4; cursor: default; }
+    .page-info { font-size: 12px; color: var(--mid); }
+
+    .spinner {
+      width: 20px; height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--sage);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 24px auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
     .toast {
       position: fixed;
       bottom: 24px;
@@ -177,18 +294,16 @@
       opacity: 0;
       transition: opacity 0.2s;
       pointer-events: none;
+      white-space: nowrap;
     }
     .toast.show { opacity: 1; }
 
-    .spinner {
-      width: 20px; height: 20px;
-      border: 2px solid var(--border);
-      border-top-color: var(--sage);
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-      margin: 20px auto;
+    @media (max-width: 600px) {
+      .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .stat-num { font-size: 22px; }
+      .user-table th:nth-child(4),
+      .user-table td:nth-child(4) { display: none; }
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
@@ -239,57 +354,20 @@
       </div>
     </div>
 
-    <!-- プラン変更 -->
-    <div class="admin-section">
-      <div class="admin-section-title">プラン変更</div>
-      <div class="admin-form">
-        <!-- Step1: メール入力 -->
-        <div style="display:flex;gap:10px;">
-          <input type="email" class="admin-input" id="input-email" placeholder="ユーザーのメールアドレス" style="flex:1;">
-          <button class="admin-btn btn-secondary" id="btn-lookup" style="white-space:nowrap;">検索</button>
-        </div>
-
-        <!-- Step2: 検索結果（初期非表示） -->
-        <div id="lookup-result" style="font-size:12px;color:var(--mid);min-height:18px;"></div>
-
-        <!-- Step3: プラン設定（検索成功後に表示） -->
-        <div id="plan-form" style="display:none;border-top:1px solid var(--border);padding-top:14px;display:none;flex-direction:column;gap:10px;">
-          <div id="plan-form-user" style="font-size:13px;font-weight:600;color:var(--ink);"></div>
-          <div style="display:flex;gap:10px;align-items:center;">
-            <select class="admin-input" id="input-plan" style="flex:1;">
-              <option value="premium">Premium（無制限）</option>
-              <option value="free">Free（月5回）</option>
-              <option value="admin">Admin（管理者・無制限）</option>
-            </select>
-          </div>
-          <div>
-            <label style="font-size:11px;color:var(--mid);display:block;margin-bottom:4px;">有効期限（空欄で無期限）</label>
-            <input type="date" class="admin-input" id="input-expires" style="width:100%;">
-          </div>
-          <button class="admin-btn btn-primary" id="btn-set-plan">プランを設定する</button>
-        </div>
-      </div>
-    </div>
-
     <!-- ユーザー一覧 -->
     <div class="admin-section">
-      <div class="admin-section-title" style="display:flex;justify-content:space-between;align-items:center;">
-        <span>プラン保有ユーザー</span>
-        <button class="admin-btn btn-secondary" id="btn-refresh" style="padding:6px 12px;font-size:12px;">
-          更新
-        </button>
+      <div class="admin-section-title">
+        <span>ユーザー一覧</span>
+        <button class="admin-btn btn-secondary" id="btn-refresh" style="padding:6px 12px;font-size:12px;">更新</button>
       </div>
-      <div style="margin-bottom:12px;">
-        <input type="text" class="admin-input" id="user-search" placeholder="メールアドレスで絞り込み" style="width:100%;">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="admin-input" id="user-search" placeholder="メールアドレスで絞り込み">
       </div>
-      <div id="user-list"><div class="spinner"></div></div>
-      <div id="user-pagination" style="display:flex;justify-content:center;gap:8px;margin-top:12px;"></div>
-    </div>
-
-    <!-- AI使用量 -->
-    <div class="admin-section">
-      <div class="admin-section-title">今月のAI使用量（上位10件）</div>
-      <div id="usage-list"><div class="spinner"></div></div>
+      <div style="overflow-x:auto;">
+        <div id="user-list"><div class="spinner"></div></div>
+      </div>
+      <div class="pagination" id="user-pagination"></div>
     </div>
 
   </div>
@@ -302,20 +380,20 @@
 
   const SUPABASE_URL      = 'https://copyzpsyagscqrvkrwjo.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcHl6cHN5YWdzY3Fydmtyd2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk2MTI4NTEsImV4cCI6MjA5NTE4ODg1MX0.4g0Rzo4TyM0NPWF53swUWhLD4nDYMSOD7KB9ZBW80Kc';
-
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  // ── 管理者user_idリスト（ここに自分のuser_idを追加）──
-  // Supabase > Authentication > Users で確認できます
-  const ADMIN_USER_IDS = [
-    '6fa4c2af-ea85-4207-aacc-538f6b481d66',
-  ];
+  const ADMIN_USER_IDS = ['6fa4c2af-ea85-4207-aacc-538f6b481d66'];
 
   function toast(msg, ms = 2500) {
     const el = document.getElementById('toast');
     el.textContent = msg;
     el.classList.add('show');
     setTimeout(() => el.classList.remove('show'), ms);
+  }
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleDateString('ja-JP', { year: 'numeric', month: '2-digit', day: '2-digit' });
   }
 
   // ── 認証 ──
@@ -331,20 +409,16 @@
   async function boot(session) {
     const user = session?.user;
     if (!user) return;
-
-    // 管理者チェック
     if (ADMIN_USER_IDS.length > 0 && !ADMIN_USER_IDS.includes(user.id)) {
       document.getElementById('auth-wall').innerHTML =
         '<p style="color:#B83232;font-size:14px;">管理者権限がありません</p>'
         + '<p style="font-size:12px;color:#7A9485;margin-top:8px;">あなたのuser_id: ' + user.id + '</p>';
       return;
     }
-
     document.getElementById('auth-wall').style.display = 'none';
     document.getElementById('admin-app').style.display = 'block';
     document.getElementById('admin-user-email').textContent = user.email;
-
-    await Promise.all([loadStats(), loadUserList(), loadUsageList()]);
+    await Promise.all([loadStats(), loadUserList()]);
   }
 
   if (session) boot(session);
@@ -352,16 +426,13 @@
 
   // ── 統計 ──
   async function loadStats() {
-    // 全ユーザー取得
     const { data: allUsers } = await supabase.rpc('get_all_users');
     document.getElementById('stat-total').textContent = allUsers?.length ?? '—';
 
-    // Premiumユーザー数（admin含む）
     const { data: allPlans } = await supabase.rpc('get_all_user_plans');
     const premiumCount = (allPlans || []).filter(p => p.plan !== 'free').length;
     document.getElementById('stat-premium').textContent = premiumCount;
 
-    // 今月AI利用ユーザー数
     const monthKey = new Date().toISOString().slice(0, 7);
     const { data: usage } = await supabase
       .from('ai_usage')
@@ -371,39 +442,35 @@
     document.getElementById('stat-active').textContent = usage?.length ?? '—';
   }
 
-  // ── メール一括取得ヘルパー ──
-  async function getEmailsByUserIds(userIds) {
-    const map = {};
-    await Promise.all(userIds.map(async uid => {
-      const { data } = await supabase.rpc('get_email_by_user_id', { p_user_id: uid });
-      if (data) map[uid] = data;
-    }));
-    return map;
-  }
-
-  // ── 全ユーザー一覧（プラン情報マージ・検索・ページネーション）──
-  const PAGE_SIZE = 20;
-  let _allUsers = [];
-  let _planMap  = {};
-  let _userPage = 0;
+  // ── ユーザー一覧 ──
+  const PAGE_SIZE = 30;
+  let _allUsers  = [];
+  let _planMap   = {};
+  let _userPage  = 0;
   let _userQuery = '';
+  let _openEditUserId = null;
 
   async function loadUserList() {
     const el = document.getElementById('user-list');
     el.innerHTML = '<div class="spinner"></div>';
 
-    const { data: allUsers, error: usersError } = await supabase.rpc('get_all_users');
-    if (usersError || !allUsers?.length) {
-      el.innerHTML = '<p style="font-size:13px;color:var(--mid);padding:8px;">ユーザーがいません</p>';
-      return;
-    }
+    const [{ data: allUsers }, { data: plans }] = await Promise.all([
+      supabase.rpc('get_all_users'),
+      supabase.rpc('get_all_user_plans'),
+    ]);
 
-    const { data: plans } = await supabase.rpc('get_all_user_plans');
     _planMap = {};
     (plans || []).forEach(p => { _planMap[p.user_id] = p; });
-    _allUsers = allUsers;
+    _allUsers = allUsers || [];
     _userPage = 0;
+    _openEditUserId = null;
     renderUserList();
+  }
+
+  function getEffectivePlan(p) {
+    if (!p) return 'free';
+    const isExpired = p.expires_at && new Date(p.expires_at) < new Date();
+    return isExpired ? 'free' : (p.plan || 'free');
   }
 
   function renderUserList() {
@@ -415,181 +482,109 @@
       ? _allUsers.filter(u => u.email.toLowerCase().includes(q))
       : _allUsers;
 
-    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-    const page = Math.min(_userPage, Math.max(0, totalPages - 1));
+    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+    const page = Math.min(_userPage, totalPages - 1);
     const slice = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
     if (!slice.length) {
-      el.innerHTML = '<p style="font-size:13px;color:var(--mid);padding:8px;">該当ユーザーがいません</p>';
+      el.innerHTML = '<p style="font-size:13px;color:var(--mid);padding:12px 0;">該当ユーザーがいません</p>';
       pgEl.innerHTML = '';
       return;
     }
 
-    el.innerHTML = `
-      <div style="font-size:11px;color:var(--mid);margin-bottom:6px;">${filtered.length}件中 ${page * PAGE_SIZE + 1}〜${Math.min((page + 1) * PAGE_SIZE, filtered.length)}件表示</div>
-      <div style="overflow-x:auto;">
-        <table class="user-table">
-          <thead><tr>
-            <th style="white-space:nowrap;">メールアドレス</th>
-            <th style="white-space:nowrap;">プラン</th>
-            <th style="white-space:nowrap;">有効期限</th>
-            <th></th>
-          </tr></thead>
-          <tbody>
-            ${slice.map(u => {
-              const p = _planMap[u.id];
-              const plan = p?.plan || 'free';
-              const expires = p?.expires_at;
-              const isExpired = expires && new Date(expires) < new Date();
-              const effectivePlan = isExpired ? 'free' : plan;
-              return `
-                <tr>
-                  <td style="font-size:12px;color:var(--ink);">${u.email}</td>
-                  <td><span class="plan-badge plan-${effectivePlan}">${effectivePlan}</span></td>
-                  <td style="font-size:12px;color:var(--mid);">
-                    ${expires ? new Date(expires).toLocaleDateString('ja-JP') + (isExpired ? ' <span style="color:#B83232;">期限切れ</span>' : '') : '無期限'}
-                  </td>
-                  <td>
-                    ${effectivePlan !== 'free' ? `
-                      <button class="admin-btn btn-danger" style="padding:4px 10px;font-size:11px;"
-                        onclick="revokePlan('${u.id}')">解除</button>
-                    ` : ''}
-                  </td>
-                </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>`;
+    const countInfo = '<div style="font-size:11px;color:var(--mid);margin-bottom:8px;">'
+      + filtered.length + '件中 ' + (page * PAGE_SIZE + 1) + '〜' + Math.min((page + 1) * PAGE_SIZE, filtered.length) + '件表示</div>';
+
+    let rows = '';
+    slice.forEach(u => {
+      const p = _planMap[u.id];
+      const effective = getEffectivePlan(p);
+      const isExpired = p?.expires_at && new Date(p.expires_at) < new Date();
+      const badgeClass = isExpired ? 'plan-expired' : ('plan-' + effective);
+      const badgeLabel = isExpired ? (p.plan + ' (期限切れ)') : effective;
+
+      const startedAt = p?.updated_at ? fmtDate(p.updated_at) : '—';
+      const expiresAt = p?.expires_at
+        ? (fmtDate(p.expires_at) + (isExpired ? ' <span style="color:var(--red);">●</span>' : ''))
+        : '無期限';
+
+      rows += '<tr id="row-' + u.id + '">'
+        + '<td style="font-size:12px;">' + u.email + '</td>'
+        + '<td><span class="plan-badge ' + badgeClass + '" onclick="toggleEditRow(\'' + u.id + '\')">' + badgeLabel + '</span></td>'
+        + '<td style="font-size:12px;color:var(--mid);">' + startedAt + '</td>'
+        + '<td style="font-size:12px;color:var(--mid);">' + expiresAt + '</td>'
+        + '</tr>';
+
+      // インライン編集行（開いている場合のみ）
+      if (_openEditUserId === u.id) {
+        const currentPlan = p?.plan || 'free';
+        const currentExpires = p?.expires_at ? p.expires_at.slice(0, 10) : '';
+        rows += '<tr class="plan-edit-row" id="edit-row-' + u.id + '">'
+          + '<td colspan="4">'
+          + '<div class="plan-edit-panel">'
+          + '<div class="field"><label>プラン</label>'
+          + '<select id="edit-plan-' + u.id + '">'
+          + '<option value="free"' + (currentPlan === 'free' ? ' selected' : '') + '>Free（月5回）</option>'
+          + '<option value="premium"' + (currentPlan === 'premium' ? ' selected' : '') + '>Premium（無制限）</option>'
+          + '<option value="admin"' + (currentPlan === 'admin' ? ' selected' : '') + '>Admin（管理者）</option>'
+          + '</select></div>'
+          + '<div class="field"><label>有効期限（空欄で無期限）</label>'
+          + '<input type="date" id="edit-expires-' + u.id + '" value="' + currentExpires + '"></div>'
+          + '<div class="plan-edit-actions">'
+          + '<button class="btn-save-plan" onclick="savePlan(\'' + u.id + '\', \'' + u.email + '\')">保存</button>'
+          + '<button class="btn-cancel-plan" onclick="closeEditRow()">キャンセル</button>'
+          + '</div>'
+          + '</div>'
+          + '</td>'
+          + '</tr>';
+      }
+    });
+
+    el.innerHTML = countInfo
+      + '<table class="user-table">'
+      + '<thead><tr>'
+      + '<th>メールアドレス</th>'
+      + '<th>プラン</th>'
+      + '<th>利用開始日</th>'
+      + '<th>有効期限</th>'
+      + '</tr></thead>'
+      + '<tbody>' + rows + '</tbody>'
+      + '</table>';
 
     // ページネーション
     if (totalPages <= 1) { pgEl.innerHTML = ''; return; }
-    pgEl.innerHTML = `
-      <button class="admin-btn btn-secondary" style="padding:4px 12px;font-size:12px;"
-        ${page === 0 ? 'disabled' : ''} onclick="goUserPage(${page - 1})">‹ 前</button>
-      <span style="font-size:12px;color:var(--mid);line-height:30px;">${page + 1} / ${totalPages}</span>
-      <button class="admin-btn btn-secondary" style="padding:4px 12px;font-size:12px;"
-        ${page >= totalPages - 1 ? 'disabled' : ''} onclick="goUserPage(${page + 1})">次 ›</button>
-    `;
+    pgEl.innerHTML =
+      '<button class="page-btn" ' + (page === 0 ? 'disabled' : '') + ' onclick="goUserPage(' + (page - 1) + ')">‹ 前</button>'
+      + '<span class="page-info">' + (page + 1) + ' / ' + totalPages + '</span>'
+      + '<button class="page-btn" ' + (page >= totalPages - 1 ? 'disabled' : '') + ' onclick="goUserPage(' + (page + 1) + ')">次 ›</button>';
   }
 
   window.goUserPage = (page) => { _userPage = page; renderUserList(); };
 
-  document.getElementById('user-search').addEventListener('input', e => {
-    _userQuery = e.target.value;
-    _userPage  = 0;
+  window.toggleEditRow = (userId) => {
+    _openEditUserId = _openEditUserId === userId ? null : userId;
     renderUserList();
-  });
-
-  // ── AI使用量上位 ──
-  async function loadUsageList() {
-    const monthKey = new Date().toISOString().slice(0, 7);
-    const { data, error } = await supabase
-      .from('ai_usage')
-      .select('user_id, count')
-      .eq('month_key', monthKey)
-      .order('count', { ascending: false })
-      .limit(10);
-
-    const el = document.getElementById('usage-list');
-    if (error || !data?.length) {
-      el.innerHTML = '<p style="font-size:13px;color:var(--mid);padding:8px;">今月の利用データがありません</p>';
-      return;
+    if (_openEditUserId) {
+      // スクロールして見えるようにする
+      setTimeout(() => {
+        const el = document.getElementById('edit-row-' + userId);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 50);
     }
+  };
 
-    // user_idからメールを一括取得
-    const emailMap = await getEmailsByUserIds(data.map(u => u.user_id));
+  window.closeEditRow = () => {
+    _openEditUserId = null;
+    renderUserList();
+  };
 
-    // user_idからプランを一括取得
-    const { data: planData } = await supabase.rpc('get_all_user_plans');
-    const planMap = {};
-    (planData || []).forEach(p => { planMap[p.user_id] = p.plan; });
-
-    el.innerHTML = `
-      <div style="overflow-x:auto;">
-        <table class="user-table">
-          <thead><tr>
-            <th>メールアドレス</th>
-            <th>使用回数</th>
-            <th>プラン / 残り</th>
-          </tr></thead>
-          <tbody>
-            ${data.map(u => {
-              const plan = planMap[u.user_id] || 'free';
-              const isUnlimited = plan === 'admin' || plan === 'premium';
-              const limit = plan === 'premium' ? 6000 : 5;
-              const remaining = isUnlimited ? null : Math.max(0, limit - u.count);
-              const pct = isUnlimited ? Math.min(100, (u.count / 6000) * 100) : Math.min(100, (u.count / 5) * 100);
-              const color = isUnlimited ? '#4A7C59' : (u.count >= limit ? '#B83232' : u.count >= limit - 1 ? '#B8973E' : '#4A7C59');
-              const remainText = isUnlimited
-                ? '<span style="color:#4A7C59;">' + plan + '（無制限）</span>'
-                : (remaining === 0 ? '<span style="color:#B83232;">上限</span>' : remaining + '回');
-              return `
-                <tr>
-                  <td style="font-size:12px;color:var(--ink);">
-                    ${emailMap[u.user_id] || u.user_id.slice(0,8) + '…'}
-                  </td>
-                  <td>
-                    <div style="display:flex;align-items:center;gap:8px;">
-                      <div style="width:80px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
-                        <div style="width:${pct}%;height:100%;background:${color};border-radius:3px;"></div>
-                      </div>
-                      <span style="font-size:13px;font-weight:600;color:${color};">${u.count}回</span>
-                    </div>
-                  </td>
-                  <td style="font-size:12px;color:var(--mid);">${remainText}</td>
-                </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>`;
-  }
-
-  // ── プラン設定 ──
-  let _currentUserId = null;
-
-  document.getElementById('btn-lookup').addEventListener('click', async () => {
-    const email = document.getElementById('input-email').value.trim();
-    if (!email) { toast('メールアドレスを入力してください'); return; }
-    const result = document.getElementById('lookup-result');
-    const planForm = document.getElementById('plan-form');
-    result.textContent = '検索中…';
-    planForm.style.display = 'none';
-    _currentUserId = null;
-
-    const userId = await findUserIdByEmail(email);
-    if (!userId) {
-      result.textContent = '❌ 見つかりません（まだログインしていない可能性があります）';
-      return;
-    }
-
-    _currentUserId = userId;
-    result.textContent = '✓ ユーザーが見つかりました';
-    result.style.color = '#4A7C59';
-
-    // 現在のプランを取得してセレクトに反映
-    const { data: allPlansData } = await supabase.rpc('get_all_user_plans');
-    const planData = (allPlansData || []).find(p => p.user_id === userId);
-
-    const currentPlan = planData?.plan || 'free';
-    document.getElementById('input-plan').value = currentPlan;
-    if (planData?.expires_at) {
-      document.getElementById('input-expires').value = planData.expires_at.slice(0, 10);
-    } else {
-      document.getElementById('input-expires').value = '';
-    }
-
-    document.getElementById('plan-form-user').textContent = email + '（現在: ' + currentPlan + '）';
-    planForm.style.display = 'flex';
-  });
-
-  document.getElementById('btn-set-plan').addEventListener('click', async () => {
-    if (!_currentUserId) { toast('先にメールで検索してください'); return; }
-    const plan    = document.getElementById('input-plan').value;
-    const expires = document.getElementById('input-expires').value;
-    const email   = document.getElementById('input-email').value.trim();
+  window.savePlan = async (userId, email) => {
+    const plan    = document.getElementById('edit-plan-' + userId)?.value;
+    const expires = document.getElementById('edit-expires-' + userId)?.value;
+    if (!plan) return;
 
     const { error } = await supabase.rpc('set_user_plan', {
-      p_user_id: _currentUserId,
+      p_user_id: userId,
       p_plan: plan,
       p_expires_at: expires ? new Date(expires).toISOString() : null,
     });
@@ -597,38 +592,27 @@
     if (error) {
       toast('❌ エラー: ' + error.message);
     } else {
-      toast('✓ ' + email + ' を ' + plan + ' に設定しました');
-      document.getElementById('lookup-result').textContent = '';
-      document.getElementById('lookup-result').style.color = '';
-      document.getElementById('plan-form').style.display = 'none';
-      document.getElementById('input-email').value = '';
-      _currentUserId = null;
-      await Promise.all([loadStats(), loadUserList()]);
+      toast('✓ ' + email + ' を ' + plan + ' に変更しました');
+      _openEditUserId = null;
+      // planMapをローカル更新（再フェッチ不要で高速）
+      if (!_planMap[userId]) _planMap[userId] = { user_id: userId };
+      _planMap[userId].plan = plan;
+      _planMap[userId].expires_at = expires ? new Date(expires).toISOString() : null;
+      _planMap[userId].updated_at = new Date().toISOString();
+      renderUserList();
+      loadStats();
     }
-  });
-
-  // メールアドレスからuser_idを取得（RPC経由）
-  async function findUserIdByEmail(email) {
-    const { data, error } = await supabase.rpc('get_user_id_by_email', { p_email: email });
-    if (error || !data) return null;
-    return data;
-  }
-
-  // ── プラン解除 ──
-  window.revokePlan = async (userId) => {
-    const { error } = await supabase.rpc('set_user_plan', {
-      p_user_id: userId,
-      p_plan: 'free',
-      p_expires_at: null,
-    });
-    if (error) { toast('❌ ' + error.message); return; }
-    toast('✓ Freeに変更しました');
-    await Promise.all([loadStats(), loadUserList()]);
   };
 
-  // ── 更新ボタン ──
+  document.getElementById('user-search').addEventListener('input', e => {
+    _userQuery = e.target.value;
+    _userPage  = 0;
+    _openEditUserId = null;
+    renderUserList();
+  });
+
   document.getElementById('btn-refresh').addEventListener('click', async () => {
-    await Promise.all([loadStats(), loadUserList(), loadUsageList()]);
+    await Promise.all([loadStats(), loadUserList()]);
     toast('✓ 更新しました');
   });
 </script>
