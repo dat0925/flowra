@@ -201,7 +201,7 @@ async function renderContent(content, accounts, transactions, year, month, fromC
       if (budgetEntries.length > 0) {
         // タグIDで支出合計を集計
         const spendByTag = {};
-        transactions.filter(t => t.type === 'expense').forEach(tx => {
+        transactions.filter(t => t.type === 'expense' && !t.is_excluded).forEach(tx => {
           (tx.tags || []).filter(t => t).forEach(tag => {
             spendByTag[tag.id] = (spendByTag[tag.id] || 0) + tx.amount;
           });
@@ -751,7 +751,7 @@ function setupAiSummary(transactions, year, month) {
         const monthKey  = year + '-' + String(month).padStart(2, '0');
         const budgetMap = await DB.getBudgets(monthKey);
         const spendByTag = {};
-        transactions.filter(t => t.type === 'expense').forEach(tx => {
+        transactions.filter(t => t.type === 'expense' && !t.is_excluded).forEach(tx => {
           (tx.tags || []).filter(t => t).forEach(tag => {
             spendByTag[tag.id] = (spendByTag[tag.id] || 0) + tx.amount;
           });
@@ -992,3 +992,4 @@ function setupAccordions() {
     });
   });
 }
+
