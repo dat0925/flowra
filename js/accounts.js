@@ -100,7 +100,7 @@ async function renderAccountsContent(content, accounts) {
       // マイナス残高（クレカ等）はバー非表示
       const pct = (!isNeg && totalPositive > 0) ? Math.min(100, a.balance / totalPositive * 100) : 0;
       const barColor = isNeg ? '#B83232' : (a.color && a.color.trim() ? a.color : '#4A7C59');
-      const barHTML = pct > 0 ? `
+      const barHTML = pct > 0.4 ? `
         <div style="display:flex;align-items:center;gap:6px;margin-top:4px;margin-bottom:2px;">
           <div style="flex:1;height:5px;border-radius:3px;background:var(--mist);overflow:hidden;">
             <div style="height:100%;width:${pct.toFixed(1)}%;background:${barColor};border-radius:3px;transition:width 0.4s;"></div>
@@ -109,7 +109,7 @@ async function renderAccountsContent(content, accounts) {
         </div>` : `<div style="height:9px;"></div>`;
 
       return `
-      <div class="acct-item has-bar" data-id="${a.id}" data-idx="${i}">
+      <div class="acct-item ${isNeg ? 'no-bar' : 'has-bar'}" data-id="${a.id}" data-idx="${i}">
         <div class="acct-item-row">
           <div class="drag-handle" style="flex-shrink:0;">
             <svg viewBox="0 0 8 14" width="8" height="14" fill="var(--mid-lt)" stroke="none">

@@ -1486,3 +1486,8 @@ body.page-records #mobile-month-label {
 .ob-complete-icon { width: 72px; height: 72px; border-radius: 50%; background: var(--sage); color: #fff; font-size: 32px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; animation: ob-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
 @keyframes ob-pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
+
+/* マイナス残高口座（クレカ等）のバーエリアを最小化 */
+.acct-item.no-bar {
+  padding-bottom: 10px;
+}
