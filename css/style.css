@@ -52,6 +52,8 @@ button:active, .nav-item:active, .b-tab:active,
   opacity: 0.7;
   transition: opacity 0.05s;
 }
+/* ボタン全般のタップ遅延を除去 */
+button { touch-action: manipulation; }
 
 /* hidden属性を確実に適用（display:flexより優先） */
 [hidden] { display: none !important; }
@@ -872,6 +874,9 @@ body.page-records #mobile-month-label {
   letter-spacing: 0.02em;
 }
 .btn-primary:hover { background: var(--sage-dk); }
+.btn-primary:active { background: var(--sage-dk); transform: scale(0.97); transition: transform 0.08s, background 0.08s; }
+.btn-primary:disabled { background: var(--mid-lt); cursor: not-allowed; transform: none; opacity: 0.7; }
+.btn-primary { touch-action: manipulation; }
 .btn-primary svg { width: 16px; height: 16px; stroke-width: 2.5; }
 
 .btn-secondary {
@@ -889,6 +894,8 @@ body.page-records #mobile-month-label {
   margin-top: 8px;
 }
 .btn-secondary:hover { background: var(--warm); color: var(--ink); }
+.btn-secondary:active { background: var(--warm); transform: scale(0.97); transition: transform 0.08s; }
+.btn-secondary { touch-action: manipulation; }
 
 /* TRANSACTION LIST */
 .tx-date-label {
@@ -1469,3 +1476,4 @@ body.page-records #mobile-month-label {
 /* 完了 */
 .ob-complete-icon { width: 72px; height: 72px; border-radius: 50%; background: var(--sage); color: #fff; font-size: 32px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; animation: ob-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
 @keyframes ob-pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
