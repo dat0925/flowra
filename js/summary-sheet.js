@@ -53,7 +53,7 @@ export async function openSummarySheet() {
           サブタグ集計 <span id="ss-help-sub" style="display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:var(--mid-lt);color:#fff;font-size:9px;font-weight:700;cursor:pointer;vertical-align:middle;margin-left:3px;line-height:1;">?</span>
         </button>
       </div>
-      <div id="summary-sheet-body" style="overflow-y:auto;overflow-x:hidden;flex:1;padding:0;">
+      <div id="summary-sheet-body" style="overflow:auto;flex:1;padding:0;">
         <div style="padding:32px;text-align:center;color:var(--mid);font-size:13px;">読み込み中…</div>
       </div>
     </div>`;
@@ -406,7 +406,7 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
       </tr>`;
 
     el.innerHTML = `
-      <div id="summary-scroll-wrap" style="overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;">
+      <div id="summary-scroll-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
         <table style="border-collapse:collapse;width:100%;min-width:max-content;">
           <thead>${headerRow}</thead>
           <tbody>${dataRows}${mode === "primary" ? totalRow : ""}</tbody>
@@ -425,6 +425,7 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
     console.error('[SummarySheet]', e);
   }
 }
+
 
 
 
