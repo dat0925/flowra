@@ -147,7 +147,7 @@ export async function openSummarySheet() {
   };
 
   // 月ラベルタップでボトムシート式ピッカー（ホームと同じUI）
-  document.getElementById('ss-month-label').addEventListener('click', () => {
+  document.getElementById('ss-month-label').addEventListener('touchend', e => { e.preventDefault();
     Sound.playOpen();
     const now = new Date();
     const minYear = 2010;
@@ -425,6 +425,7 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
     console.error('[SummarySheet]', e);
   }
 }
+
 
 
 
