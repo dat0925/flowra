@@ -17,6 +17,7 @@ const PAGE_SIZE = 50;
 
 // AIアドバイスのメモリキャッシュ（SPA内ナビゲーション間で保持）
 let _aiAdviceCache = null; // { answer, question, ts, year, month }
+export function clearAiAdviceCache() { _aiAdviceCache = null; }
 let _freeAnswerCache = null; // { answer, ts, year, month }
 let _freeHistoryCache = []; // [{ q, a }, ...] 画面切り替えをまたいで保持
 
