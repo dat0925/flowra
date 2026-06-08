@@ -109,7 +109,7 @@ async function renderAccountsContent(content, accounts) {
         </div>` : `<div style="height:9px;"></div>`;
 
       return `
-      <div class="acct-item ${isNeg ? 'no-bar' : 'has-bar'}" data-id="${a.id}" data-idx="${i}">
+      <div class="acct-item has-bar" data-id="${a.id}" data-idx="${i}">
         <div class="acct-item-row">
           <div class="drag-handle" style="flex-shrink:0;">
             <svg viewBox="0 0 8 14" width="8" height="14" fill="var(--mid-lt)" stroke="none">
