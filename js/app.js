@@ -462,6 +462,8 @@ async function initTeamSwitcher() {
         if (teamId === DB.getActiveTeamId()) return;
         DB.setActiveTeamId(teamId);
         const { clearAll: clearCache } = await import('./cache.js');
+        const { clearAiAdviceCache } = await import('./dashboard.js');
+        clearAiAdviceCache();
         await clearCache();
         await initTeamSwitcher();
         applyViewerMode();
@@ -524,3 +526,4 @@ if (document.readyState === 'loading') {
 } else {
   initPullToRefresh();
 }
+
