@@ -56,6 +56,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     memo:         '',
     url:          '',
     isUnsettled:  false,
+    isExcluded:   false,
     isRecurring:  false,
     selectedTags: new Set(),
     ...initialState,
@@ -249,6 +250,26 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
               </div>
             </div>
             <div class="toggle ${state.isUnsettled?'on':''}" id="toggle-unsettled">
+              <div class="toggle-knob"></div>
+            </div>
+          </div>
+          <div class="toggle-wrap">
+            <div class="toggle-left">
+              <div class="row-icon" style="background:#F0EDE8;">
+                <svg viewBox="0 0 24 24" style="stroke:#9A7A6A;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </div>
+              <div>
+                <div class="toggle-title" style="display:flex;align-items:center;gap:5px;">
+                  集計除外
+                  <span id="excluded-help" style="width:15px;height:15px;border-radius:50%;
+                    background:var(--mist);color:var(--mid);font-size:10px;font-weight:600;
+                    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
+                    flex-shrink:0;">?</span>
+                </div>
+                <div class="toggle-sub">タグ別集計に含めない</div>
+              </div>
+            </div>
+            <div class="toggle ${state.isExcluded?'on':''}" id="toggle-excluded">
               <div class="toggle-knob"></div>
             </div>
           </div>
@@ -516,6 +537,14 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       Sound.playTap();
     });
 
+    document.getElementById('toggle-excluded')?.addEventListener('click', function() {
+      state.isExcluded = !state.isExcluded;
+      this.classList.toggle('on', state.isExcluded);
+    });
+    document.getElementById('excluded-help')?.addEventListener('click', e => {
+      e.stopPropagation();
+      showToast('集計除外にすると、タグ別集計シートに表示されなくなります。ホーム画面の収支合計には引き続き含まれます。');
+    });
     document.getElementById('unsettled-help')?.addEventListener('click', e => {
       e.stopPropagation();
       showToast('友人への立替など後で精算が必要な支出につけるフラグです');
@@ -633,6 +662,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       memo:          state.memo || null,
       url:           state.url || null,
       is_unsettled:  state.isUnsettled,
+      is_excluded:   state.isExcluded,
     };
 
     const acctNameVal = accounts.find(a => a.id === state.accountId)?.name || '';
@@ -886,6 +916,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
         memo,
         url:         tx.url || '',
         isUnsettled: false,
+        isExcluded:  false,
         selectedTags: (tx.tags || []).filter(t => t).map(t => t.id),
       };
       overlay.removeEventListener('click', onOverlayClick);
@@ -908,6 +939,7 @@ function calculate(left, right, op) {
   }
   return Math.max(0, result);
 }
+
 
 
 
