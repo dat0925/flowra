@@ -619,7 +619,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
             </button>
           </div>
         </div>
-        <div style="overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 14px 32px;">
+        <div style="overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 14px 32px;flex:1;min-height:0;">
           <div style="background:#fff;border-radius:14px;overflow:hidden;border:1px solid var(--border);">
             ${itemsHTML}
           </div>
