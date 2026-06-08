@@ -260,6 +260,7 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
         .gte('date', dateFrom)
         .lte('date', dateTo)
         .eq('type', 'expense')
+        .eq('is_excluded', false)
         .limit(5000);
 
       if (!txs || txs.length === 0) return [];
@@ -425,6 +426,7 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
     console.error('[SummarySheet]', e);
   }
 }
+
 
 
 
