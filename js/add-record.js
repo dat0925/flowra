@@ -608,7 +608,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     `;
     sheet.innerHTML = `
       <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;
-        display:flex;flex-direction:column;max-height:75vh;">
+        display:flex;flex-direction:column;max-height:85vh;">
         <div style="flex-shrink:0;">
           <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 0;"></div>
           <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;">
@@ -939,6 +939,7 @@ function calculate(left, right, op) {
   }
   return Math.max(0, result);
 }
+
 
 
 
