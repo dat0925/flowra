@@ -875,6 +875,14 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
         </svg>
         データを再同期
       </div>
+      <div class="form-row" id="btn-manage-plan" style="color:var(--sage-dk);">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="2" y="5" width="20" height="14" rx="2"/>
+          <line x1="2" y1="10" x2="22" y2="10"/>
+        </svg>
+        プランを管理する
+        <svg viewBox="0 0 24 24" width="13" height="13" style="margin-left:auto;color:var(--mid-lt);"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
       <div class="form-row" id="btn-logout" style="color:var(--red);">
         <svg viewBox="0 0 24 24" width="16" height="16" style="color:var(--red)">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -993,6 +1001,38 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
     await clearAll();
     showToast('✓ キャッシュをクリアしました。再読み込みします…');
     setTimeout(() => location.reload(), 1000);
+  });
+
+  document.getElementById('btn-manage-plan')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-manage-plan');
+    if (btn) btn.style.opacity = '0.5';
+    try {
+      const session = await supabase.auth.getSession();
+      const token = session.data.session?.access_token;
+      if (!token) { showToast('ログインが必要です'); return; }
+
+      const res = await fetch(
+        'https://copyzpsyagscqrvkrwjo.supabase.co/functions/v1/stripe-portal',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token,
+          },
+          body: JSON.stringify({ return_url: 'https://flowra.taskra.jp' }),
+        }
+      );
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        showToast('エラー: ' + (data.error || '不明なエラー'));
+      }
+    } catch (e) {
+      showToast('エラーが発生しました');
+    } finally {
+      if (btn) btn.style.opacity = '1';
+    }
   });
 
   document.getElementById('btn-logout')?.addEventListener('click', () => {
