@@ -602,7 +602,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     const sheet = document.createElement('div');
     sheet.id = sheetId;
     sheet.style.cssText = `
-      position:fixed;inset:0;z-index:1100;
+      position:fixed;inset:0;z-index:700;
       background:rgba(28,43,34,0.45);
       display:flex;align-items:flex-end;justify-content:center;
     `;
@@ -906,7 +906,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
       const txId = btn.dataset.txId;
       const tx = all.find(t => t.id === txId);
       if (!tx) return;
-      const memo = tx.memo ? tx.memo + '（複製）' : '（複製）';
+      const memo = tx.memo || null;
       const copyState = {
         type:        tx.type,
         amount:      String(tx.amount),
