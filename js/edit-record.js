@@ -627,8 +627,7 @@ export async function openEditRecord(tx, onSave) {
     sheet.querySelector('#btn-duplicate-record')?.addEventListener('click', () => {
       // 今日の日付
       const today = new Date().toISOString().split('T')[0];
-      // メモに（複製）を追加
-      const memo = tx.memo ? tx.memo + '（複製）' : '（複製）';
+      const memo = tx.memo || null;
       // 元の記録からstateを構築
       const initialState = {
         type:         tx.type,
@@ -808,6 +807,7 @@ function calcFn(left, right, op) {
   }
   return Math.max(0, r);
 }
+
 
 
 
