@@ -1646,7 +1646,7 @@
           <li class="ok">新機能への優先アクセス</li>
           <li class="ok">開発チームへの要望受付</li>
         </ul>
-        <a href="https://buy.stripe.com/test_7sY6oG72Y43J0Yp72rds402" class="pricing-btn pricing-btn-premium"
+        <a id="btn-premium-lp" href="https://buy.stripe.com/test_7sY6oG72Y43J0Yp72rds402" class="pricing-btn pricing-btn-premium"
           target="_blank" rel="noopener">
           Premiumプランに申し込む
         </a>
@@ -1802,6 +1802,25 @@
 
     aiBtnEl?.addEventListener('click', submitAiFree);
     aiInputEl?.addEventListener('keydown', e => { if (e.key === 'Enter') submitAiFree(); });
+
+    // Payment Link に Supabase user_id を client_reference_id として埋め込む
+    // ログイン済みユーザーのみ：?client_reference_id=USER_ID を付加
+    (async () => {
+      try {
+        const SUPABASE_URL = 'https://copyzpsyagscqrvkrwjo.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcHl6cHN5YWdzY3Fydmtyd2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTUxNjU2MDAsImV4cCI6MjAzMDc0MTYwMH0.placeholder';
+        const storageKey = 'sb-copyzpsyagscqrvkrwjo-auth-token';
+        const raw = localStorage.getItem(storageKey);
+        if (!raw) return;
+        const session = JSON.parse(raw);
+        const userId = session?.user?.id;
+        if (!userId) return;
+        const btn = document.getElementById('btn-premium-lp');
+        if (!btn) return;
+        const base = btn.href.split('?')[0];
+        btn.href = base + '?client_reference_id=' + encodeURIComponent(userId);
+      } catch (_) {}
+    })();
   </script>
 </body>
 </html>
