@@ -189,6 +189,13 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
               font-family:'Noto Sans JP',sans-serif;transition:background 0.12s;">
               AC
             </button>
+            <button id="calc-dot-btn"
+              style="flex:1;padding:7px 0;border-radius:8px;border:none;
+              background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
+              font-size:18px;font-weight:500;cursor:pointer;
+              font-family:'Noto Sans JP',sans-serif;transition:background 0.12s;">
+              ．
+            </button>
             ${['+','−','×','÷'].map(op => `
               <button class="calc-op-btn" data-op="${op}"
                 style="flex:1;padding:7px 0;border-radius:8px;border:none;
@@ -345,15 +352,24 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     }
 
     function displayAmount(raw) {
-      const n = parseInt(String(raw).replace(/,/g,''), 10);
-      if (!isNaN(n) && n > 0) {
-        amountInput.textContent = n.toLocaleString('ja-JP');
-        state.amount = String(n);
-        adjustFontSize(String(n).length);
+      const s = String(raw).replace(/,/g, '');
+      const hasDecimal = s.includes('.');
+      if (hasDecimal) {
+        // 小数点あり → そのまま表示（計算途中）
+        amountInput.textContent = s;
+        state.amount = s;
+        adjustFontSize(s.replace('.','').length);
       } else {
-        amountInput.textContent = '';
-        state.amount = '';
-        adjustFontSize(0);
+        const n = parseInt(s, 10);
+        if (!isNaN(n) && n > 0) {
+          amountInput.textContent = n.toLocaleString('ja-JP');
+          state.amount = String(n);
+          adjustFontSize(String(n).length);
+        } else {
+          amountInput.textContent = '';
+          state.amount = '';
+          adjustFontSize(0);
+        }
       }
     }
 
@@ -422,6 +438,18 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       calcLeft = '';
       calcOp   = '';
       exprEl.textContent = exprText;
+      Sound.playTap();
+    });
+
+    document.getElementById('calc-dot-btn')?.addEventListener('mousedown', e => e.preventDefault());
+    document.getElementById('calc-dot-btn')?.addEventListener('click', () => {
+      const cur = state.amount || '0';
+      // すでに小数点があれば追加しない
+      if (cur.includes('.')) return;
+      const newVal = cur + '.';
+      amountInput.textContent = newVal;
+      state.amount = newVal;
+      moveCursorToEnd(amountInput);
       Sound.playTap();
     });
 
@@ -931,11 +959,11 @@ async function showSuggest(onSave, onReady, accounts, tags) {
 function calculate(left, right, op) {
   let result;
   switch (op) {
-    case '+': result = left + right; break;
-    case '−': result = left - right; break;
+    case '+': result = Math.round(left + right); break;
+    case '−': result = Math.round(left - right); break;
     case '×': result = Math.round(left * right); break;
     case '÷': result = right !== 0 ? Math.round(left / right) : left; break;
-    default:  result = right;
+    default:  result = Math.round(right);
   }
   return Math.max(0, result);
 }
