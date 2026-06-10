@@ -233,16 +233,7 @@ export async function openEditRecord(tx, onSave) {
                 placeholder="メモを入力（任意）" value="${state.memo}">
             </div>
           </div>
-          <div class="form-row no-tap">
-            <div class="row-icon" style="background:#F0EDE8;">
-              <svg viewBox="0 0 24 24" style="stroke:var(--mid)"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-            </div>
-            <div class="row-body">
-              <div class="row-label">URL</div>
-              <input class="text-input" id="url-input" type="url"
-                placeholder="https://... （任意）" value="${state.url}">
-            </div>
-          </div>
+
         </div>
 
         <!-- タグ -->
@@ -480,7 +471,7 @@ export async function openEditRecord(tx, onSave) {
 
     sheet.querySelector('#date-input')?.addEventListener('change',  e => state.date   = e.target.value);
     sheet.querySelector('#memo-input')?.addEventListener('input',   e => state.memo   = e.target.value);
-    sheet.querySelector('#url-input')?.addEventListener('input',    e => state.url    = e.target.value);
+
 
     // 口座選択
     sheet.querySelector('#btn-acct')?.addEventListener('click', () => {
