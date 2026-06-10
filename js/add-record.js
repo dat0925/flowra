@@ -55,7 +55,6 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     toAccountId:  accounts[1]?.id || '',
     memo:         '',
     url:          '',
-    isUnsettled:  false,
     isExcluded:   false,
     isRecurring:  false,
     selectedTags: new Set(),
@@ -240,26 +239,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
         ${tagsHTML}
 
         <div class="form-section">
-          <div class="toggle-wrap">
-            <div class="toggle-left">
-              <div class="row-icon" style="background:var(--gold-bg);">
-                <svg viewBox="0 0 24 24" style="stroke:var(--gold)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </div>
-              <div>
-                <div class="toggle-title" style="display:flex;align-items:center;gap:5px;">
-                  未精算
-                  <span id="unsettled-help" style="width:15px;height:15px;border-radius:50%;
-                    background:var(--mist);color:var(--mid);font-size:10px;font-weight:600;
-                    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
-                    flex-shrink:0;">?</span>
-                </div>
-                <div class="toggle-sub">立替など後で精算が必要</div>
-              </div>
-            </div>
-            <div class="toggle ${state.isUnsettled?'on':''}" id="toggle-unsettled">
-              <div class="toggle-knob"></div>
-            </div>
-          </div>
+
           <div class="toggle-wrap">
             <div class="toggle-left">
               <div class="row-icon" style="background:#F0EDE8;">
@@ -573,10 +553,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       e.stopPropagation();
       showToast('集計除外にすると、タグ別集計シートに表示されなくなります。ホーム画面の収支合計には引き続き含まれます。');
     });
-    document.getElementById('unsettled-help')?.addEventListener('click', e => {
-      e.stopPropagation();
-      showToast('友人への立替など後で精算が必要な支出につけるフラグです');
-    });
+
 
     document.getElementById('btn-save')?.addEventListener('click', save);
   }

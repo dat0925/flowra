@@ -241,26 +241,7 @@ export async function openEditRecord(tx, onSave) {
 
         <!-- 未精算 -->
         <div class="form-section" style="margin-bottom:20px;">
-          <div class="toggle-wrap">
-            <div class="toggle-left">
-              <div class="row-icon" style="background:var(--gold-bg);">
-                <svg viewBox="0 0 24 24" style="stroke:var(--gold)"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              </div>
-              <div>
-                <div class="toggle-title" style="display:flex;align-items:center;gap:5px;">
-                  未精算
-                  <span id="unsettled-help" style="width:15px;height:15px;border-radius:50%;
-                    background:var(--mist);color:var(--mid);font-size:10px;font-weight:600;
-                    display:inline-flex;align-items:center;justify-content:center;cursor:pointer;
-                    flex-shrink:0;">?</span>
-                </div>
-                <div class="toggle-sub">立替など後で精算が必要</div>
-              </div>
-            </div>
-            <div class="toggle ${state.isUnsettled?'on':''}" id="toggle-unsettled">
-              <div class="toggle-knob"></div>
-            </div>
-          </div>
+
         </div>
 
         <!-- 集計除外 -->
@@ -628,8 +609,7 @@ export async function openEditRecord(tx, onSave) {
         toAccountId:  tx.to_account_id || '',
         memo:         memo,
         url:          tx.url || '',
-        isUnsettled:  false,
-        isExcluded:   false,
+            isExcluded:   false,
         isRecurring:  false,
         selectedTags: (tx.tags || []).map(t => t.id),
       };
