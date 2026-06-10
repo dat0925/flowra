@@ -366,20 +366,34 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
 
     let waitingForNextInput = false;
     amountInput?.addEventListener('input', () => {
-      let raw = amountInput.textContent.replace(/,/g,'').replace(/[^0-9]/g,'');
+      // 小数点を許可（計算途中で使用、保存時にroundされる）
+      let raw = amountInput.textContent.replace(/,/g,'').replace(/[^0-9.]/g,'');
+      // 小数点が複数ある場合は最初の1つだけ残す
+      const parts = raw.split('.');
+      if (parts.length > 2) raw = parts[0] + '.' + parts.slice(1).join('');
+
       if (waitingForNextInput) {
         waitingForNextInput = false;
-        raw = raw.slice(-1);
+        // 小数点で始まる入力（例: .08）はそのまま保持
+        const lastChar = raw.slice(-1);
+        raw = lastChar;
         amountInput.textContent = raw;
       }
       state.amount = raw;
-      if (raw) {
-        const formatted = Number(raw).toLocaleString('ja-JP');
-        amountInput.textContent = formatted;
-        adjustFontSize(raw.length);
+      if (raw && raw !== '.') {
+        const hasDecimal = raw.includes('.');
+        if (hasDecimal) {
+          // 小数点あり → そのまま表示
+          amountInput.textContent = raw;
+          adjustFontSize(raw.replace('.','').length);
+        } else {
+          const formatted = Number(raw).toLocaleString('ja-JP');
+          amountInput.textContent = formatted;
+          adjustFontSize(raw.length);
+        }
         moveCursorToEnd(amountInput);
-      } else {
-        amountInput.textContent = '';
+      } else if (!raw || raw === '.') {
+        if (raw !== '.') amountInput.textContent = '';
         adjustFontSize(0);
       }
     });
