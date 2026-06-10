@@ -30,6 +30,17 @@ Deno.serve(async (req) => {
 
   const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+  // user_id を解決するヘルパー
+  // client_reference_id にSupabase user_idが埋め込まれている前提
+  // なければ email → auth.users から user_id を引く
+  async function resolveUserId(userId: string | null, email: string | null): Promise<string | null> {
+    if (userId) return userId;
+    if (!email) return null;
+    const { data } = await sb.auth.admin.listUsers();
+    const found = data?.users?.find((u) => u.email === email);
+    return found?.id ?? null;
+  }
+
   try {
     switch (event.type) {
 
@@ -37,24 +48,24 @@ Deno.serve(async (req) => {
       case 'checkout.session.completed': {
         const session    = event.data.object as Stripe.Checkout.Session;
         const customerId = session.customer as string;
-        const userId     = session.client_reference_id ?? '';
 
-        let email: string | undefined = session.customer_details?.email ?? session.customer_email ?? undefined;
-        if (!email && userId) {
-          const { data } = await sb.auth.admin.getUserById(userId);
-          email = data?.user?.email;
-        }
-        if (!email) { console.error('email not found', session.id); break; }
+        // client_reference_id にSupabase user_idを埋め込んでいる
+        const refUserId = session.client_reference_id || null;
+        const email = session.customer_details?.email ?? session.customer_email ?? null;
+
+        const userId = await resolveUserId(refUserId, email);
+        if (!userId) { console.error('user_id not found', session.id); break; }
 
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
         const priceId   = lineItems.data[0]?.price?.id ?? '';
         const plan      = PRICE_PLAN[priceId] ?? 'premium';
 
-        await sb.from('user_plans').upsert(
-          { email, plan, stripe_customer_id: customerId, updated_at: new Date().toISOString() },
-          { onConflict: 'email' }
+        const { error } = await sb.from('user_plans').upsert(
+          { user_id: userId, plan, stripe_customer_id: customerId, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id' }
         );
-        console.log(`Plan updated: ${email} → ${plan}`);
+        if (error) console.error('upsert error (checkout):', error.message);
+        else console.log('Plan updated (checkout):', userId, '→', plan);
         break;
       }
 
@@ -69,13 +80,17 @@ Deno.serve(async (req) => {
 
         const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
         const email    = customer.email;
-        if (!email) { console.error('email not found for customer', customerId); break; }
+        const refUserId = (customer.metadata?.supabase_uid) || null;
 
-        await sb.from('user_plans').upsert(
-          { email, plan, stripe_customer_id: customerId, updated_at: new Date().toISOString() },
-          { onConflict: 'email' }
+        const userId = await resolveUserId(refUserId, email);
+        if (!userId) { console.error('user_id not found for customer', customerId); break; }
+
+        const { error } = await sb.from('user_plans').upsert(
+          { user_id: userId, plan, stripe_customer_id: customerId, updated_at: new Date().toISOString() },
+          { onConflict: 'user_id' }
         );
-        console.log(`Subscription created: ${email} → ${plan}`);
+        if (error) console.error('upsert error (sub created):', error.message);
+        else console.log('Subscription created:', userId, '→', plan);
         break;
       }
 
@@ -83,10 +98,11 @@ Deno.serve(async (req) => {
       case 'customer.subscription.deleted': {
         const sub        = event.data.object as Stripe.Subscription;
         const customerId = sub.customer as string;
-        await sb.from('user_plans')
+        const { error } = await sb.from('user_plans')
           .update({ plan: 'free', updated_at: new Date().toISOString() })
           .eq('stripe_customer_id', customerId);
-        console.log(`Downgraded to free: customer ${customerId}`);
+        if (error) console.error('update error (sub deleted):', error.message);
+        else console.log('Downgraded to free: customer', customerId);
         break;
       }
 
@@ -100,10 +116,11 @@ Deno.serve(async (req) => {
         const plan    = PRICE_PLAN[priceId];
         if (!plan) break;
 
-        await sb.from('user_plans')
+        const { error } = await sb.from('user_plans')
           .update({ plan, updated_at: new Date().toISOString() })
           .eq('stripe_customer_id', customerId);
-        console.log(`Plan changed: customer ${customerId} → ${plan}`);
+        if (error) console.error('update error (sub updated):', error.message);
+        else console.log('Plan changed: customer', customerId, '→', plan);
         break;
       }
     }
