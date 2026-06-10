@@ -137,6 +137,25 @@ function showApp(user) {
   // 新規ユーザー向けデフォルトカテゴリタグを自動シード
   _seedDefaultTags();
 
+  // PWA: キーボード閉じた後のフッターズレを修正
+  if (window.visualViewport) {
+    let _kbOpen = false;
+    window.visualViewport.addEventListener('resize', () => {
+      const ratio = window.visualViewport.height / window.screen.height;
+      const nowOpen = ratio < 0.75;
+      if (_kbOpen && !nowOpen) {
+        // キーボードが閉じた → bottom-navを強制リセット
+        const nav = document.getElementById('bottom-nav');
+        if (nav) {
+          nav.style.transform = 'translateY(0)';
+          nav.style.bottom = '';
+          void nav.offsetHeight; // 強制リフロー
+        }
+      }
+      _kbOpen = nowOpen;
+    });
+  }
+
   // ボタンのクリックハンドラ
   const openAdd = () => {
     renderAddRecord(
