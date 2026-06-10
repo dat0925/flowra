@@ -179,6 +179,7 @@ svg {
   height: 100vh;
   height: 100dvh;
   overflow: hidden;
+  background: var(--ink); /* フッター下の白透けを防ぐ */
 }
 
 /* SIDEBAR */
