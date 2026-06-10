@@ -106,9 +106,10 @@ export async function renderSettings() {
     const ownEntry  = allTeams.find(t => t.role === 'owner');
     const ownTeamId = ownEntry?.team_id;
     const ownTeam   = ownTeamId ? await DB.getTeamById(ownTeamId) : null;
+    const userPlan  = await DB.getUserPlan();
 
     // メンバー情報なしで先に描画（画面揺れを防ぐためスペーサーを確保）
-    renderSettingsContent(content, user, ownTeam, ownTeamId, tags, [], []);
+    renderSettingsContent(content, user, ownTeam, ownTeamId, tags, [], [], userPlan);
 
     // メンバー情報はバックグラウンドで取得して差し込む
     const ownMembers = ownTeamId
@@ -841,7 +842,7 @@ function setupSettingsDynamicEvents(content, user, ownTeam, ownTeamId, tags, own
   setupTagBudgetPageEvents(tags);
 }
 
-async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ownMembers = [], joinedTeams = []) {
+async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ownMembers = [], joinedTeams = [], userPlan = "free") {
   content.innerHTML = `
     <!-- プロフィール -->
     <div class="panel" style="margin-bottom:16px;">
@@ -875,13 +876,18 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
         </svg>
         データを再同期
       </div>
-      <div class="form-row" id="btn-manage-plan" style="color:var(--sage-dk);">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="2" y="5" width="20" height="14" rx="2"/>
-          <line x1="2" y1="10" x2="22" y2="10"/>
-        </svg>
-        プランを管理する
-        <svg viewBox="0 0 24 24" width="13" height="13" style="margin-left:auto;color:var(--mid-lt);"><polyline points="9 18 15 12 9 6"/></svg>
+      <div class="form-row no-tap" style="justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="2" y="5" width="20" height="14" rx="2"/>
+            <line x1="2" y1="10" x2="22" y2="10"/>
+          </svg>
+          <span style="font-size:14px;font-weight:500;">プラン</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span id="plan-badge"></span>
+          <div id="btn-manage-plan" style="font-size:12px;color:var(--sage-dk);cursor:pointer;padding:4px 10px;border:1px solid var(--sage-dk);border-radius:20px;">管理</div>
+        </div>
       </div>
       <div class="form-row" id="btn-logout" style="color:var(--red);">
         <svg viewBox="0 0 24 24" width="16" height="16" style="color:var(--red)">
@@ -1002,6 +1008,19 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
     showToast('✓ キャッシュをクリアしました。再読み込みします…');
     setTimeout(() => location.reload(), 1000);
   });
+
+  // プランバッジ表示
+  const planBadgeEl = document.getElementById('plan-badge');
+  if (planBadgeEl) {
+    const isPremium = userPlan === 'premium' || userPlan === 'admin';
+    const badgeColor = isPremium ? 'var(--sage)' : 'var(--mid-lt)';
+    const badgeBg    = isPremium ? 'rgba(74,124,89,0.1)' : 'var(--stone)';
+    const badgeText  = isPremium ? '✦ Premium' : 'Free';
+    const span = document.createElement('span');
+    span.style.cssText = 'font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;color:' + badgeColor + ';background:' + badgeBg;
+    span.textContent = badgeText;
+    planBadgeEl.appendChild(span);
+  }
 
   document.getElementById('btn-manage-plan')?.addEventListener('click', async () => {
     const btn = document.getElementById('btn-manage-plan');
