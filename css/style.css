@@ -1304,6 +1304,13 @@ body.page-records #mobile-month-label {
   padding: 0 0 48px;
   max-height: 92vh;
   overflow-y: auto;
+  /* 上部の隙間を潰す */
+  position: relative;
+  margin-bottom: -1px;
+}
+/* オーバーレイ背景が ob-sheet 上に漏れないよう */
+#onboarding-overlay {
+  overflow: hidden;
 }
 
 /* プログレスバー */
