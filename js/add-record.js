@@ -791,34 +791,37 @@ async function showSuggest(onSave, onReady, accounts, tags) {
   const acctName = (id) => accounts.find(a => a.id === id)?.name || '';
 
   // 最近の記録（横スクロールカード）
-  const recentHTML = recent.length === 0 ? '' :
-    '<div style="padding:0 16px 16px;">'
-    + '<div style="font-size:11px;color:var(--mid-lt);margin-bottom:8px;letter-spacing:0.05em;">最近の記録からコピー</div>'
-    + '<div style="display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;'
-    + 'scrollbar-width:none;">'
-    + recent.map(tx => {
-        const tagName = tx.tags && tx.tags.find(t => t) ? tx.tags.find(t => t).name : '';
-        const color = typeColor[tx.type] || 'var(--mid)';
-        return '<button class="ar-recent-btn" data-tx-id="' + tx.id + '"'
-          + ' style="flex-shrink:0;width:140px;padding:12px;border-radius:12px;border:1.5px solid var(--border);'
-          + 'background:var(--stone);cursor:pointer;text-align:left;transition:background 0.12s;">'
-          + '<div style="font-size:15px;font-weight:700;color:' + color + ';margin-bottom:4px;">'
-          + '¥' + Number(tx.amount).toLocaleString('ja-JP') + '</div>'
-          + '<div style="font-size:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;">'
-          + (tx.memo || '（メモなし）') + '</div>'
-          + '<div style="display:flex;align-items:center;gap:4px;">'
-          + (tagName ? '<span style="font-size:10px;color:var(--sage-dk);background:var(--sage-bg);padding:1px 5px;border-radius:4px;font-weight:600;">' + tagName + '</span>' : '')
-          + '<span style="font-size:10px;color:var(--mid-lt);">' + acctName(tx.account_id) + '</span>'
-          + '</div>'
-          + '</button>';
-      }).join('')
-    + '</div>'
-    + '<button id="ar-search-history-btn" style="display:flex;align-items:center;gap:4px;'
-    + 'margin-top:8px;padding:0;border:none;background:none;cursor:pointer;color:var(--sage);font-size:12px;">'
-    + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
-    + '過去の履歴を検索'
-    + '</button>'
-    + '</div>';
+  const recentHTML = (() => {
+    const cards = recent.length === 0 ? '' :
+      '<div style="font-size:11px;color:var(--mid-lt);margin-bottom:8px;letter-spacing:0.05em;">最近の記録からコピー</div>'
+      + '<div style="display:flex;gap:8px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:4px;scrollbar-width:none;">'
+      + recent.map(tx => {
+          const tagName = tx.tags && tx.tags.find(t => t) ? tx.tags.find(t => t).name : '';
+          const color = typeColor[tx.type] || 'var(--mid)';
+          return '<button class="ar-recent-btn" data-tx-id="' + tx.id + '"'
+            + ' style="flex-shrink:0;width:140px;padding:12px;border-radius:12px;border:1.5px solid var(--border);'
+            + 'background:var(--stone);cursor:pointer;text-align:left;transition:background 0.12s;">'
+            + '<div style="font-size:15px;font-weight:700;color:' + color + ';margin-bottom:4px;">'
+            + '¥' + Number(tx.amount).toLocaleString('ja-JP') + '</div>'
+            + '<div style="font-size:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px;">'
+            + (tx.memo || '（メモなし）') + '</div>'
+            + '<div style="display:flex;align-items:center;gap:4px;">'
+            + (tagName ? '<span style="font-size:10px;color:var(--sage-dk);background:var(--sage-bg);padding:1px 5px;border-radius:4px;font-weight:600;">' + tagName + '</span>' : '')
+            + '<span style="font-size:10px;color:var(--mid-lt);">' + acctName(tx.account_id) + '</span>'
+            + '</div>'
+            + '</button>';
+        }).join('')
+      + '</div>';
+    // 検索リンクは常に表示
+    return '<div style="padding:0 16px 16px;">'
+      + cards
+      + '<button id="ar-search-history-btn" style="display:flex;align-items:center;gap:4px;'
+      + 'margin-top:8px;padding:0;border:none;background:none;cursor:pointer;color:var(--sage);font-size:12px;">'
+      + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+      + '過去の履歴を検索'
+      + '</button>'
+      + '</div>';
+  })();
 
   const overlay = document.getElementById('modal-overlay');
   const modalContent = document.getElementById('modal-content');
