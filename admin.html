@@ -546,6 +546,7 @@
         + '<td style="text-align:center;"><span class="plan-badge ' + badgeClass + '" onclick="toggleEditRow(\'' + u.id + '\')">' + badgeLabel + '</span></td>'
         + '<td style="font-size:12px;color:var(--mid);text-align:center;">' + (aiCount > 0 ? aiCount : '—') + '</td>'
         + '<td style="font-size:12px;color:var(--mid);text-align:center;">' + (receiptCount > 0 ? receiptCount : '—') + '</td>'
+        + '<td style="font-size:11px;color:var(--mid);text-align:center;white-space:nowrap;">' + fmtDate(u.created_at) + '</td>'
         + '</tr>';
 
       // インライン編集行（開いている場合のみ）
@@ -553,7 +554,7 @@
         const currentPlan = p?.plan || 'free';
         const currentExpires = p?.expires_at ? p.expires_at.slice(0, 10) : '';
         rows += '<tr class="plan-edit-row" id="edit-row-' + u.id + '">'
-          + '<td colspan="4">'
+          + '<td colspan="5">'
           + '<div class="plan-edit-panel">'
           + '<div class="field"><label>プラン</label>'
           + '<select id="edit-plan-' + u.id + '">'
@@ -580,6 +581,7 @@
       + '<th>プラン</th>'
       + '<th style="text-align:center;min-width:36px;">AI<br><span style="font-size:9px;font-weight:400;">今月</span></th>'
       + '<th style="text-align:center;min-width:36px;">📷<br><span style="font-size:9px;font-weight:400;">今月</span></th>'
+      + '<th style="text-align:center;min-width:52px;">登録日</th>'
       + '</tr></thead>'
       + '<tbody>' + rows + '</tbody>'
       + '</table>';
