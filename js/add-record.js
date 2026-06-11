@@ -1008,8 +1008,25 @@ function calculate(left, right, op) {
 // ── レシート確認画面 ──────────────────────────────────────
 async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
   const { store, date, items } = result;
-  const { closeModal, showToast } = await import('./utils.js');
+  const { showToast } = await import('./utils.js');
   const { upsertTransactions } = await import('./cache.js');
+
+  // 既存モーダルを閉じて専用オーバーレイを開く
+  const existingModal = document.getElementById('modal-overlay');
+  if (existingModal) existingModal.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'receipt-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:500;display:flex;flex-direction:column;justify-content:flex-end;background:rgba(0,0,0,0.4);';
+  document.body.appendChild(overlay);
+
+  const sheet = document.createElement('div');
+  sheet.id = 'receipt-sheet';
+  sheet.style.cssText = 'background:var(--stone);border-radius:20px 20px 0 0;max-height:90dvh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom);';
+  overlay.appendChild(sheet);
+
+  const closeReceipt = () => overlay.remove();
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeReceipt(); });
 
   // 各品目の状態（チェック・タグ・金額）
   let itemStates = items.map(item => ({
@@ -1028,7 +1045,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
   const budgetMap = await DB.getBudgetTagIds();
 
   function renderConfirmUI() {
-    const modal = document.getElementById('modal-content');
+    const modal = document.getElementById('receipt-sheet');
     if (!modal) return;
 
     const acctName = (id) => accounts.find(a => a.id === id)?.name || '選択';
@@ -1097,7 +1114,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
       + '<div style="font-size:16px;font-weight:700;">¥' + total.toLocaleString() + '</div>'
       + '</div>'
       // 保存ボタン
-      + '<div id="receipt-save-bar" style="position:fixed;bottom:0;left:0;right:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:var(--stone);border-top:1px solid var(--mist);z-index:200;">'
+      + '<div id="receipt-save-bar" style="position:fixed;bottom:0;left:0;right:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:var(--stone);border-top:1px solid var(--mist);z-index:550;">'
       + '<button id="btn-receipt-save" style="width:100%;padding:14px;border-radius:14px;background:var(--sage);color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;">'
       + '✓ ' + checkedItems.length + '件を保存する（¥' + total.toLocaleString() + '）'
       + '</button>'
@@ -1109,7 +1126,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
   }
 
   function bindConfirmEvents() {
-    document.getElementById('btn-receipt-cancel')?.addEventListener('click', closeModal);
+    document.getElementById('btn-receipt-cancel')?.addEventListener('click', closeReceipt);
 
     document.getElementById('receipt-date')?.addEventListener('change', e => {
       receiptDate = e.target.value;
@@ -1118,7 +1135,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
     document.getElementById('btn-receipt-acct')?.addEventListener('click', () => {
       // シンプルな口座選択シート
       const sheet = document.createElement('div');
-      sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--stone);border-radius:20px 20px 0 0;padding:16px;z-index:300;max-height:50vh;overflow-y:auto;';
+      sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--stone);border-radius:20px 20px 0 0;padding:16px;z-index:600;max-height:50vh;overflow-y:auto;';
       sheet.innerHTML = '<div style="font-size:13px;font-weight:600;margin-bottom:12px;text-align:center;">口座を選択</div>'
         + accounts.map(a => '<div class="acct-pick" data-id="' + a.id + '" style="padding:12px;border-radius:10px;margin-bottom:6px;background:' + (a.id === selectedAccountId ? 'var(--sage-bg)' : 'var(--mist)') + ';cursor:pointer;font-size:13px;">' + a.name + '</div>').join('');
       document.body.appendChild(sheet);
@@ -1183,7 +1200,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
         }
 
         await upsertTransactions(savedTxs);
-        closeModal();
+        closeReceipt();
         showToast('✓ ' + savedTxs.length + '件を保存しました');
 
         // 最後の1件をonSaveに渡す（ホーム画面更新用）
