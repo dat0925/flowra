@@ -154,6 +154,12 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
           </button>
         </div>
 
+        <button id="btn-scan-receipt" style="width:100%;margin-bottom:10px;padding:10px;border-radius:12px;border:1.5px dashed var(--sage-lt);background:var(--sage-bg);color:var(--sage-dk);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18" stroke-width="1.5"/></svg>
+          📷 レシートを読み取る
+        </button>
+        <input type="file" id="receipt-file-input" accept="image/*" capture="environment" style="display:none;">
+
         <div class="type-selector">
           <button class="type-btn ${state.type==='income'?'active-income':''}" id="btn-income">
             <svg viewBox="0 0 24 24"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>収入
@@ -272,6 +278,46 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
 
   function bindEvents() {
     document.getElementById('btn-close-modal')?.addEventListener('click', closeModal);
+
+  // ── レシート読み取り ──────────────────────────
+  document.getElementById('btn-scan-receipt')?.addEventListener('click', () => {
+    document.getElementById('receipt-file-input')?.click();
+  });
+
+  document.getElementById('receipt-file-input')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const btn = document.getElementById('btn-scan-receipt');
+    if (btn) { btn.disabled = true; btn.textContent = '読み取り中…'; }
+
+    try {
+      // base64変換
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const result = await DB.scanReceipt(base64, file.type || 'image/jpeg');
+      showReceiptConfirm(result, onSave, onReady, accounts, tags);
+
+    } catch (err) {
+      if (err.error === 'LIMIT_REACHED') {
+        const msg = err.isPremium
+          ? 'レシート読み取りの今月の上限（' + err.limit + '回）に達しました'
+          : 'レシート読み取りは月' + err.limit + '回まで（Premiumで月100回）';
+        showToast(msg);
+      } else {
+        showToast('読み取りエラー: ' + (err.message || '不明'));
+      }
+      if (btn) { btn.disabled = false; btn.textContent = '📷 レシートを読み取る'; }
+    }
+
+    // inputをリセット（同じファイルを再選択できるように）
+    e.target.value = '';
+  });
     document.getElementById('btn-cancel')?.addEventListener('click', closeModal);
 
     // save-bar
@@ -959,7 +1005,184 @@ function calculate(left, right, op) {
   return Math.max(0, result);
 }
 
+// ── レシート確認画面 ──────────────────────────────────────
+async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
+  const { store, date, items } = result;
+  const { closeModal, showToast } = await import('./utils.js');
+  const { upsertTransactions } = await import('./cache.js');
 
+  // 各品目の状態（チェック・タグ・金額）
+  let itemStates = items.map(item => ({
+    ...item,
+    checked: item.amount > 0, // マイナス（値引き）はデフォルトOFF
+    tagIds: new Set(),
+  }));
 
+  // デフォルト口座
+  const defaultAccountId = accounts[0]?.id || '';
+  let selectedAccountId = defaultAccountId;
+  let receiptDate = date || new Date().toISOString().slice(0, 10);
 
+  const budgetTagIds = tags.filter(t => t.budget).map(t => t.id);
+  const { DB } = await import('./db.js');
+  const budgetMap = await DB.getBudgetTagIds();
 
+  function renderConfirmUI() {
+    const modal = document.getElementById('modal-content');
+    if (!modal) return;
+
+    const acctName = (id) => accounts.find(a => a.id === id)?.name || '選択';
+    const checkedItems = itemStates.filter(i => i.checked);
+    const total = checkedItems.reduce((s, i) => s + i.amount, 0);
+
+    const itemRows = itemStates.map((item, idx) => {
+      const tagChips = tags.slice(0, 8).map(tag => {
+        const sel = item.tagIds.has(tag.id);
+        return '<button class="receipt-tag-chip" data-item="' + idx + '" data-tag="' + tag.id + '"'
+          + ' style="font-size:10px;padding:2px 8px;border-radius:12px;border:1.5px solid '
+          + (sel ? 'var(--sage)' : 'var(--mist)') + ';background:'
+          + (sel ? 'var(--sage-bg)' : 'transparent') + ';color:'
+          + (sel ? 'var(--sage-dk)' : 'var(--mid)') + ';cursor:pointer;white-space:nowrap;">'
+          + tag.name + '</button>';
+      }).join('');
+
+      const amountColor = item.amount < 0 ? 'color:var(--red)' : '';
+      return '<div style="padding:10px 0;border-bottom:1px solid var(--mist);display:flex;gap:10px;align-items:flex-start;">'
+        + '<input type="checkbox" data-item-check="' + idx + '" ' + (item.checked ? 'checked' : '') + ' style="margin-top:4px;width:16px;height:16px;accent-color:var(--sage);flex-shrink:0;">'
+        + '<div style="flex:1;min-width:0;">'
+        + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
+        + '<div style="font-size:13px;font-weight:500;color:' + (item.checked ? 'var(--ink)' : 'var(--mid-lt)') + ';">' + item.name + '</div>'
+        + '<div style="font-size:14px;font-weight:600;' + amountColor + '">¥' + Math.abs(item.amount).toLocaleString() + (item.amount < 0 ? ' 値引' : '') + '</div>'
+        + '</div>'
+        + '<div style="display:flex;gap:4px;flex-wrap:wrap;">' + tagChips + '</div>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+
+    const html = '<div style="padding:0 14px 80px;">'
+      + '<div class="modal-handle" style="margin:0 auto 14px;"></div>'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
+      + '<div style="font-family:var(--font-serif,serif);font-size:15px;font-weight:600;">レシート確認</div>'
+      + '<button id="btn-receipt-cancel" style="width:30px;height:30px;border-radius:50%;background:var(--mist);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">'
+      + '<svg viewBox="0 0 24 24" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
+      + '</div>'
+      // 店名・日付
+      + '<div style="background:var(--stone);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">'
+      + '<div style="font-size:13px;font-weight:600;">' + (store || '店名不明') + '</div>'
+      + '<input type="date" id="receipt-date" value="' + receiptDate + '" style="font-size:12px;border:none;background:transparent;color:var(--sage-dk);font-weight:500;">'
+      + '</div>'
+      // 口座選択
+      + '<div id="btn-receipt-acct" style="background:var(--stone);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;">'
+      + '<div style="font-size:12px;color:var(--mid);">口座</div>'
+      + '<div style="font-size:13px;font-weight:500;color:var(--sage-dk);">' + acctName(selectedAccountId) + ' ›</div>'
+      + '</div>'
+      // 品目リスト
+      + '<div style="margin-bottom:12px;">' + itemRows + '</div>'
+      // 合計
+      + '<div style="display:flex;justify-content:space-between;padding:8px 0;margin-bottom:4px;border-top:2px solid var(--sage-lt);">'
+      + '<div style="font-size:13px;font-weight:600;">合計 ' + checkedItems.length + '件</div>'
+      + '<div style="font-size:16px;font-weight:700;">¥' + total.toLocaleString() + '</div>'
+      + '</div>'
+      // 保存ボタン
+      + '<div id="receipt-save-bar" style="position:fixed;bottom:0;left:0;right:0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));background:var(--stone);border-top:1px solid var(--mist);z-index:200;">'
+      + '<button id="btn-receipt-save" style="width:100%;padding:14px;border-radius:14px;background:var(--sage);color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;">'
+      + '✓ ' + checkedItems.length + '件を保存する（¥' + total.toLocaleString() + '）'
+      + '</button>'
+      + '</div>'
+      + '</div>';
+
+    modal.innerHTML = html;
+    bindConfirmEvents();
+  }
+
+  function bindConfirmEvents() {
+    document.getElementById('btn-receipt-cancel')?.addEventListener('click', closeModal);
+
+    document.getElementById('receipt-date')?.addEventListener('change', e => {
+      receiptDate = e.target.value;
+    });
+
+    document.getElementById('btn-receipt-acct')?.addEventListener('click', () => {
+      // シンプルな口座選択シート
+      const sheet = document.createElement('div');
+      sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--stone);border-radius:20px 20px 0 0;padding:16px;z-index:300;max-height:50vh;overflow-y:auto;';
+      sheet.innerHTML = '<div style="font-size:13px;font-weight:600;margin-bottom:12px;text-align:center;">口座を選択</div>'
+        + accounts.map(a => '<div class="acct-pick" data-id="' + a.id + '" style="padding:12px;border-radius:10px;margin-bottom:6px;background:' + (a.id === selectedAccountId ? 'var(--sage-bg)' : 'var(--mist)') + ';cursor:pointer;font-size:13px;">' + a.name + '</div>').join('');
+      document.body.appendChild(sheet);
+      sheet.querySelectorAll('.acct-pick').forEach(el => {
+        el.addEventListener('click', () => {
+          selectedAccountId = el.dataset.id;
+          sheet.remove();
+          renderConfirmUI();
+        });
+      });
+    });
+
+    // チェックボックス
+    document.querySelectorAll('[data-item-check]').forEach(el => {
+      el.addEventListener('change', () => {
+        const idx = parseInt(el.dataset.itemCheck);
+        itemStates[idx].checked = el.checked;
+        renderConfirmUI();
+      });
+    });
+
+    // タグチップ
+    document.querySelectorAll('.receipt-tag-chip').forEach(el => {
+      el.addEventListener('click', () => {
+        const idx = parseInt(el.dataset.item);
+        const tagId = el.dataset.tag;
+        const item = itemStates[idx];
+        // 主タグは排他
+        if (budgetMap.has(tagId)) {
+          item.tagIds.forEach(tid => { if (budgetMap.has(tid)) item.tagIds.delete(tid); });
+        }
+        if (item.tagIds.has(tagId)) item.tagIds.delete(tagId);
+        else item.tagIds.add(tagId);
+        renderConfirmUI();
+      });
+    });
+
+    // 保存
+    document.getElementById('btn-receipt-save')?.addEventListener('click', async () => {
+      const btn = document.getElementById('btn-receipt-save');
+      if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
+
+      const checkedItems = itemStates.filter(i => i.checked && i.amount !== 0);
+      if (checkedItems.length === 0) { showToast('保存する品目を選択してください'); return; }
+
+      try {
+        const savedTxs = [];
+        for (const item of checkedItems) {
+          const absAmount = Math.abs(item.amount);
+          if (absAmount === 0) continue;
+          const payload = {
+            type:       item.amount < 0 ? 'income' : 'expense',
+            amount:     absAmount,
+            date:       receiptDate,
+            account_id: selectedAccountId,
+            memo:       item.name,
+          };
+          const tagIds = [...item.tagIds];
+          const tx = await DB.createTransaction(payload, tagIds);
+          const cachedTags = tags.filter(t => tagIds.includes(t.id));
+          savedTxs.push({ ...tx, tags: cachedTags });
+        }
+
+        await upsertTransactions(savedTxs);
+        closeModal();
+        showToast('✓ ' + savedTxs.length + '件を保存しました');
+
+        // 最後の1件をonSaveに渡す（ホーム画面更新用）
+        if (onSave && savedTxs.length > 0) onSave(savedTxs[savedTxs.length - 1]);
+
+      } catch (err) {
+        showToast('保存エラー: ' + err.message);
+        if (btn) { btn.disabled = false; btn.textContent = '✓ 保存する'; }
+      }
+    });
+  }
+
+  // モーダルに確認UIをレンダリング
+  renderConfirmUI();
+}
