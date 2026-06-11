@@ -849,6 +849,42 @@ export const DB = {
     const plan = await this.getUserPlan();
     return plan === 'premium' || plan === 'admin';
   },
+
+  // レシートOCRの月次上限
+  FREE_RECEIPT_LIMIT:    3,
+  PREMIUM_RECEIPT_LIMIT: 100,
+
+  // 今月のレシートOCR使用回数を取得
+  async getReceiptUsageThisMonth() {
+    const { data: { user } } = await supabase.auth.getUser();
+    const monthKey = new Date().toISOString().slice(0, 7);
+    const { data } = await supabase
+      .from('receipt_usage')
+      .select('count')
+      .eq('user_id', user.id)
+      .eq('month_key', monthKey)
+      .maybeSingle();
+    return data?.count ?? 0;
+  },
+
+  // レシートOCRを呼び出す
+  async scanReceipt(base64Image, mediaType = 'image/jpeg') {
+    const { data: { session } } = await supabase.auth.getSession();
+    const res = await fetch(
+      'https://copyzpsyagscqrvkrwjo.supabase.co/functions/v1/receipt-ocr',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + session.access_token,
+        },
+        body: JSON.stringify({ image: base64Image, mediaType }),
+      }
+    );
+    const data = await res.json();
+    if (!res.ok) throw Object.assign(new Error(data.error || 'OCRエラー'), data);
+    return data; // { store, date, items, count, limit, isPremium }
+  },
 };
 
 
