@@ -154,11 +154,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
           </button>
         </div>
 
-        <button id="btn-scan-receipt" style="width:100%;margin-bottom:10px;padding:10px;border-radius:12px;border:1.5px dashed var(--sage-lt);background:var(--sage-bg);color:var(--sage-dk);font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18" stroke-width="1.5"/></svg>
-          📷 レシートを読み取る
-        </button>
-        <input type="file" id="receipt-file-input" accept="image/*" capture="environment" style="display:none;">
+
 
         <div class="type-selector">
           <button class="type-btn ${state.type==='income'?'active-income':''}" id="btn-income">
@@ -278,51 +274,6 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
 
   function bindEvents() {
     document.getElementById('btn-close-modal')?.addEventListener('click', closeModal);
-
-  // ── レシート読み取り ──────────────────────────
-  document.getElementById('btn-scan-receipt')?.addEventListener('click', () => {
-    document.getElementById('receipt-file-input')?.click();
-  });
-
-  document.getElementById('receipt-file-input')?.addEventListener('change', async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const btn = document.getElementById('btn-scan-receipt');
-    if (btn) { btn.disabled = true; btn.textContent = '読み取り中…'; }
-
-    try {
-      // base64変換
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      const result = await DB.scanReceipt(base64, file.type || 'image/jpeg');
-      // 元のモーダルを閉じてからレシート確認画面を開く
-      const existingOverlay = document.getElementById('modal-overlay');
-      if (existingOverlay) existingOverlay.remove();
-      const existingSaveBar = document.getElementById('save-bar');
-      if (existingSaveBar) existingSaveBar.remove();
-      showReceiptConfirm(result, onSave, onReady, accounts, tags);
-
-    } catch (err) {
-      if (err.error === 'LIMIT_REACHED') {
-        const msg = err.isPremium
-          ? 'レシート読み取りの今月の上限（' + err.limit + '回）に達しました'
-          : 'レシート読み取りは月' + err.limit + '回まで（Premiumで月100回）';
-        showToast(msg);
-      } else {
-        showToast('読み取りエラー: ' + (err.message || '不明'));
-      }
-      if (btn) { btn.disabled = false; btn.textContent = '📷 レシートを読み取る'; }
-    }
-
-    // inputをリセット（同じファイルを再選択できるように）
-    e.target.value = '';
-  });
     document.getElementById('btn-cancel')?.addEventListener('click', closeModal);
 
     // save-bar
