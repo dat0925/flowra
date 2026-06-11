@@ -372,7 +372,7 @@ async function renderList() {
           ${(() => {
             const dayExpense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
             return dayExpense > 0
-              ? '<span style="font-size:11px;color:var(--mid-lt);font-weight:400;">−¥' + dayExpense.toLocaleString('ja-JP') + '</span>'
+              ? '<span style="font-size:11px;color:var(--mid-lt);font-weight:400;">支出 ¥' + dayExpense.toLocaleString('ja-JP') + '</span>'
               : '';
           })()}
         </div>
