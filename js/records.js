@@ -367,7 +367,15 @@ async function renderList() {
   listEl.innerHTML = `
     <div class="panel">
       ${Object.entries(grouped).map(([date, txs]) => `
-        <div class="tx-date-label">${formatDate(date, isGlobal)}</div>
+        <div class="tx-date-label">
+          <span>${formatDate(date, isGlobal)}</span>
+          ${(() => {
+            const dayExpense = txs.filter(t => t.type === 'expense').reduce((s, t) => s + Number(t.amount), 0);
+            return dayExpense > 0
+              ? '<span style="font-size:11px;color:var(--mid-lt);font-weight:400;">−¥' + dayExpense.toLocaleString('ja-JP') + '</span>'
+              : '';
+          })()}
+        </div>
         ${txs.map(tx => {
           const sign = tx.type==='income' ? '+¥' : tx.type==='expense' ? '−¥' : '¥';
           const acctName = tx.type==='transfer'
