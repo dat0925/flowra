@@ -461,11 +461,13 @@
 
   // ── ユーザー一覧 ──
   const PAGE_SIZE = 30;
-  let _allUsers  = [];
-  let _planMap   = {};
-  let _userPage  = 0;
-  let _userQuery = '';
-  let _openEditUserId = null;
+  let _allUsers        = [];
+  let _planMap         = {};
+  let _aiUsageMap      = {};
+  let _receiptUsageMap = {};
+  let _userPage        = 0;
+  let _userQuery       = '';
+  let _openEditUserId  = null;
 
   async function loadUserList() {
     const el = document.getElementById('user-list');
@@ -479,6 +481,18 @@
     _planMap = {};
     (plans || []).forEach(p => { _planMap[p.user_id] = p; });
     _allUsers = allUsers || [];
+
+    // 今月のAI・レシート利用回数を取得
+    const monthKey = new Date().toISOString().slice(0, 7);
+    const [{ data: aiUsage }, { data: receiptUsage }] = await Promise.all([
+      supabase.from('ai_usage').select('user_id, count').eq('month_key', monthKey),
+      supabase.from('receipt_usage').select('user_id, count').eq('month_key', monthKey),
+    ]);
+    _aiUsageMap = {};
+    (aiUsage || []).forEach(r => { _aiUsageMap[r.user_id] = r.count; });
+    _receiptUsageMap = {};
+    (receiptUsage || []).forEach(r => { _receiptUsageMap[r.user_id] = r.count; });
+
     _userPage = 0;
     _openEditUserId = null;
     renderUserList();
@@ -525,11 +539,13 @@
         ? (fmtDate(p.expires_at) + (isExpired ? ' <span style="color:var(--red);">●</span>' : ''))
         : '無期限';
 
+      const aiCount      = _aiUsageMap[u.id]      || 0;
+      const receiptCount = _receiptUsageMap[u.id] || 0;
       rows += '<tr id="row-' + u.id + '">'
-        + '<td style="font-size:12px;">' + u.email + '</td>'
-        + '<td><span class="plan-badge ' + badgeClass + '" onclick="toggleEditRow(\'' + u.id + '\')">' + badgeLabel + '</span></td>'
-        + '<td style="font-size:12px;color:var(--mid);">' + startedAt + '</td>'
-        + '<td style="font-size:12px;color:var(--mid);">' + expiresAt + '</td>'
+        + '<td style="font-size:11px;word-break:break-all;">' + u.email + '</td>'
+        + '<td style="text-align:center;"><span class="plan-badge ' + badgeClass + '" onclick="toggleEditRow(\'' + u.id + '\')">' + badgeLabel + '</span></td>'
+        + '<td style="font-size:12px;color:var(--mid);text-align:center;">' + (aiCount > 0 ? aiCount : '—') + '</td>'
+        + '<td style="font-size:12px;color:var(--mid);text-align:center;">' + (receiptCount > 0 ? receiptCount : '—') + '</td>'
         + '</tr>';
 
       // インライン編集行（開いている場合のみ）
@@ -562,8 +578,8 @@
       + '<thead><tr>'
       + '<th>メールアドレス</th>'
       + '<th>プラン</th>'
-      + '<th>利用開始日</th>'
-      + '<th>有効期限</th>'
+      + '<th style="text-align:center;min-width:36px;">AI<br><span style="font-size:9px;font-weight:400;">今月</span></th>'
+      + '<th style="text-align:center;min-width:36px;">📷<br><span style="font-size:9px;font-weight:400;">今月</span></th>'
       + '</tr></thead>'
       + '<tbody>' + rows + '</tbody>'
       + '</table>';
