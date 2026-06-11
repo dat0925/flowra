@@ -447,7 +447,7 @@
     document.getElementById('stat-total').textContent = allUsers?.length ?? '—';
 
     const { data: allPlans } = await supabase.rpc('get_all_user_plans');
-    const premiumCount = (allPlans || []).filter(p => p.plan !== 'free').length;
+    const premiumCount = (allPlans || []).filter(p => p.plan === 'premium').length;
     document.getElementById('stat-premium').textContent = premiumCount;
 
     const monthKey = new Date().toISOString().slice(0, 7);
