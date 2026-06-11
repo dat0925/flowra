@@ -889,6 +889,10 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
           <div id="btn-manage-plan"></div>
         </div>
       </div>
+      <div id="usage-panel" style="padding:10px 16px 14px;border-bottom:1px solid var(--mist);display:none;">
+        <div id="usage-ai" style="margin-bottom:10px;"></div>
+        <div id="usage-receipt"></div>
+      </div>
       <div class="form-row" id="btn-logout" style="color:var(--red);">
         <svg viewBox="0 0 24 24" width="16" height="16" style="color:var(--red)">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -1024,16 +1028,47 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
 
     if (planBtnEl) {
       if (isPremium) {
-        // Premiumユーザー → 管理ボタン
         planBtnEl.textContent = '管理';
         planBtnEl.style.cssText = 'font-size:12px;color:var(--sage-dk);cursor:pointer;padding:4px 10px;border:1px solid var(--sage-dk);border-radius:20px;';
         planBtnEl.dataset.mode = 'manage';
       } else {
-        // Freeユーザー → アップグレードボタン
         planBtnEl.textContent = '✦ アップグレード';
         planBtnEl.style.cssText = 'font-size:12px;color:#fff;cursor:pointer;padding:4px 12px;border:none;border-radius:20px;background:var(--sage);font-weight:600;';
         planBtnEl.dataset.mode = 'upgrade';
       }
+    }
+
+    // AI・レシート使用量を表示
+    const aiLimit      = isPremium ? 6000 : 5;
+    const receiptLimit = isPremium ? 100  : 3;
+    const [aiCount, receiptCount] = await Promise.all([
+      DB.getAiUsageThisMonth(),
+      DB.getReceiptUsageThisMonth(),
+    ]);
+
+    function usageBar(label, count, limit) {
+      const pct      = Math.min(100, Math.round(count / limit * 100));
+      const barColor = pct >= 80 ? '#C07A2A' : 'var(--sage)';
+      const bgColor  = pct >= 80 ? 'rgba(192,122,42,0.12)' : 'var(--sage-bg)';
+      return '<div>'
+        + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
+        + '<span style="font-size:12px;color:var(--mid);">' + label + '</span>'
+        + '<span style="font-size:11px;color:' + (pct >= 80 ? '#C07A2A' : 'var(--mid-lt)') + ';font-weight:' + (pct >= 80 ? '600' : '400') + ';">'
+        + count.toLocaleString() + ' / ' + limit.toLocaleString() + '</span>'
+        + '</div>'
+        + '<div style="height:4px;border-radius:2px;background:var(--mist);overflow:hidden;">'
+        + '<div style="height:100%;width:' + pct + '%;background:' + barColor + ';border-radius:2px;transition:width 0.4s;"></div>'
+        + '</div>'
+        + '</div>';
+    }
+
+    const usagePanelEl = document.getElementById('usage-panel');
+    const usageAiEl    = document.getElementById('usage-ai');
+    const usageRcptEl  = document.getElementById('usage-receipt');
+    if (usagePanelEl && usageAiEl && usageRcptEl) {
+      usagePanelEl.style.display = 'block';
+      usageAiEl.innerHTML    = usageBar('AIアドバイス', aiCount, aiLimit);
+      usageRcptEl.innerHTML  = usageBar('📷 レシート読み取り', receiptCount, receiptLimit);
     }
   }
 
