@@ -909,29 +909,19 @@ async function showSuggest(onSave, onReady, accounts, tags) {
         </div>
 
         <!-- レシート読み取り -->
-        <div style="padding:0 16px 20px;">
+        <div style="padding:0 16px 12px;">
           <button id="ar-receipt-btn"
-            style="width:100%;padding:14px 16px;border-radius:14px;border:1.5px dashed var(--sage-lt);
+            style="width:100%;padding:8px 14px;border-radius:10px;border:1px dashed var(--sage-lt);
             background:var(--sage-bg);color:var(--sage-dk);cursor:pointer;
-            display:flex;align-items:center;gap:10px;">
-            <div style="width:32px;height:32px;border-radius:8px;background:rgba(74,124,89,0.1);
-              display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                <circle cx="12" cy="12" r="3"/>
-                <path d="M3 9h2M3 15h2M19 9h2M19 15h2M9 3v2M15 3v2M9 19v2M15 19v2" stroke-width="1.5"/>
-              </svg>
-            </div>
-            <div style="text-align:left;">
-              <div style="font-size:14px;font-weight:600;">📷 レシートを読み取る</div>
-              <div style="font-size:11px;color:var(--mid);margin-top:2px;">品目を自動抽出・1商品1レコードで保存</div>
-            </div>
+            display:flex;align-items:center;gap:8px;justify-content:center;">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
+            <span style="font-size:12px;font-weight:600;">📷 レシートを読み取る</span>
           </button>
           <input type="file" id="ar-receipt-file" accept="image/*" capture="environment" style="display:none;">
         </div>
 
         <!-- 最近の記録 -->
-        \${recentHTML}
+        ${recentHTML}
 
       </div>
 
