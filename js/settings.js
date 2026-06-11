@@ -1041,11 +1041,14 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
           body: JSON.stringify({ return_url: 'https://flowra.taskra.jp' }),
         }
       );
-      const data = await res.json();
+      const text = await res.text();
+      let data;
+      try { data = JSON.parse(text); } catch(_) { data = {}; }
       if (data.url) {
         window.location.href = data.url;
       } else {
-        showToast('エラー: ' + (data.error || '不明なエラー'));
+        showToast('エラー: ' + (data.error || text.slice(0, 80) || '不明なエラー'));
+        console.error('stripe-portal response:', res.status, text);
       }
     } catch (e) {
       showToast('エラーが発生しました');
