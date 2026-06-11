@@ -425,7 +425,17 @@
 
   async function boot(session) {
     const user = session?.user;
-    if (!user) return;
+    if (!user) {
+      // デバッグ: localStorageのキー一覧を表示
+      const keys = Object.keys(localStorage);
+      const sbKeys = keys.filter(k => k.includes('supabase') || k.includes('sb-'));
+      document.getElementById('auth-wall').innerHTML +=
+        '<p style="font-size:11px;color:#7A9485;margin-top:16px;word-break:break-all;">'
+        + 'LSキー: ' + (sbKeys.length ? sbKeys.join(', ') : '（なし）') + '<br>'
+        + '全キー数: ' + keys.length
+        + '</p>';
+      return;
+    }
     if (ADMIN_USER_IDS.length > 0 && !ADMIN_USER_IDS.includes(user.id)) {
       document.getElementById('auth-wall').innerHTML =
         '<p style="color:#B83232;font-size:14px;">管理者権限がありません</p>'
