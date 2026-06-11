@@ -1036,15 +1036,28 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
     const total = checkedItems.reduce((s, i) => s + i.amount, 0);
 
     const itemRows = itemStates.map((item, idx) => {
-      const tagChips = tags.slice(0, 8).map(tag => {
+      const primaryTags = tags.filter(t => budgetMap.has(t.id));
+      const subTags     = tags.filter(t => !budgetMap.has(t.id));
+
+      const renderChips = (tagList) => tagList.map(tag => {
         const sel = item.tagIds.has(tag.id);
+        const isPrimary = budgetMap.has(tag.id);
         return '<button class="receipt-tag-chip" data-item="' + idx + '" data-tag="' + tag.id + '"'
           + ' style="font-size:10px;padding:2px 8px;border-radius:12px;border:1.5px solid '
-          + (sel ? 'var(--sage)' : 'var(--mist)') + ';background:'
+          + (sel ? (isPrimary ? 'var(--sage)' : 'var(--sage-lt)') : 'var(--mist)') + ';background:'
           + (sel ? 'var(--sage-bg)' : 'transparent') + ';color:'
           + (sel ? 'var(--sage-dk)' : 'var(--mid)') + ';cursor:pointer;white-space:nowrap;">'
           + tag.name + '</button>';
       }).join('');
+
+      const tagChips = (primaryTags.length > 0
+        ? '<div style="font-size:9px;color:var(--sage-dk);font-weight:600;margin-bottom:3px;">主タグ</div>'
+          + '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">' + renderChips(primaryTags) + '</div>'
+        : '')
+        + (subTags.length > 0
+        ? '<div style="font-size:9px;color:var(--mid);font-weight:600;margin-bottom:3px;">サブタグ</div>'
+          + '<div style="display:flex;gap:4px;flex-wrap:wrap;">' + renderChips(subTags) + '</div>'
+        : '');
 
       const amountColor = item.amount < 0 ? 'color:var(--red)' : '';
       return '<div style="padding:10px 0;border-bottom:1px solid var(--mist);display:flex;gap:10px;align-items:flex-start;">'
