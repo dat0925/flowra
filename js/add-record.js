@@ -908,8 +908,30 @@ async function showSuggest(onSave, onReady, accounts, tags) {
           </button>
         </div>
 
+        <!-- レシート読み取り -->
+        <div style="padding:0 16px 20px;">
+          <button id="ar-receipt-btn"
+            style="width:100%;padding:14px 16px;border-radius:14px;border:1.5px dashed var(--sage-lt);
+            background:var(--sage-bg);color:var(--sage-dk);cursor:pointer;
+            display:flex;align-items:center;gap:10px;">
+            <div style="width:32px;height:32px;border-radius:8px;background:rgba(74,124,89,0.1);
+              display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"/>
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M3 9h2M3 15h2M19 9h2M19 15h2M9 3v2M15 3v2M9 19v2M15 19v2" stroke-width="1.5"/>
+              </svg>
+            </div>
+            <div style="text-align:left;">
+              <div style="font-size:14px;font-weight:600;">📷 レシートを読み取る</div>
+              <div style="font-size:11px;color:var(--mid);margin-top:2px;">品目を自動抽出・1商品1レコードで保存</div>
+            </div>
+          </button>
+          <input type="file" id="ar-receipt-file" accept="image/*" capture="environment" style="display:none;">
+        </div>
+
         <!-- 最近の記録 -->
-        ${recentHTML}
+        \${recentHTML}
 
       </div>
 
@@ -946,6 +968,39 @@ async function showSuggest(onSave, onReady, accounts, tags) {
     import('./router.js').then(({ Router }) => Router.navigate('records'));
     import('./records.js').then(({ renderRecords }) => renderRecords({ focusSearch: true }));
   });
+  document.getElementById('ar-receipt-btn')?.addEventListener('click', () => {
+    document.getElementById('ar-receipt-file')?.click();
+  });
+
+  document.getElementById('ar-receipt-file')?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const btn = document.getElementById('ar-receipt-btn');
+    if (btn) { btn.style.opacity = '0.6'; btn.querySelector('div div:first-child').textContent = '読み取り中…'; }
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      closeSuggest();
+      const result = await DB.scanReceipt(base64, file.type || 'image/jpeg');
+      showReceiptConfirm(result, onSave, onReady, accounts, tags);
+    } catch (err) {
+      if (err.error === 'LIMIT_REACHED') {
+        const msg = err.isPremium
+          ? 'レシート読み取りの今月の上限（' + err.limit + '回）に達しました'
+          : 'レシート読み取りは月' + err.limit + '回まで（Premiumで月100回）';
+        showToast(msg);
+      } else {
+        showToast('読み取りエラー: ' + (err.message || '不明'));
+      }
+      if (btn) { btn.style.opacity = '1'; }
+    }
+    e.target.value = '';
+  });
+
   document.getElementById('ar-quick-btn')?.addEventListener('click', () => {
     const dummy = document.getElementById('ios-focus-trick');
     dummy?.focus();
