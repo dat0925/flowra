@@ -301,6 +301,11 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       });
 
       const result = await DB.scanReceipt(base64, file.type || 'image/jpeg');
+      // 元のモーダルを閉じてからレシート確認画面を開く
+      const existingOverlay = document.getElementById('modal-overlay');
+      if (existingOverlay) existingOverlay.remove();
+      const existingSaveBar = document.getElementById('save-bar');
+      if (existingSaveBar) existingSaveBar.remove();
       showReceiptConfirm(result, onSave, onReady, accounts, tags);
 
     } catch (err) {
