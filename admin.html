@@ -404,7 +404,24 @@
     });
   });
 
-  const { data: { session } } = await supabase.auth.getSession();
+  // localStorageからセッションを取得してクライアントにセット
+  let { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    // index.htmlと共有のlocalStorageキーからセッションを復元
+    try {
+      const storageKey = 'sb-copyzpsyagscqrvkrwjo-auth-token';
+      const raw = localStorage.getItem(storageKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const access  = parsed?.access_token  || parsed?.session?.access_token;
+        const refresh = parsed?.refresh_token || parsed?.session?.refresh_token;
+        if (access && refresh) {
+          const { data } = await supabase.auth.setSession({ access_token: access, refresh_token: refresh });
+          session = data.session;
+        }
+      }
+    } catch (_) {}
+  }
 
   async function boot(session) {
     const user = session?.user;
