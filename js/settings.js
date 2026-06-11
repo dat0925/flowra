@@ -886,7 +886,7 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
           <span id="plan-badge"></span>
-          <div id="btn-manage-plan" style="font-size:12px;color:var(--sage-dk);cursor:pointer;padding:4px 10px;border:1px solid var(--sage-dk);border-radius:20px;">管理</div>
+          <div id="btn-manage-plan"></div>
         </div>
       </div>
       <div class="form-row" id="btn-logout" style="color:var(--red);">
@@ -1009,8 +1009,9 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
     setTimeout(() => location.reload(), 1000);
   });
 
-  // プランバッジ表示
+  // プランバッジ・ボタン表示
   const planBadgeEl = document.getElementById('plan-badge');
+  const planBtnEl   = document.getElementById('btn-manage-plan');
   if (planBadgeEl) {
     const isPremium = userPlan === 'premium' || userPlan === 'admin';
     const badgeColor = isPremium ? 'var(--sage)' : 'var(--mid-lt)';
@@ -1020,10 +1021,29 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
     span.style.cssText = 'font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;color:' + badgeColor + ';background:' + badgeBg;
     span.textContent = badgeText;
     planBadgeEl.appendChild(span);
+
+    if (planBtnEl) {
+      if (isPremium) {
+        // Premiumユーザー → 管理ボタン
+        planBtnEl.textContent = '管理';
+        planBtnEl.style.cssText = 'font-size:12px;color:var(--sage-dk);cursor:pointer;padding:4px 10px;border:1px solid var(--sage-dk);border-radius:20px;';
+        planBtnEl.dataset.mode = 'manage';
+      } else {
+        // Freeユーザー → アップグレードボタン
+        planBtnEl.textContent = '✦ アップグレード';
+        planBtnEl.style.cssText = 'font-size:12px;color:#fff;cursor:pointer;padding:4px 12px;border:none;border-radius:20px;background:var(--sage);font-weight:600;';
+        planBtnEl.dataset.mode = 'upgrade';
+      }
+    }
   }
 
   document.getElementById('btn-manage-plan')?.addEventListener('click', async () => {
     const btn = document.getElementById('btn-manage-plan');
+    // Freeユーザーはアップグレードページへ
+    if (btn?.dataset.mode === 'upgrade') {
+      window.location.href = 'https://flowra.taskra.jp/lp/#pricing';
+      return;
+    }
     if (btn) btn.style.opacity = '0.5';
     try {
       const session = await supabase.auth.getSession();
