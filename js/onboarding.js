@@ -94,6 +94,14 @@ function showOnboarding(onComplete) {
     });
   }
 
+  // ── Step 1: ×ボタン・全スキップ ──
+  function skipAll() {
+    overlay.style.opacity = '0';
+    setTimeout(() => { overlay.remove(); onComplete(); }, 300);
+  }
+  overlay.querySelector('#ob-close-all')?.addEventListener('click', skipAll);
+  overlay.querySelector('#ob-skip-all')?.addEventListener('click', skipAll);
+
   // ── Step 1: はじめる ──
   overlay.querySelector('#ob-next-1')?.addEventListener('click', () => goTo(2));
 
@@ -322,7 +330,7 @@ function buildHTML() {
   ).join('');
 
   return `
-    <div class="ob-sheet">
+    <div class="ob-sheet" style="position:relative;">
 
       <div class="ob-progress">
         <div class="ob-progress-fill" style="width:20%"></div>
@@ -330,6 +338,9 @@ function buildHTML() {
 
       <!-- Step 1: ウェルカム -->
       <div class="ob-step active" data-step="1">
+        <button id="ob-close-all" style="position:absolute;top:16px;right:16px;width:32px;height:32px;border-radius:50%;background:var(--mist);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--mid);z-index:1;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
         <div class="ob-logo">
           <div class="ob-logo-icon">🌿</div>
           <div class="ob-logo-text">Flow<span>ra</span></div>
@@ -357,6 +368,7 @@ function buildHTML() {
           </button>
         </div>
         <button class="ob-btn-primary" id="ob-next-1">はじめる</button>
+        <button class="ob-btn-skip" id="ob-skip-all">スキップして使い始める</button>
         <p class="ob-step-hint">設定まで2〜3分です</p>
       </div>
 
