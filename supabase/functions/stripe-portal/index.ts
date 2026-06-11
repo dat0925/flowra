@@ -36,27 +36,29 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await sbAnon.auth.getUser();
     if (authError || !user) return json({ error: 'ログインが必要です' }, 401);
 
-    // stripe_customer_id を取得
+    // stripe_customer_id を user_id で取得（email ではなく user_id ベース）
     const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
     const { data: planRow } = await sb
       .from('user_plans')
       .select('stripe_customer_id')
-      .eq('email', user.email)
+      .eq('user_id', user.id)
       .maybeSingle();
 
     let customerId = planRow?.stripe_customer_id;
 
-    // なければStripeで新規作成
+    // なければStripeで新規作成してDBに保存
     if (!customerId) {
       const customer = await stripe.customers.create({
         email: user.email!,
         metadata: { supabase_uid: user.id },
       });
       customerId = customer.id;
-      await sb
-        .from('user_plans')
-        .update({ stripe_customer_id: customerId })
-        .eq('email', user.email);
+
+      // user_plans に upsert（レコード自体がない場合も考慮）
+      await sb.from('user_plans').upsert(
+        { user_id: user.id, plan: 'free', stripe_customer_id: customerId, updated_at: new Date().toISOString() },
+        { onConflict: 'user_id' }
+      );
       console.info(`Created Stripe customer: ${customerId} for ${user.email}`);
     }
 
