@@ -871,7 +871,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
             <span style="font-size:12px;font-weight:600;">📷 レシートを読み取る</span>
           </button>
-          <input type="file" id="ar-receipt-file" accept="image/*" capture="environment" style="display:none;">
+          <input type="file" id="ar-receipt-file" accept="image/*" style="display:none;">
         </div>
 
         <!-- 最近の記録 -->
@@ -920,7 +920,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
     const file = e.target.files?.[0];
     if (!file) return;
     const btn = document.getElementById('ar-receipt-btn');
-    if (btn) { btn.style.opacity = '0.6'; btn.querySelector('div div:first-child').textContent = '読み取り中…'; }
+    if (btn) { btn.style.opacity = '0.6'; const sp = btn.querySelector('span'); if (sp) sp.textContent = '⏳ 読み取り中…'; }
     try {
       const base64 = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -940,7 +940,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
       } else {
         showToast('読み取りエラー: ' + (err.message || '不明'));
       }
-      if (btn) { btn.style.opacity = '1'; }
+      if (btn) { btn.style.opacity = '1'; const sp = btn.querySelector('span'); if (sp) sp.textContent = '📷 レシートを読み取る'; }
     }
     e.target.value = '';
   });
