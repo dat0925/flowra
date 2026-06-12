@@ -920,7 +920,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
     const file = e.target.files?.[0];
     if (!file) return;
     const btn = document.getElementById('ar-receipt-btn');
-    if (btn) { btn.style.opacity = '0.6'; btn.querySelector('div div:first-child').textContent = '読み取り中…'; }
+    if (btn) { btn.style.opacity = '0.6'; btn.style.pointerEvents = 'none'; }
     try {
       const base64 = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -940,7 +940,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
       } else {
         showToast('読み取りエラー: ' + (err.message || '不明'));
       }
-      if (btn) { btn.style.opacity = '1'; }
+      if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = ''; }
     }
     e.target.value = '';
   });
