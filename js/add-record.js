@@ -871,7 +871,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
             <span style="font-size:12px;font-weight:600;">📷 レシートを読み取る</span>
           </button>
-          <input type="file" id="ar-receipt-file" accept="image/*" style="display:none;">
+          <input type="file" id="ar-receipt-file" accept="image/*" capture="environment" style="display:none;">
         </div>
 
         <!-- 最近の記録 -->
@@ -919,39 +919,8 @@ async function showSuggest(onSave, onReady, accounts, tags) {
   document.getElementById('ar-receipt-file')?.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    // ドロワーを閉じてフルスクリーンのローディングを表示
-    closeSuggest();
-
-    const loadingEl = document.createElement('div');
-    loadingEl.id = 'receipt-loading-overlay';
-    loadingEl.style.cssText = [
-      'position:fixed;inset:0;z-index:2000',
-      'background:rgba(28,43,34,0.82)',
-      'backdrop-filter:blur(6px)',
-      'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px',
-    ].join(';');
-    loadingEl.innerHTML = `
-      <div style="font-size:40px;animation:receipt-pulse 1.2s ease-in-out infinite;">📷</div>
-      <div style="color:#fff;font-size:15px;font-weight:600;">レシートを読み取り中…</div>
-      <div style="color:rgba(255,255,255,0.55);font-size:12px;">少々お待ちください</div>
-      <div style="width:48px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;overflow:hidden;margin-top:4px;">
-        <div style="width:40%;height:100%;background:var(--sage-lt);border-radius:2px;animation:receipt-bar 1.4s ease-in-out infinite;"></div>
-      </div>
-    `;
-    document.body.appendChild(loadingEl);
-
-    // CSSアニメーションを動的に追加
-    if (!document.getElementById('receipt-anim-style')) {
-      const style = document.createElement('style');
-      style.id = 'receipt-anim-style';
-      style.textContent = `
-        @keyframes receipt-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
-        @keyframes receipt-bar { 0%{transform:translateX(-100%)} 100%{transform:translateX(350%)} }
-      `;
-      document.head.appendChild(style);
-    }
-
+    const btn = document.getElementById('ar-receipt-btn');
+    if (btn) { btn.style.opacity = '0.6'; btn.querySelector('div div:first-child').textContent = '読み取り中…'; }
     try {
       const base64 = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -959,11 +928,10 @@ async function showSuggest(onSave, onReady, accounts, tags) {
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
+      closeSuggest();
       const result = await DB.scanReceipt(base64, file.type || 'image/jpeg');
-      loadingEl.remove();
       showReceiptConfirm(result, onSave, onReady, accounts, tags);
     } catch (err) {
-      loadingEl.remove();
       if (err.error === 'LIMIT_REACHED') {
         const msg = err.isPremium
           ? 'レシート読み取りの今月の上限（' + err.limit + '回）に達しました'
@@ -972,6 +940,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
       } else {
         showToast('読み取りエラー: ' + (err.message || '不明'));
       }
+      if (btn) { btn.style.opacity = '1'; }
     }
     e.target.value = '';
   });
@@ -1088,38 +1057,45 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
     const total = checkedItems.reduce((s, i) => s + i.amount, 0);
 
     const itemRows = itemStates.map((item, idx) => {
-      const primaryTags = tags.filter(t => budgetMap.has(t.id));
-      const subTags     = tags.filter(t => !budgetMap.has(t.id));
+      // 設定済み主タグ名を取得
+      const primaryTagName = (() => {
+        for (const tid of item.tagIds) {
+          if (budgetMap.has(tid)) {
+            const t = tags.find(t => t.id === tid);
+            if (t) return t.name;
+          }
+        }
+        return null;
+      })();
+      const subTagNames = [...item.tagIds]
+        .filter(tid => !budgetMap.has(tid))
+        .map(tid => tags.find(t => t.id === tid)?.name)
+        .filter(Boolean);
 
-      const renderChips = (tagList) => tagList.map(tag => {
-        const sel = item.tagIds.has(tag.id);
-        const isPrimary = budgetMap.has(tag.id);
-        return '<button class="receipt-tag-chip" data-item="' + idx + '" data-tag="' + tag.id + '"'
-          + ' style="font-size:10px;padding:2px 8px;border-radius:12px;border:1.5px solid '
-          + (sel ? (isPrimary ? 'var(--sage)' : 'var(--sage-lt)') : 'var(--mist)') + ';background:'
-          + (sel ? 'var(--sage-bg)' : 'transparent') + ';color:'
-          + (sel ? 'var(--sage-dk)' : 'var(--mid)') + ';cursor:pointer;white-space:nowrap;">'
-          + tag.name + '</button>';
-      }).join('');
+      const amountColor = item.amount < 0 ? 'var(--red)' : 'var(--ink)';
+      const nameColor   = item.checked ? 'var(--ink)' : 'var(--mid-lt)';
 
-      const tagChips = (primaryTags.length > 0
-        ? '<div style="font-size:9px;color:var(--sage-dk);font-weight:600;margin-bottom:3px;">主タグ</div>'
-          + '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px;">' + renderChips(primaryTags) + '</div>'
-        : '')
-        + (subTags.length > 0
-        ? '<div style="font-size:9px;color:var(--mid);font-weight:600;margin-bottom:3px;">サブタグ</div>'
-          + '<div style="display:flex;gap:4px;flex-wrap:wrap;">' + renderChips(subTags) + '</div>'
-        : '');
+      // タグバッジ
+      const tagBadges = primaryTagName
+        ? '<span style="font-size:10px;font-weight:600;color:var(--sage-dk);background:var(--sage-bg);padding:1px 7px;border-radius:10px;">' + primaryTagName + '</span>'
+          + subTagNames.map(n => '<span style="font-size:10px;color:var(--mid);background:var(--mist);padding:1px 6px;border-radius:10px;">' + n + '</span>').join('')
+        : '<span style="font-size:10px;color:var(--mid-lt);">タグ未設定</span>';
 
-      const amountColor = item.amount < 0 ? 'color:var(--red)' : '';
-      return '<div style="padding:10px 0;border-bottom:1px solid var(--mist);display:flex;gap:10px;align-items:flex-start;">'
-        + '<input type="checkbox" data-item-check="' + idx + '" ' + (item.checked ? 'checked' : '') + ' style="margin-top:4px;width:16px;height:16px;accent-color:var(--sage);flex-shrink:0;">'
-        + '<div style="flex:1;min-width:0;">'
-        + '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">'
-        + '<div style="font-size:13px;font-weight:500;color:' + (item.checked ? 'var(--ink)' : 'var(--mid-lt)') + ';">' + item.name + '</div>'
-        + '<div style="font-size:14px;font-weight:600;' + amountColor + '">¥' + Math.abs(item.amount).toLocaleString() + (item.amount < 0 ? ' 値引' : '') + '</div>'
+      // 行全体がタップエリア（左でチェック切替、右 › タップで詳細シート）
+      return '<div data-item-row="' + idx + '" style="padding:12px 0;border-bottom:1px solid var(--mist);display:flex;align-items:center;gap:12px;cursor:pointer;">'
+        // チェックエリア（左 1/4）
+        + '<div data-item-check="' + idx + '" style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:' + (item.checked ? 'var(--sage)' : 'var(--mist)') + ';">'
+        + (item.checked ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' : '')
         + '</div>'
-        + '<div style="display:flex;gap:4px;flex-wrap:wrap;">' + tagChips + '</div>'
+        // 品目情報（中央）
+        + '<div style="flex:1;min-width:0;">'
+        + '<div style="font-size:13px;font-weight:500;color:' + nameColor + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + item.name + '</div>'
+        + '<div style="display:flex;gap:4px;flex-wrap:nowrap;margin-top:3px;overflow:hidden;">' + tagBadges + '</div>'
+        + '</div>'
+        // 金額・矢印（右）
+        + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
+        + '<div style="font-size:14px;font-weight:600;color:' + amountColor + ';">¥' + Math.abs(item.amount).toLocaleString() + (item.amount < 0 ? '<span style="font-size:10px;"> 値引</span>' : '') + '</div>'
+        + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--mid-lt)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>'
         + '</div>'
         + '</div>';
     }).join('');
@@ -1183,28 +1159,19 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
       });
     });
 
-    // チェックボックス
-    document.querySelectorAll('[data-item-check]').forEach(el => {
-      el.addEventListener('change', () => {
-        const idx = parseInt(el.dataset.itemCheck);
-        itemStates[idx].checked = el.checked;
-        renderConfirmUI();
-      });
-    });
-
-    // タグチップ
-    document.querySelectorAll('.receipt-tag-chip').forEach(el => {
-      el.addEventListener('click', () => {
-        const idx = parseInt(el.dataset.item);
-        const tagId = el.dataset.tag;
-        const item = itemStates[idx];
-        // 主タグは排他
-        if (budgetMap.has(tagId)) {
-          item.tagIds.forEach(tid => { if (budgetMap.has(tid)) item.tagIds.delete(tid); });
+    // 行タップ：左のチェック円 → チェック切替 / それ以外 → 詳細シート
+    document.querySelectorAll('[data-item-row]').forEach(row => {
+      row.addEventListener('click', (e) => {
+        const rowIdx = parseInt(row.dataset.itemRow);
+        const checkEl = e.target.closest('[data-item-check]');
+        if (checkEl) {
+          // チェック切替
+          itemStates[rowIdx].checked = !itemStates[rowIdx].checked;
+          renderConfirmUI();
+        } else {
+          // 詳細シートを開く
+          openItemDetail(rowIdx);
         }
-        if (item.tagIds.has(tagId)) item.tagIds.delete(tagId);
-        else item.tagIds.add(tagId);
-        renderConfirmUI();
       });
     });
 
@@ -1246,6 +1213,101 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
         if (btn) { btn.disabled = false; btn.textContent = '✓ 保存する'; }
       }
     });
+  }
+
+  // 品目詳細シートを開く
+  function openItemDetail(itemIdx) {
+    const item = itemStates[itemIdx];
+    const primaryTags = tags.filter(t => budgetMap.has(t.id));
+    const subTags     = tags.filter(t => !budgetMap.has(t.id));
+
+    const sheet = document.createElement('div');
+    sheet.style.cssText = 'position:fixed;inset:0;z-index:700;display:flex;flex-direction:column;justify-content:flex-end;';
+    sheet.innerHTML = '<div id="item-detail-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.3);"></div>'
+      + '<div style="position:relative;background:var(--stone);border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));max-height:80dvh;overflow-y:auto;">'
+      + '<div style="width:36px;height:4px;background:var(--mist);border-radius:2px;margin:0 auto 16px;"></div>'
+      // 品目名
+      + '<div style="margin-bottom:14px;">'
+      + '<div style="font-size:11px;color:var(--mid);margin-bottom:4px;">品目名</div>'
+      + '<input id="item-detail-name" value="' + item.name.replace(/"/g, '&quot;') + '" style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--mist);font-size:14px;background:var(--stone);box-sizing:border-box;">'
+      + '</div>'
+      // 金額
+      + '<div style="margin-bottom:18px;">'
+      + '<div style="font-size:11px;color:var(--mid);margin-bottom:4px;">金額</div>'
+      + '<input id="item-detail-amount" type="number" value="' + Math.abs(item.amount) + '" style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--mist);font-size:14px;background:var(--stone);box-sizing:border-box;">'
+      + '</div>'
+      // 主タグ
+      + '<div style="margin-bottom:14px;">'
+      + '<div style="font-size:11px;color:var(--sage-dk);font-weight:600;margin-bottom:6px;">主タグ</div>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+      + primaryTags.map(tag => {
+          const sel = item.tagIds.has(tag.id);
+          return '<button class="detail-tag-chip" data-tag="' + tag.id + '" data-primary="1"'
+            + ' style="font-size:12px;padding:4px 12px;border-radius:20px;cursor:pointer;font-weight:' + (sel ? '600' : '400') + ';'
+            + 'border:1.5px solid ' + (sel ? 'var(--sage)' : 'var(--mist)') + ';'
+            + 'background:' + (sel ? 'var(--sage-bg)' : 'transparent') + ';'
+            + 'color:' + (sel ? 'var(--sage-dk)' : 'var(--mid)') + ';">'
+            + tag.name + '</button>';
+        }).join('')
+      + '</div></div>'
+      // サブタグ
+      + (subTags.length > 0
+        ? '<div style="margin-bottom:20px;">'
+          + '<div style="font-size:11px;color:var(--mid);font-weight:600;margin-bottom:6px;">サブタグ</div>'
+          + '<div style="display:flex;gap:6px;flex-wrap:wrap;">'
+          + subTags.map(tag => {
+              const sel = item.tagIds.has(tag.id);
+              return '<button class="detail-tag-chip" data-tag="' + tag.id + '"'
+                + ' style="font-size:12px;padding:4px 12px;border-radius:20px;cursor:pointer;'
+                + 'border:1.5px solid ' + (sel ? 'var(--sage-lt)' : 'var(--mist)') + ';'
+                + 'background:' + (sel ? 'var(--sage-bg)' : 'transparent') + ';'
+                + 'color:' + (sel ? 'var(--sage-dk)' : 'var(--mid)') + ';">'
+                + tag.name + '</button>';
+            }).join('')
+          + '</div></div>'
+        : '')
+      // 完了ボタン
+      + '<button id="item-detail-done" style="width:100%;padding:14px;border-radius:14px;background:var(--sage);color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;">完了</button>'
+      + '</div>';
+
+    document.body.appendChild(sheet);
+
+    // タグチップ
+    sheet.querySelectorAll('.detail-tag-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const tagId    = chip.dataset.tag;
+        const isPrimary = chip.dataset.primary === '1';
+        if (isPrimary) {
+          // 主タグは排他
+          item.tagIds.forEach(tid => { if (budgetMap.has(tid)) item.tagIds.delete(tid); });
+          if (!chip.classList.contains('selected')) item.tagIds.add(tagId);
+        } else {
+          if (item.tagIds.has(tagId)) item.tagIds.delete(tagId);
+          else item.tagIds.add(tagId);
+        }
+        // チップのスタイルを更新
+        sheet.querySelectorAll('.detail-tag-chip').forEach(c => {
+          const sel = item.tagIds.has(c.dataset.tag);
+          const prim = c.dataset.primary === '1';
+          c.style.border = '1.5px solid ' + (sel ? (prim ? 'var(--sage)' : 'var(--sage-lt)') : 'var(--mist)');
+          c.style.background = sel ? 'var(--sage-bg)' : 'transparent';
+          c.style.color = sel ? 'var(--sage-dk)' : 'var(--mid)';
+          c.style.fontWeight = (sel && prim) ? '600' : '400';
+        });
+      });
+    });
+
+    // 完了
+    const close = () => {
+      const nameVal   = document.getElementById('item-detail-name')?.value.trim();
+      const amountVal = parseFloat(document.getElementById('item-detail-amount')?.value) || 0;
+      if (nameVal)   item.name   = nameVal;
+      if (amountVal) item.amount = item.amount < 0 ? -amountVal : amountVal;
+      sheet.remove();
+      renderConfirmUI();
+    };
+    document.getElementById('item-detail-done')?.addEventListener('click', close);
+    document.getElementById('item-detail-backdrop')?.addEventListener('click', close);
   }
 
   // モーダルに確認UIをレンダリング
