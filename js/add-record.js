@@ -1026,6 +1026,63 @@ function calculate(left, right, op) {
   return Math.max(0, result);
 }
 
+// ── タグ自動推定（品目名キーワードマッチ） ──────────────────
+function autoAssignTags(itemName, tags, budgetMap) {
+  const name = itemName.toLowerCase()
+    .replace(/[　 ]/g, '')   // スペース除去
+    .replace(/[ａ-ｚＡ-Ｚ０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0)); // 全角→半角
+
+  // タグ名→品目名キーワードマッピング
+  const TAG_KEYWORDS = {
+    '食費':      ['食','米','パン','野菜','肉','魚','卵','乳','豆腐','納豆','調味','ソース','醤油','味噌','油','塩','砂糖','小麦','片栗','スパゲ','うどん','そば','ラーメン','餃子','冷凍','惣菜','弁当','寿司','刺身'],
+    '外食':      ['レストラン','カフェ','ランチ','ディナー','テイクアウト','デリバリー','マクドナルド','ケンタッキー','スタバ','すき家','吉野家','松屋','餃子の王将','くら寿司','はなまる','ガスト'],
+    '飲み物':    ['ドリンク','飲料','コーヒー','tea','コーラ','ジュース','水','お茶','ビール','酒','ワイン','チューハイ','ウィスキー','ハイボール','トリス'],
+    '菓子':      ['お菓子','チョコ','クッキー','ケーキ','アイス','キャンディ','グミ','ポテチ','スナック','煎餅','和菓子','ショコラ','プリン','ヨーグルト','デザート'],
+    '日用品':    ['洗剤','シャンプー','ティッシュ','トイレ','タオル','歯ブラシ','石鹸','ゴミ袋','ラップ','アルミ','スポンジ','ハンドソープ','柔軟剤','漂白剤'],
+    '子育て':    ['おむつ','おもちゃ','絵本','ベビー','子供','キッズ','離乳','粉ミルク','哺乳'],
+    '医療':      ['薬','医療','病院','クリニック','処方','風邪薬','頭痛','胃腸','湿布','マスク','消毒','サプリ','ビタミン'],
+    '美容':      ['化粧','コスメ','美容','スキンケア','リップ','ファンデ','アイシャドウ','マスカラ','シートマスク','パック','ヘアケア'],
+    '交通':      ['電車','バス','タクシー','駐車','ガソリン','交通','高速','定期','ic','suica','pasmo'],
+    '衣類':      ['服','シャツ','パンツ','スカート','コート','ジャケット','靴','スニーカー','帽子','バッグ','下着','ソックス','靴下'],
+    '電化製品':  ['家電','スマホ','パソコン','充電','ケーブル','イヤホン','電池','電球','家電'],
+    '嗜好品':    ['たばこ','タバコ','シガレット','葉巻'],
+  };
+
+  const tagIds = new Set();
+
+  // まず品目名とタグ名の直接マッチ（タグ名が品目名に含まれる）
+  for (const tag of tags) {
+    const tname = tag.name.toLowerCase().replace(/[　 ]/g, '');
+    if (name.includes(tname) || tname.includes(name)) {
+      tagIds.add(tag.id);
+    }
+  }
+
+  // キーワードマッチ（タグ名がTAG_KEYWORDSに存在する場合）
+  for (const tag of tags) {
+    if (tagIds.has(tag.id)) continue;
+    const keywords = TAG_KEYWORDS[tag.name];
+    if (!keywords) continue;
+    for (const kw of keywords) {
+      if (name.includes(kw.toLowerCase())) {
+        tagIds.add(tag.id);
+        break;
+      }
+    }
+  }
+
+  // 主タグは1つだけ（予算ありタグを優先）
+  const primaryIds = [...tagIds].filter(id => budgetMap.has(id));
+  const subIds     = [...tagIds].filter(id => !budgetMap.has(id));
+
+  // 主タグが複数マッチした場合は最初の1つだけ残す
+  const finalIds = new Set([
+    ...(primaryIds.length > 0 ? [primaryIds[0]] : []),
+    ...subIds,
+  ]);
+  return finalIds;
+}
+
 // ── レシート確認画面 ──────────────────────────────────────
 async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
   const { store, date, items } = result;
@@ -1034,7 +1091,12 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
 
   // 既存モーダルを閉じて専用オーバーレイを開く
   const existingModal = document.getElementById('modal-overlay');
-  if (existingModal) existingModal.remove();
+  if (existingModal) {
+    existingModal.hidden = true;
+  }
+
+  // body.overflow を解除（モーダルが設定していた可能性）
+  document.body.style.overflow = '';
 
   const overlay = document.createElement('div');
   overlay.id = 'receipt-overlay';
@@ -1043,17 +1105,23 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
 
   const sheet = document.createElement('div');
   sheet.id = 'receipt-sheet';
-  sheet.style.cssText = 'background:var(--stone);border-radius:20px 20px 0 0;max-height:90dvh;overflow-y:auto;padding-bottom:env(safe-area-inset-bottom);';
+  sheet.style.cssText = 'background:var(--stone);border-radius:20px 20px 0 0;max-height:90dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:env(safe-area-inset-bottom);';
   overlay.appendChild(sheet);
 
-  const closeReceipt = () => overlay.remove();
+  const closeReceipt = () => {
+    overlay.remove();
+    // 既存モーダルがhiddenになっていたら元に戻す（必要なければそのまま）
+  };
   overlay.addEventListener('click', e => { if (e.target === overlay) closeReceipt(); });
 
-  // 各品目の状態（チェック・タグ・金額）
+  const { DB } = await import('./db.js');
+  const budgetMap = await DB.getBudgetTagIds();
+
+  // 各品目の状態（チェック・タグ・金額）。タグを自動推定して初期設定
   let itemStates = items.map(item => ({
     ...item,
     checked: item.amount > 0, // マイナス（値引き）はデフォルトOFF
-    tagIds: new Set(),
+    tagIds: autoAssignTags(item.name, tags, budgetMap),
   }));
 
   // デフォルト口座
@@ -1061,9 +1129,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
   let selectedAccountId = defaultAccountId;
   let receiptDate = date || new Date().toISOString().slice(0, 10);
 
-  const budgetTagIds = tags.filter(t => t.budget).map(t => t.id);
-  const { DB } = await import('./db.js');
-  const budgetMap = await DB.getBudgetTagIds();
+  // budgetMap は上で取得済み
 
   function renderConfirmUI() {
     const modal = document.getElementById('receipt-sheet');
@@ -1090,7 +1156,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
         .filter(Boolean);
 
       const amountColor = item.amount < 0 ? 'var(--red)' : 'var(--ink)';
-      const nameColor   = item.checked ? 'var(--ink)' : 'var(--mid-lt)';
+      const nameOpacity = item.checked ? '1' : '0.38';
 
       // タグバッジ
       const tagBadges = primaryTagName
@@ -1098,19 +1164,22 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
           + subTagNames.map(n => '<span style="font-size:10px;color:var(--mid);background:var(--mist);padding:1px 6px;border-radius:10px;">' + n + '</span>').join('')
         : '<span style="font-size:10px;color:var(--mid-lt);">タグ未設定</span>';
 
-      // 行全体がタップエリア（左でチェック切替、右 › タップで詳細シート）
-      return '<div data-item-row="' + idx + '" style="padding:12px 0;border-bottom:1px solid var(--mist);display:flex;align-items:center;gap:12px;cursor:pointer;">'
-        // チェックエリア（左 1/4）
-        + '<div data-item-check="' + idx + '" style="width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:' + (item.checked ? 'var(--sage)' : 'var(--mist)') + ';">'
-        + (item.checked ? '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>' : '')
-        + '</div>'
+      // チェックボックス：小さなチェック or 空の丸
+      const checkBox = item.checked
+        ? '<div data-item-check="' + idx + '" style="width:20px;height:20px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--sage);border:1.5px solid var(--sage);cursor:pointer;">'
+          + '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+          + '</div>'
+        : '<div data-item-check="' + idx + '" style="width:20px;height:20px;border-radius:6px;flex-shrink:0;background:transparent;border:1.5px solid var(--mid-lt);cursor:pointer;"></div>';
+
+      return '<div data-item-row="' + idx + '" style="padding:11px 0;border-bottom:1px solid var(--mist);display:flex;align-items:center;gap:10px;cursor:pointer;">'
+        + checkBox
         // 品目情報（中央）
-        + '<div style="flex:1;min-width:0;">'
-        + '<div style="font-size:13px;font-weight:500;color:' + nameColor + ';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + item.name + '</div>'
+        + '<div style="flex:1;min-width:0;opacity:' + nameOpacity + ';">'
+        + '<div style="font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + item.name + '</div>'
         + '<div style="display:flex;gap:4px;flex-wrap:nowrap;margin-top:3px;overflow:hidden;">' + tagBadges + '</div>'
         + '</div>'
         // 金額・矢印（右）
-        + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">'
+        + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;opacity:' + nameOpacity + ';">'
         + '<div style="font-size:14px;font-weight:600;color:' + amountColor + ';">¥' + Math.abs(item.amount).toLocaleString() + (item.amount < 0 ? '<span style="font-size:10px;"> 値引</span>' : '') + '</div>'
         + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--mid-lt)" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>'
         + '</div>'
