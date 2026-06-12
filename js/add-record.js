@@ -919,8 +919,39 @@ async function showSuggest(onSave, onReady, accounts, tags) {
   document.getElementById('ar-receipt-file')?.addEventListener('change', async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const btn = document.getElementById('ar-receipt-btn');
-    if (btn) { btn.style.opacity = '0.6'; const sp = btn.querySelector('span'); if (sp) sp.textContent = '⏳ 読み取り中…'; }
+
+    // ドロワーを閉じてフルスクリーンのローディングを表示
+    closeSuggest();
+
+    const loadingEl = document.createElement('div');
+    loadingEl.id = 'receipt-loading-overlay';
+    loadingEl.style.cssText = [
+      'position:fixed;inset:0;z-index:2000',
+      'background:rgba(28,43,34,0.82)',
+      'backdrop-filter:blur(6px)',
+      'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px',
+    ].join(';');
+    loadingEl.innerHTML = `
+      <div style="font-size:40px;animation:receipt-pulse 1.2s ease-in-out infinite;">📷</div>
+      <div style="color:#fff;font-size:15px;font-weight:600;">レシートを読み取り中…</div>
+      <div style="color:rgba(255,255,255,0.55);font-size:12px;">少々お待ちください</div>
+      <div style="width:48px;height:4px;background:rgba(255,255,255,0.2);border-radius:2px;overflow:hidden;margin-top:4px;">
+        <div style="width:40%;height:100%;background:var(--sage-lt);border-radius:2px;animation:receipt-bar 1.4s ease-in-out infinite;"></div>
+      </div>
+    `;
+    document.body.appendChild(loadingEl);
+
+    // CSSアニメーションを動的に追加
+    if (!document.getElementById('receipt-anim-style')) {
+      const style = document.createElement('style');
+      style.id = 'receipt-anim-style';
+      style.textContent = `
+        @keyframes receipt-pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
+        @keyframes receipt-bar { 0%{transform:translateX(-100%)} 100%{transform:translateX(350%)} }
+      `;
+      document.head.appendChild(style);
+    }
+
     try {
       const base64 = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -928,10 +959,11 @@ async function showSuggest(onSave, onReady, accounts, tags) {
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
-      closeSuggest();
       const result = await DB.scanReceipt(base64, file.type || 'image/jpeg');
+      loadingEl.remove();
       showReceiptConfirm(result, onSave, onReady, accounts, tags);
     } catch (err) {
+      loadingEl.remove();
       if (err.error === 'LIMIT_REACHED') {
         const msg = err.isPremium
           ? 'レシート読み取りの今月の上限（' + err.limit + '回）に達しました'
@@ -940,7 +972,6 @@ async function showSuggest(onSave, onReady, accounts, tags) {
       } else {
         showToast('読み取りエラー: ' + (err.message || '不明'));
       }
-      if (btn) { btn.style.opacity = '1'; const sp = btn.querySelector('span'); if (sp) sp.textContent = '📷 レシートを読み取る'; }
     }
     e.target.value = '';
   });
