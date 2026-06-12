@@ -871,7 +871,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
             <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="12" cy="12" r="3"/></svg>
             <span style="font-size:12px;font-weight:600;">📷 レシートを読み取る</span>
           </button>
-          <input type="file" id="ar-receipt-file" accept="image/*" capture="environment" style="display:none;">
+          <input type="file" id="ar-receipt-file" accept="image/*" style="display:none;">
         </div>
 
         <!-- 最近の記録 -->
