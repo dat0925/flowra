@@ -929,7 +929,23 @@ async function showSuggest(onSave, onReady, accounts, tags) {
         reader.readAsDataURL(file);
       });
       closeSuggest();
+
+      // 読み取り中オーバーレイ表示
+      const scanOverlay = document.createElement('div');
+      scanOverlay.id = 'scan-overlay';
+      scanOverlay.style.cssText = 'position:fixed;inset:0;z-index:800;background:rgba(28,43,34,0.7);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;';
+      scanOverlay.innerHTML = '<div style="width:48px;height:48px;border:3px solid rgba(255,255,255,0.2);border-top-color:#fff;border-radius:50%;animation:spin 0.8s linear infinite;"></div>'
+        + '<div style="color:#fff;font-size:14px;font-weight:500;">レシートを読み取り中…</div>';
+      if (!document.getElementById('scan-spin-style')) {
+        const style = document.createElement('style');
+        style.id = 'scan-spin-style';
+        style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+        document.head.appendChild(style);
+      }
+      document.body.appendChild(scanOverlay);
+
       const result = await DB.scanReceipt(base64, file.type || 'image/jpeg');
+      scanOverlay.remove();
       showReceiptConfirm(result, onSave, onReady, accounts, tags);
     } catch (err) {
       if (err.error === 'LIMIT_REACHED') {
@@ -940,6 +956,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
       } else {
         showToast('読み取りエラー: ' + (err.message || '不明'));
       }
+      document.getElementById('scan-overlay')?.remove();
       if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = ''; }
     }
     e.target.value = '';
