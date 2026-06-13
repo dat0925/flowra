@@ -1202,11 +1202,11 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
       // チェックボックス：左44px幅のタップゾーン＋視認性改善
       const checkBox = item.checked
         ? '<div data-item-check="' + idx + '" style="width:44px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin:-6px 0;cursor:pointer;">'
-          + '<div style="width:22px;height:22px;border-radius:6px;background:#3a6b4a;border:2px solid #3a6b4a;display:flex;align-items:center;justify-content:center;">'
-          + '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+          + '<div style="width:22px;height:22px;border-radius:6px;background:#2d5a3d;border:2px solid #2d5a3d;display:flex;align-items:center;justify-content:center;">'
+          + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="#ffffff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
           + '</div></div>'
         : '<div data-item-check="' + idx + '" style="width:44px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin:-6px 0;cursor:pointer;">'
-          + '<div style="width:22px;height:22px;border-radius:6px;background:#fff;border:2px solid #b0b8b0;"></div>'
+          + '<div style="width:22px;height:22px;border-radius:6px;background:#fff;border:2px solid #9aaa9a;"></div>'
           + '</div>';
 
       return '<div data-item-row="' + idx + '" style="padding:11px 0;border-bottom:1px solid var(--mist);display:flex;align-items:center;gap:10px;cursor:pointer;">'
