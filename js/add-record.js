@@ -343,10 +343,10 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
         adjustFontSize(s.replace('.','').length);
       } else {
         const n = parseInt(s, 10);
-        if (!isNaN(n) && n > 0) {
-          amountInput.textContent = n.toLocaleString('ja-JP');
+        if (!isNaN(n) && n >= 0) {
+          amountInput.textContent = n === 0 ? '0' : n.toLocaleString('ja-JP');
           state.amount = String(n);
-          adjustFontSize(String(n).length);
+          adjustFontSize(String(n).length || 1);
         } else {
           amountInput.textContent = '';
           state.amount = '';
