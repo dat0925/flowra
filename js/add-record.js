@@ -1269,7 +1269,11 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
 
   function bindConfirmEvents() {
     document.getElementById('btn-receipt-cancel')?.addEventListener('click', closeReceipt);
-    document.getElementById('btn-tax-apply')?.addEventListener('click', applyTax);
+    document.getElementById('btn-tax-apply')?.addEventListener('click', () => {
+      const checkedCount = itemStates.filter(i => i.checked).length;
+      if (!confirm(`チェック中の${checkedCount}件に税込み変換を適用します。\n食品8% / その他10%（四捨五入）\n\nよろしいですか？`)) return;
+      applyTax();
+    });
     document.getElementById('btn-tax-revert')?.addEventListener('click', revertTax);
 
     document.getElementById('receipt-date')?.addEventListener('change', e => {
