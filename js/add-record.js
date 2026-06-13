@@ -1279,7 +1279,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
             amount:     absAmount,
             date:       receiptDate,
             account_id: selectedAccountId,
-            memo:       item.name,
+            memo:       store ? `${item.name}（${store}）` : item.name,
           };
           const tagIds = [...item.tagIds];
           const tx = await DB.createTransaction(payload, tagIds);
