@@ -1120,9 +1120,44 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
   // 各品目の状態（チェック・タグ・金額）。タグを自動推定して初期設定
   let itemStates = items.map(item => ({
     ...item,
+    baseAmount: item.amount,  // 元の税抜き金額を保持
     checked: item.amount > 0, // マイナス（値引き）はデフォルトOFF
     tagIds: autoAssignTags(item.name, tags, budgetMap),
   }));
+
+  // 税込変換状態
+  let taxApplied = false;
+
+  // 8%対象タグ名
+  const TAX_8PCT_TAGS = new Set(['食費','外食','飲み物','菓子','食品']);
+
+  function getTaxRate(tagIds) {
+    for (const tid of tagIds) {
+      const name = tags.find(t => t.id === tid)?.name || '';
+      if (TAX_8PCT_TAGS.has(name)) return 1.08;
+    }
+    return 1.10;
+  }
+
+  function applyTax() {
+    taxApplied = true;
+    itemStates = itemStates.map(item => ({
+      ...item,
+      amount: item.baseAmount < 0
+        ? item.baseAmount  // 値引きは変換しない
+        : Math.round(item.baseAmount * getTaxRate(item.tagIds)),
+    }));
+    renderConfirmUI();
+  }
+
+  function revertTax() {
+    taxApplied = false;
+    itemStates = itemStates.map(item => ({
+      ...item,
+      amount: item.baseAmount,
+    }));
+    renderConfirmUI();
+  }
 
   // デフォルト口座
   const defaultAccountId = accounts[0]?.id || '';
@@ -1203,6 +1238,13 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
       + '<div style="font-size:12px;color:var(--mid);">口座</div>'
       + '<div style="font-size:13px;font-weight:500;color:var(--sage-dk);">' + acctName(selectedAccountId) + ' ›</div>'
       + '</div>'
+      // 税込変換ボタン
+      + '<div style="display:flex;gap:8px;margin-bottom:14px;">'
+      + (taxApplied
+        ? '<button id="btn-tax-revert" style="flex:1;padding:9px 0;border-radius:10px;background:var(--sage);color:#fff;font-size:13px;font-weight:700;border:none;cursor:pointer;">✓ 税込変換済み　元に戻す</button>'
+        : '<button id="btn-tax-apply" style="flex:1;padding:9px 0;border-radius:10px;background:var(--mist);color:var(--ink);font-size:13px;font-weight:600;border:1.5px solid var(--sage-lt);cursor:pointer;">税抜き→税込に変換（食品8% / その他10%）</button>'
+      )
+      + '</div>'
       // 品目リスト
       + '<div style="margin-bottom:12px;">' + itemRows + '</div>'
       // 合計
@@ -1224,6 +1266,8 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
 
   function bindConfirmEvents() {
     document.getElementById('btn-receipt-cancel')?.addEventListener('click', closeReceipt);
+    document.getElementById('btn-tax-apply')?.addEventListener('click', applyTax);
+    document.getElementById('btn-tax-revert')?.addEventListener('click', revertTax);
 
     document.getElementById('receipt-date')?.addEventListener('change', e => {
       receiptDate = e.target.value;
@@ -1388,7 +1432,10 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
       const nameVal   = document.getElementById('item-detail-name')?.value.trim();
       const amountVal = parseFloat(document.getElementById('item-detail-amount')?.value) || 0;
       if (nameVal)   item.name   = nameVal;
-      if (amountVal) item.amount = item.amount < 0 ? -amountVal : amountVal;
+      if (amountVal) {
+        item.amount = item.amount < 0 ? -amountVal : amountVal;
+        item.baseAmount = item.amount; // 手動編集したら基準値もリセット
+      }
       sheet.remove();
       renderConfirmUI();
     };
