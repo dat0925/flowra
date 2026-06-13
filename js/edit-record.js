@@ -367,10 +367,10 @@ export async function openEditRecord(tx, onSave) {
 
     function displayAmount(raw) {
       const n = parseInt(String(raw).replace(/,/g,''), 10);
-      if (!isNaN(n) && n > 0) {
-        amountInput.textContent = n.toLocaleString('ja-JP');
+      if (!isNaN(n) && n >= 0) {
+        amountInput.textContent = n === 0 ? '0' : n.toLocaleString('ja-JP');
         state.amount = String(n);
-        adjustFontSize(String(n).length);
+        adjustFontSize(String(n).length || 1);
       } else {
         amountInput.textContent = '';
         state.amount = '';
@@ -643,7 +643,7 @@ export async function openEditRecord(tx, onSave) {
 
     async function doSave() {
       const amount = parseInt(state.amount, 10);
-      if (!amount || amount <= 0) { showToast('金額を入力してください'); return; }
+      if (isNaN(amount) || amount < 0) { showToast('金額を入力してください'); return; }
       if (!state.date)             { showToast('日付を入力してください'); return; }
       if (!state.accountId)        { showToast('口座を選択してください'); return; }
       if (state.type === 'transfer' && state.accountId === state.toAccountId) {
