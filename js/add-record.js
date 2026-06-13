@@ -661,7 +661,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
 
   async function save() {
     const amount = parseInt(state.amount, 10);
-    if (!amount || amount <= 0) { showToast('金額を入力してください'); return; }
+    if (isNaN(amount) || amount < 0) { showToast('金額を入力してください'); return; }
     if (!state.date) { showToast('日付を入力してください'); return; }
     if (!state.accountId) { showToast('口座を選択してください'); return; }
     if (state.type === 'transfer' && !state.toAccountId) {
@@ -1266,7 +1266,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
       const btn = document.getElementById('btn-receipt-save');
       if (btn) { btn.disabled = true; btn.textContent = '保存中…'; }
 
-      const checkedItems = itemStates.filter(i => i.checked && i.amount !== 0);
+      const checkedItems = itemStates.filter(i => i.checked && i.amount !== undefined);
       if (checkedItems.length === 0) { showToast('保存する品目を選択してください'); return; }
 
       try {
