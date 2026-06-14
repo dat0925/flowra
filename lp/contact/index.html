@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>お問い合わせ — Flowra</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600&family=Noto+Serif+JP:wght@400;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sage:   #4A7C59;
+      --sage-bg:#EEF5F1;
+      --sage-dk:#2F5239;
+      --ink:    #1C2B22;
+      --mid:    #7A9485;
+      --mid-lt: #B0C4BB;
+      --stone:  #F5F2ED;
+      --border: #E4DDD4;
+      --white:  #ffffff;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: var(--stone);
+      color: var(--ink);
+      line-height: 1.8;
+    }
+
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; height: 56px;
+      background: rgba(245,242,237,0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 20px; color: var(--ink);
+      text-decoration: none; letter-spacing: -0.02em;
+    }
+    .nav-logo span { color: var(--sage); }
+    .nav-back { font-size: 13px; color: var(--mid); text-decoration: none; }
+    .nav-back:hover { color: var(--ink); }
+
+    .page-wrap {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 64px 24px 120px;
+    }
+
+    .page-label {
+      font-size: 11px; font-weight: 600;
+      letter-spacing: 0.12em; color: var(--sage);
+      text-transform: uppercase; margin-bottom: 16px;
+    }
+    .page-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(28px, 5vw, 40px);
+      line-height: 1.2; letter-spacing: -0.02em;
+      color: var(--ink); margin-bottom: 10px;
+    }
+    .page-desc {
+      font-size: 14px; color: var(--mid);
+      line-height: 1.8; margin-bottom: 48px;
+      padding-bottom: 32px; border-bottom: 1px solid var(--border);
+    }
+
+    .contact-form {
+      display: flex; flex-direction: column; gap: 20px;
+    }
+
+    .form-group {
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .form-group label {
+      font-size: 13px; font-weight: 600; color: var(--ink);
+    }
+    .required { color: #B83232; margin-left: 3px; }
+
+    .form-group input,
+    .form-group textarea,
+    .form-group select {
+      padding: 12px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--ink);
+      background: var(--white);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus,
+    .form-group select:focus {
+      border-color: var(--sage);
+      box-shadow: 0 0 0 3px rgba(74,124,89,0.1);
+    }
+    .form-group textarea {
+      resize: vertical;
+      min-height: 140px;
+      line-height: 1.7;
+    }
+    .form-group select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%237A9485' stroke-width='2.5' stroke-linecap='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+
+    .form-note {
+      font-size: 12px; color: var(--mid-lt); line-height: 1.7;
+    }
+    .form-note a { color: var(--sage); text-underline-offset: 2px; }
+
+    .submit-btn {
+      padding: 15px;
+      background: var(--sage);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.2s, transform 0.2s;
+    }
+    .submit-btn:hover { background: var(--sage-dk); transform: translateY(-1px); }
+    .submit-btn:active { transform: translateY(0); }
+    .submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* 送信完了メッセージ */
+    .success-msg {
+      display: none;
+      background: var(--sage-bg);
+      border: 1.5px solid rgba(74,124,89,0.25);
+      border-radius: 16px;
+      padding: 32px 28px;
+      text-align: center;
+    }
+    .success-msg .success-icon {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      background: var(--sage);
+      color: #fff;
+      font-size: 22px;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .success-msg h2 {
+      font-family: 'Noto Serif JP', serif;
+      font-size: 18px; font-weight: 700;
+      color: var(--ink); margin-bottom: 8px;
+    }
+    .success-msg p { font-size: 13px; color: var(--mid); line-height: 1.7; }
+
+    footer {
+      background: var(--ink); padding: 28px 24px; text-align: center;
+    }
+    .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; flex-wrap: wrap; }
+    .footer-links a { font-size: 12px; color: rgba(255,255,255,0.35); text-decoration: none; }
+    .footer-links a:hover { color: rgba(255,255,255,0.7); }
+    .footer-copy { font-size: 12px; color: rgba(255,255,255,0.2); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 16px; }
+      .page-wrap { padding: 48px 20px 80px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="https://flowra.taskra.jp/lp/" class="nav-logo">Flow<span>ra</span></a>
+  <a href="https://flowra.taskra.jp/lp/" class="nav-back">← トップに戻る</a>
+</nav>
+
+<div class="page-wrap">
+  <div class="page-label">Contact</div>
+  <h1 class="page-title">お問い合わせ</h1>
+  <p class="page-desc">
+    ご質問・ご要望・不具合のご報告などお気軽にどうぞ。<br>
+    通常3営業日以内にご返答いたします。
+  </p>
+
+  <!-- 送信完了メッセージ（初期非表示） -->
+  <div class="success-msg" id="success-msg">
+    <div class="success-icon">✓</div>
+    <h2>送信しました</h2>
+    <p>お問い合わせありがとうございます。<br>内容を確認のうえ、3営業日以内にご返答いたします。</p>
+  </div>
+
+  <form class="contact-form" id="contact-form"
+    action="https://formspree.io/f/xpqbkdea" method="POST">
+
+    <!-- Formspreeにどのサービスからか伝える隠しフィールド -->
+    <input type="hidden" name="_subject" value="【Flowra】お問い合わせ">
+    <input type="hidden" name="service" value="Flowra">
+
+    <div class="form-group">
+      <label>お名前<span class="required">*</span></label>
+      <input type="text" name="name" placeholder="山田 太郎" required>
+    </div>
+
+    <div class="form-group">
+      <label>メールアドレス<span class="required">*</span></label>
+      <input type="email" name="email" placeholder="example@email.com" required>
+    </div>
+
+    <div class="form-group">
+      <label>お問い合わせ種別</label>
+      <select name="category">
+        <option value="">選択してください</option>
+        <option value="機能について">機能について</option>
+        <option value="料金・お支払いについて">料金・お支払いについて</option>
+        <option value="不具合の報告">不具合の報告</option>
+        <option value="アカウントについて">アカウントについて</option>
+        <option value="データの削除について">データの削除について</option>
+        <option value="その他">その他</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>お問い合わせ内容<span class="required">*</span></label>
+      <textarea name="message" placeholder="お問い合わせ内容をご記入ください" required></textarea>
+    </div>
+
+    <p class="form-note">
+      送信いただいた個人情報は、お問い合わせへの返答にのみ使用します。<br>
+      <a href="https://flowra.taskra.jp/lp/privacy/">プライバシーポリシー</a>をご確認ください。
+    </p>
+
+    <button type="submit" class="submit-btn" id="submit-btn">送信する</button>
+  </form>
+</div>
+
+<footer>
+  <div class="footer-links">
+    <a href="https://flowra.taskra.jp/lp/">Flowra トップ</a>
+    <a href="https://flowra.taskra.jp/lp/privacy/">プライバシーポリシー</a>
+    <a href="https://flowra.taskra.jp/lp/terms/">利用規約</a>
+    <a href="https://flowra.taskra.jp/lp/contact/">お問い合わせ</a>
+  </div>
+  <p class="footer-copy">© 2026 Flowra. All rights reserved.</p>
+</footer>
+
+<script>
+  const form = document.getElementById('contact-form');
+  const btn  = document.getElementById('submit-btn');
+  const successMsg = document.getElementById('success-msg');
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    btn.textContent = '送信中…';
+
+    try {
+      const res = await fetch(form.action, {
+        method: 'POST',
+        body: new FormData(form),
+        headers: { 'Accept': 'application/json' }
+      });
+
+      if (res.ok) {
+        form.style.display = 'none';
+        successMsg.style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        btn.disabled = false;
+        btn.textContent = '送信する';
+        alert('送信に失敗しました。時間をおいて再度お試しください。');
+      }
+    } catch (_) {
+      btn.disabled = false;
+      btn.textContent = '送信する';
+      alert('通信エラーが発生しました。インターネット接続を確認してください。');
+    }
+  });
+</script>
+
+</body>
+</html>
