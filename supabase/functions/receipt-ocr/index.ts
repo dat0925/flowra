@@ -47,18 +47,25 @@ function buildPromptText(tagListText: string): string {
 
 async function callAnthropic(model: string, image: string, mediaType: string, promptText: string): Promise<string> {
   const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
-  const message = await anthropic.messages.create({
-    model,
-    max_tokens: 2048,
-    messages: [{
-      role: 'user',
-      content: [
-        { type: 'image', source: { type: 'base64', media_type: mediaType as 'image/jpeg', data: image } },
-        { type: 'text', text: promptText }
-      ]
-    }]
-  });
-  return message.content[0].type === 'text' ? message.content[0].text : '';
+  try {
+    const message = await anthropic.messages.create({
+      model,
+      max_tokens: 2048,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType as 'image/jpeg', data: image } },
+          { type: 'text', text: promptText }
+        ]
+      }]
+    });
+    return message.content[0].type === 'text' ? message.content[0].text : '';
+  } catch (e: unknown) {
+    const status = (e as { status?: number }).status;
+    if (status === 401) throw new Error('Anthropic APIキーが無効です。キーを確認してください。');
+    if (status === 429) throw new Error('Anthropic APIの利用制限に達しました。しばらく待ってから再試行してください。');
+    throw e;
+  }
 }
 
 async function callGoogle(model: string, image: string, mediaType: string, promptText: string): Promise<string> {
@@ -77,7 +84,13 @@ async function callGoogle(model: string, image: string, mediaType: string, promp
     })
   });
   const data = await res.json();
-  if (data.error) throw new Error(`Gemini error: ${data.error.message}`);
+  if (data.error) {
+    const code = data.error.code;
+    if (code === 400 && data.error.status === 'INVALID_ARGUMENT') throw new Error('Google APIキーが無効です。キーを確認してください。');
+    if (code === 403) throw new Error('Google APIキーに権限がありません。Generative Language APIが有効か確認してください。');
+    if (code === 429) throw new Error('Google APIの利用制限に達しました。しばらく待ってから再試行してください。');
+    throw new Error(`Gemini error: ${data.error.message}`);
+  }
   return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 }
 
@@ -101,7 +114,13 @@ async function callOpenAI(model: string, image: string, mediaType: string, promp
     })
   });
   const data = await res.json();
-  if (data.error) throw new Error(`OpenAI error: ${data.error.message}`);
+  if (data.error) {
+    const type = data.error.type;
+    if (type === 'invalid_request_error' && data.error.code === 'invalid_api_key') throw new Error('OpenAI APIキーが無効です。キーを確認してください。');
+    if (type === 'insufficient_quota') throw new Error('OpenAI APIの残高が不足しています。チャージしてください。');
+    if (res.status === 429) throw new Error('OpenAI APIの利用制限に達しました。しばらく待ってから再試行してください。');
+    throw new Error(`OpenAI error: ${data.error.message}`);
+  }
   return data.choices?.[0]?.message?.content || '';
 }
 
@@ -248,6 +267,7 @@ Deno.serve(async (req) => {
 
   } catch (e) {
     console.error(e);
-    return json({ error: 'エラーが発生しました', detail: String(e) }, 500);
+    const msg = e instanceof Error ? e.message : 'エラーが発生しました';
+    return json({ error: msg }, 500);
   }
 });
