@@ -25,7 +25,6 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
-    // JWT認証
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) return json({ error: '認証が必要です' }, 401);
 
@@ -37,7 +36,6 @@ Deno.serve(async (req) => {
 
     const sb = createClient(SUPABASE_URL, SB_SVC_KEY);
 
-    // プラン取得
     const { data: planRow } = await sb
       .from('user_plans')
       .select('plan, expires_at')
@@ -49,7 +47,6 @@ Deno.serve(async (req) => {
     const isPremium = effectivePlan === 'premium' || effectivePlan === 'admin';
     const limit = isPremium ? PREMIUM_RECEIPT_LIMIT : FREE_RECEIPT_LIMIT;
 
-    // 今月の使用回数確認
     const monthKey = new Date().toISOString().slice(0, 7);
     const { data: usageRow } = await sb
       .from('receipt_usage')
@@ -63,12 +60,10 @@ Deno.serve(async (req) => {
       return json({ error: 'LIMIT_REACHED', limit, count: currentCount, isPremium }, 429);
     }
 
-    // 画像・アクティブチームIDを受け取る
     const body = await req.json();
     const { image, mediaType = 'image/jpeg', teamId } = body;
     if (!image) return json({ error: '画像が必要です' }, 400);
 
-    // タグ一覧と予算情報を並列取得
     let allTags: { id: string; name: string }[] = [];
     let primaryTagIds = new Set<string>();
 
@@ -78,19 +73,14 @@ Deno.serve(async (req) => {
         sb.from('budgets').select('tag_id').eq('team_id', teamId),
       ]);
       allTags = tagRes.data || [];
-      // 予算ありタグ = 主タグ
       primaryTagIds = new Set((budgetRes.data || []).map((b: { tag_id: string }) => b.tag_id));
     }
 
-    // AIには主タグのみ渡す（0件なら全タグ）
     const primaryTags = primaryTagIds.size > 0
       ? allTags.filter(t => primaryTagIds.has(t.id))
       : allTags;
-
-    // サブタグ（予算なし）
     const subTags = allTags.filter(t => !primaryTagIds.has(t.id));
 
-    // プロンプト用タグテキスト生成
     const primaryTagText = primaryTags.length > 0
       ? `メインカテゴリ（必ず1つ選ぶ）：\n${primaryTags.map(t => `- ${t.name}`).join('\n')}`
       : '';
@@ -101,10 +91,8 @@ Deno.serve(async (req) => {
       ? `\n\n${primaryTagText}\n\n${subTagText}\n\n【タグ選択ルール】\n- メインカテゴリは上記から1つ選びtagフィールドへ\n- サブカテゴリは物品・食材・飲料の種類を示すものを複数選びsubTagsフィールドへ（配列）\n- 「無駄遣い」「節約可能」「お気に入り」など感情・評価・行動を表すタグは絶対に選ばない\n- 当てはまるものがなければ空文字または空配列にする`
       : '';
 
-    // タグ名→IDマップ（全タグ）
     const tagNameToId = new Map(allTags.map(t => [t.name, t.id]));
 
-    // Claude Vision でOCR＋タグ推定
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 2048,
@@ -123,23 +111,27 @@ Deno.serve(async (req) => {
   "store": "店名（不明なら空文字）",
   "date": "YYYY-MM-DD形式の日付（不明なら空文字）",
   "items": [
-    { "name": "品目名", "amount": 金額の数値（税込・値引き後）, "tag": "メインカテゴリ名または空文字", "subTags": ["サブカテゴリ名"] }
+    { "name": "品目名", "amount": 金額の数値（税込・値引き後）, "taxRate": 8または10, "tag": "メインカテゴリ名または空文字", "subTags": ["サブカテゴリ名"] }
   ]
 }
 
 ルール：
 - 小計・合計・消費税・お釣りの行は含めない
-- ポイント値引き・割引行はamountをマイナス数値で含める（例: { "name": "ポイント値引き", "amount": -50, "tag": "", "subTags": [] }）
+- ポイント値引き・割引行はamountをマイナス数値で含める（例: { "name": "ポイント値引き", "amount": -50, "taxRate": 10, "tag": "", "subTags": [] }）
 - 金額は数値のみ（¥や円は含めない）
 - 読み取れない品目はスキップ
-- 品目名は略さずレシートに印字された名前をそのまま使う${tagListText}`
+- 品目名は略さずレシートに印字された名前をそのまま使う
+- taxRateは日本の消費税法に基づき判定する：
+  ・飲食料品（食材・調味料・飲み物・お菓子・アイスなど）→ 8
+  ・酒類・外食・日用品・衣類・医薬品・化粧品など → 10
+  ・判断に迷う場合はレシートの税区分記号（※や★など）を参考にする${tagListText}`
           }
         ]
       }]
     });
 
     const rawText = message.content[0].type === 'text' ? message.content[0].text : '';
-    let parsed: { store: string; date: string; items: { name: string; amount: number; tag?: string; subTags?: string[] }[] };
+    let parsed: { store: string; date: string; items: { name: string; amount: number; taxRate?: number; tag?: string; subTags?: string[] }[] };
     try {
       const cleaned = rawText.replace(/```json|```/g, '').trim();
       parsed = JSON.parse(cleaned);
@@ -147,7 +139,6 @@ Deno.serve(async (req) => {
       return json({ error: 'OCR解析に失敗しました', raw: rawText }, 500);
     }
 
-    // 使用回数インクリメント
     await sb.rpc('increment_receipt_usage', {
       p_user_id: user.id,
       p_month_key: monthKey,
@@ -161,10 +152,9 @@ Deno.serve(async (req) => {
         .map(i => ({
           name: i.name,
           amount: i.amount,
-          // メインタグ名→ID変換
+          taxRate: i.taxRate === 8 ? 8 : 10,
           tagId: i.tag ? (tagNameToId.get(i.tag) || null) : null,
           tagName: i.tag || '',
-          // サブタグ名→ID変換（マッチしたもののみ）
           subTagIds: (i.subTags || [])
             .map((name: string) => tagNameToId.get(name))
             .filter((id): id is string => !!id),
