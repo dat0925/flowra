@@ -69,20 +69,32 @@ Deno.serve(async (req) => {
     if (!image) return json({ error: '画像が必要です' }, 400);
 
     // ユーザーのタグ一覧を取得（teamIdがあれば使う）
-    let tags: { id: string; name: string }[] = [];
+    // 予算が設定されている主タグのみAIに渡す（全タグを渡すと混乱するため）
+    let allTags: { id: string; name: string }[] = [];
+    let primaryTagIds = new Set<string>();
+
     if (teamId) {
-      const { data: tagRows } = await sb
-        .from('tags')
-        .select('id, name')
-        .eq('team_id', teamId)
-        .order('sort_order', { ascending: true });
-      tags = tagRows || [];
+      const [tagRes, budgetRes] = await Promise.all([
+        sb.from('tags').select('id, name').eq('team_id', teamId).order('sort_order', { ascending: true }),
+        sb.from('budgets').select('tag_id').eq('team_id', teamId),
+      ]);
+      allTags = tagRes.data || [];
+      // 予算ありタグID（主タグ）のセット
+      primaryTagIds = new Set((budgetRes.data || []).map((b: { tag_id: string }) => b.tag_id));
     }
 
+    // AIには主タグのみ渡す。主タグが0件なら全タグを渡す
+    const tagsForAI = primaryTagIds.size > 0
+      ? allTags.filter(t => primaryTagIds.has(t.id))
+      : allTags;
+
     // タグリストをプロンプト用に整形
-    const tagListText = tags.length > 0
-      ? `\n\nユーザーが使っているカテゴリタグ一覧：\n${tags.map(t => `- ${t.name}`).join('\n')}\n\n各品目に対して、上記タグの中から最も適切なものを1つ選んでtagフィールドに入れてください。どれも当てはまらない場合は空文字にしてください。`
+    const tagListText = tagsForAI.length > 0
+      ? `\n\nユーザーが使っているメインカテゴリ一覧（この中から1つ選ぶ）：\n${tagsForAI.map(t => `- ${t.name}`).join('\n')}\n\n各品目に対して、上記カテゴリの中から最も適切なものを1つ選んでtagフィールドに入れてください。明らかに当てはまるものがない場合のみ空文字にしてください。食品・飲料・調味料はできる限りいずれかに分類してください。`
       : '';
+    
+    // フロント側タグ補完用に全タグも保持
+    const tags = allTags;
 
     // Claude Vision でOCR＋タグ推定
     const message = await anthropic.messages.create({
