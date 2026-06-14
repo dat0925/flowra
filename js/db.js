@@ -870,6 +870,7 @@ export const DB = {
   // レシートOCRを呼び出す
   async scanReceipt(base64Image, mediaType = 'image/jpeg') {
     const { data: { session } } = await supabase.auth.getSession();
+    const teamId = this.getActiveTeamId();
     const res = await fetch(
       'https://copyzpsyagscqrvkrwjo.supabase.co/functions/v1/receipt-ocr',
       {
@@ -878,7 +879,7 @@ export const DB = {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer ' + session.access_token,
         },
-        body: JSON.stringify({ image: base64Image, mediaType }),
+        body: JSON.stringify({ image: base64Image, mediaType, teamId }),
       }
     );
     const data = await res.json();
