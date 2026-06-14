@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>利用規約 — Flowra</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600&family=Noto+Serif+JP:wght@400;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sage:   #4A7C59;
+      --sage-bg:#EEF5F1;
+      --ink:    #1C2B22;
+      --mid:    #7A9485;
+      --mid-lt: #B0C4BB;
+      --stone:  #F5F2ED;
+      --border: #E4DDD4;
+      --white:  #ffffff;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: var(--stone);
+      color: var(--ink);
+      line-height: 1.8;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      height: 56px;
+      background: rgba(245,242,237,0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 20px;
+      color: var(--ink);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+    .nav-logo span { color: var(--sage); }
+    .nav-back {
+      font-size: 13px;
+      color: var(--mid);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .nav-back:hover { color: var(--ink); }
+
+    .page-wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 64px 24px 120px;
+    }
+
+    .page-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      color: var(--sage);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .page-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(28px, 5vw, 44px);
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+
+    .page-updated {
+      font-size: 13px;
+      color: var(--mid-lt);
+      margin-bottom: 56px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .doc-section {
+      margin-bottom: 48px;
+    }
+
+    .doc-section h2 {
+      font-family: 'Noto Serif JP', serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 14px;
+      padding-left: 12px;
+      border-left: 3px solid var(--sage);
+    }
+
+    .doc-section p {
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.9;
+      margin-bottom: 12px;
+    }
+
+    .doc-section ul {
+      padding-left: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .doc-section ul li {
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.8;
+      padding-left: 18px;
+      position: relative;
+    }
+
+    .doc-section ul li::before {
+      content: '·';
+      position: absolute;
+      left: 6px;
+      color: var(--sage);
+      font-weight: 700;
+    }
+
+    .doc-section a {
+      color: var(--sage);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .info-box {
+      background: var(--sage-bg);
+      border: 1px solid rgba(74,124,89,0.15);
+      border-radius: 14px;
+      padding: 18px 20px;
+      font-size: 13px;
+      color: var(--ink);
+      line-height: 1.8;
+      margin-top: 16px;
+    }
+
+    .info-box strong { color: var(--sage); }
+
+    .warn-box {
+      background: #FFF8F0;
+      border: 1px solid #E8C88A;
+      border-radius: 14px;
+      padding: 16px 20px;
+      font-size: 13px;
+      color: var(--ink);
+      line-height: 1.8;
+      margin-top: 16px;
+    }
+
+    footer {
+      background: var(--ink);
+      padding: 28px 24px;
+      text-align: center;
+    }
+    .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; flex-wrap: wrap; }
+    .footer-links a { font-size: 12px; color: rgba(255,255,255,0.35); text-decoration: none; }
+    .footer-links a:hover { color: rgba(255,255,255,0.7); }
+    .footer-copy { font-size: 12px; color: rgba(255,255,255,0.2); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 16px; }
+      .page-wrap { padding: 48px 20px 80px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="https://flowra.taskra.jp/lp/" class="nav-logo">Flow<span>ra</span></a>
+  <a href="https://flowra.taskra.jp/lp/" class="nav-back">← LPに戻る</a>
+</nav>
+
+<div class="page-wrap">
+  <div class="page-label">Legal</div>
+  <h1 class="page-title">利用規約</h1>
+  <p class="page-updated">制定日：2026年6月14日　最終更新：2026年6月14日</p>
+
+  <div class="doc-section">
+    <p>本利用規約（以下「本規約」）は、Flowra（以下「本サービス」）の利用条件を定めるものです。本サービスをご利用いただく前に、本規約をよくお読みください。本サービスを利用した場合、本規約に同意したものとみなします。</p>
+  </div>
+
+  <div class="doc-section">
+    <h2>第1条（サービスの概要）</h2>
+    <p>本サービスは、個人・家族・カップルが収支を記録・管理・共有するためのWebアプリケーション（PWA）です。AIアドバイス機能・レシート読み取り機能・パートナー共有機能を提供します。</p>
+  </div>
+
+  <div class="doc-section">
+    <h2>第2条（利用登録）</h2>
+    <ul>
+      <li>本サービスの利用にはGoogleアカウントによるログインが必要です。</li>
+      <li>ユーザーは1つのGoogleアカウントにつき1つのアカウントを持つものとします。</li>
+      <li>虚偽の情報を用いた登録を禁止します。</li>
+      <li>アカウントの管理責任はユーザー本人にあります。第三者によるアカウントの不正利用について、運営者は責任を負いません。</li>
+    </ul>
+  </div>
+
+  <div class="doc-section">
+    <h2>第3条（Freeプランと Premiumプラン）</h2>
+    <p>本サービスは以下の2つのプランを提供します。</p>
+    <ul>
+      <li><strong>Freeプラン：</strong>無料で利用できます。AIアドバイスは月5回、レシート読み取りは月3回まで利用できます。</li>
+      <li><strong>Premiumプラン：</strong>月額¥398（税込）。AIアドバイスは月6,000回、レシート読み取りは月100回まで利用できます。</li>
+    </ul>
+    <p>プランの内容・価格は予告なく変更される場合があります。変更がある場合は本サービス上で事前に告知します。</p>
+    <div class="warn-box">
+      <strong>Premiumプランのキャンセルについて：</strong>いつでもキャンセルできます。キャンセル後は当該請求期間の終了日までPremium機能をご利用いただけます。日割り返金は行いません。
+    </div>
+  </div>
+
+  <div class="doc-section">
+    <h2>第4条（パートナー共有機能）</h2>
+    <ul>
+      <li>招待リンクを発行したユーザー（オーナー）は、招待したメンバーのデータを管理できます。</li>
+      <li>招待を受けたメンバーは、オーナーのチームデータを閲覧・編集できます（viewerロールの場合は閲覧のみ）。</li>
+      <li>招待リンクは第三者に共有しないよう注意してください。意図しない第三者が参加した場合の責任は負いかねます。</li>
+      <li>共有チームのデータは、オーナーがチームを解散した場合に削除される可能性があります。</li>
+    </ul>
+  </div>
+
+  <div class="doc-section">
+    <h2>第5条（AIアドバイス・レシート読み取り機能）</h2>
+    <ul>
+      <li>AI機能はAnthropicの技術を利用して提供されます。回答の正確性・完全性を保証するものではありません。</li>
+      <li>AI機能の出力は参考情報であり、財務・税務・法律上のアドバイスではありません。重要な判断の際は専門家にご相談ください。</li>
+      <li>レシート読み取りの精度は100%を保証するものではありません。保存前に内容を必ずご確認ください。</li>
+    </ul>
+  </div>
+
+  <div class="doc-section">
+    <h2>第6条（禁止事項）</h2>
+    <p>ユーザーは以下の行為を行ってはなりません。</p>
+    <ul>
+      <li>法令または本規約に違反する行為</li>
+      <li>本サービスのサーバーへの不正アクセス・過大な負荷をかける行為</li>
+      <li>他のユーザーのアカウントを無断で利用する行為</li>
+      <li>本サービスを逆コンパイル・リバースエンジニアリングする行為</li>
+      <li>本サービスを通じて有害なコンテンツを送信する行為</li>
+      <li>商業目的での無断転用・転売</li>
+      <li>その他、運営者が不適切と判断する行為</li>
+    </ul>
+  </div>
+
+  <div class="doc-section">
+    <h2>第7条（サービスの停止・変更・終了）</h2>
+    <p>運営者は以下の場合、予告なくサービスの全部または一部を停止・変更・終了できるものとします。</p>
+    <ul>
+      <li>システムメンテナンスまたは緊急障害対応を行う場合</li>
+      <li>天災・停電・第三者サービスの障害など、やむを得ない事情が生じた場合</li>
+      <li>運営上の理由によりサービスを継続することが困難になった場合</li>
+    </ul>
+    <p>サービス終了の場合は、可能な限り事前に告知します。Premiumプランの残余期間分については、状況に応じて返金を検討します。</p>
+  </div>
+
+  <div class="doc-section">
+    <h2>第8条（免責事項）</h2>
+    <ul>
+      <li>本サービスは現状有姿で提供されます。運営者はサービスの無中断・無エラーを保証しません。</li>
+      <li>ユーザーが本サービスを利用することによって生じた損害について、運営者は一切の責任を負いません（ただし、運営者の故意または重大な過失による損害を除く）。</li>
+      <li>データのバックアップはユーザー自身の責任で行ってください。</li>
+      <li>本サービスを通じたパートナー間のトラブルについて、運営者は関与しません。</li>
+    </ul>
+  </div>
+
+  <div class="doc-section">
+    <h2>第9条（知的財産権）</h2>
+    <p>本サービスのデザイン・コード・ロゴ等に関する知的財産権は運営者に帰属します。ユーザーが入力した家計データはユーザー自身に帰属します。</p>
+  </div>
+
+  <div class="doc-section">
+    <h2>第10条（退会・アカウント削除）</h2>
+    <p>退会をご希望の場合は <a href="mailto:support@taskra.jp">support@taskra.jp</a> までご連絡ください。受領後14日以内に対応します。退会後、ユーザーのデータは削除されます。Premiumプランをご利用の場合は先にStripeのカスタマーポータルでサブスクリプションをキャンセルしてください。</p>
+  </div>
+
+  <div class="doc-section">
+    <h2>第11条（規約の変更）</h2>
+    <p>運営者は本規約を変更できるものとします。重要な変更がある場合は、本ページおよびアプリ内で事前に告知します。変更後も本サービスを利用した場合、変更後の規約に同意したものとみなします。</p>
+  </div>
+
+  <div class="doc-section">
+    <h2>第12条（準拠法・管轄）</h2>
+    <p>本規約は日本法に準拠します。本サービスに関する紛争については、東京地方裁判所を第一審の専属的合意管轄裁判所とします。</p>
+  </div>
+
+  <div class="doc-section">
+    <h2>お問い合わせ</h2>
+    <div class="info-box">
+      <strong>メール：</strong><a href="mailto:support@taskra.jp">support@taskra.jp</a><br>
+      通常3営業日以内にご返答します。
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-links">
+    <a href="https://flowra.taskra.jp/lp/">Flowra トップ</a>
+    <a href="https://flowra.taskra.jp/lp/privacy/">プライバシーポリシー</a>
+    <a href="https://flowra.taskra.jp/lp/terms/">利用規約</a>
+    <a href="mailto:support@taskra.jp">お問い合わせ</a>
+  </div>
+  <p class="footer-copy">© 2026 Flowra. All rights reserved.</p>
+</footer>
+
+</body>
+</html>
