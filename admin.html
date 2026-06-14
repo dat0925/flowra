@@ -354,6 +354,44 @@
       </div>
     </div>
 
+    <!-- OCRモデル設定 -->
+    <div class="admin-section" id="ocr-settings-section">
+      <div class="admin-section-title">
+        <span>🤖 OCRモデル設定</span>
+      </div>
+      <div style="padding:4px 0 16px;">
+        <p style="font-size:13px;color:var(--mid);margin:0 0 16px;">レシート読み取りに使うAIモデルを切り替えられます。変更は即座に反映されます。</p>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <label style="font-size:12px;color:var(--mid);display:block;margin-bottom:6px;">現在のモデル</label>
+            <div id="current-model-display" style="font-size:14px;font-weight:600;color:var(--ink);padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;">読み込み中...</div>
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--mid);display:block;margin-bottom:6px;">モデルを変更</label>
+            <select id="ocr-model-select" class="admin-input" style="width:100%;">
+              <optgroup label="🟣 Anthropic（Claude）">
+                <option value="anthropic/claude-sonnet-4-6">Claude Sonnet 4.6 — 高精度（$3/$15 per MTok）</option>
+                <option value="anthropic/claude-haiku-4-5-20251001">Claude Haiku 4.5 — 低コスト（$1/$5 per MTok）</option>
+              </optgroup>
+              <optgroup label="🔵 Google（Gemini）">
+                <option value="google/gemini-2.0-flash">Gemini 2.0 Flash — 超低コスト・OCR得意（$0.075/$0.30 per MTok）</option>
+                <option value="google/gemini-1.5-flash">Gemini 1.5 Flash — 安定版（$0.075/$0.30 per MTok）</option>
+              </optgroup>
+              <optgroup label="🟢 OpenAI">
+                <option value="openai/gpt-4o-mini">GPT-4o mini — バランス型（$0.15/$0.60 per MTok）</option>
+                <option value="openai/gpt-4o">GPT-4o — 高精度（$2.5/$10 per MTok）</option>
+              </optgroup>
+            </select>
+          </div>
+          <button class="admin-btn btn-primary" id="btn-save-model" style="align-self:flex-start;">変更を保存</button>
+        </div>
+        <div style="margin-top:16px;padding:12px;background:#fffbe6;border:1px solid #f0d060;border-radius:8px;font-size:12px;color:#7a6a00;line-height:1.6;">
+          ⚠️ Gemini・OpenAIを使うには、SupabaseダッシュボードのEdge Function環境変数に<br>
+          <code>GOOGLE_API_KEY</code> または <code>OPENAI_API_KEY</code> を追加してください。
+        </div>
+      </div>
+    </div>
+
     <!-- ユーザー一覧 -->
     <div class="admin-section">
       <div class="admin-section-title">
@@ -435,7 +473,7 @@
     document.getElementById('auth-wall').style.display = 'none';
     document.getElementById('admin-app').style.display = 'block';
     document.getElementById('admin-user-email').textContent = user.email;
-    await Promise.all([loadStats(), loadUserList()]);
+    await Promise.all([loadStats(), loadUserList(), loadOcrModel()]);
   }
 
   if (session) boot(session);
@@ -651,6 +689,37 @@
     toast('✓ 更新しました');
   });
 
+  // ── OCRモデル設定 ──
+  async function loadOcrModel() {
+    try {
+      const { data, error } = await supabase.rpc('get_app_setting', { p_key: 'receipt_ocr_model' });
+      const current = data || 'anthropic/claude-sonnet-4-6';
+      document.getElementById('current-model-display').textContent = current;
+      const sel = document.getElementById('ocr-model-select');
+      if ([...sel.options].some(o => o.value === current)) {
+        sel.value = current;
+      }
+    } catch(e) {
+      document.getElementById('current-model-display').textContent = '取得に失敗しました';
+    }
+  }
+
+  document.getElementById('btn-save-model').addEventListener('click', async () => {
+    const model = document.getElementById('ocr-model-select').value;
+    const btn = document.getElementById('btn-save-model');
+    btn.disabled = true;
+    btn.textContent = '保存中...';
+    const { error } = await supabase.rpc('update_app_setting', { p_key: 'receipt_ocr_model', p_value: model });
+    btn.disabled = false;
+    btn.textContent = '変更を保存';
+    if (error) {
+      toast('❌ エラー: ' + error.message);
+    } else {
+      document.getElementById('current-model-display').textContent = model;
+      toast('✓ モデルを ' + model + ' に変更しました');
+    }
+  });
+
   // ── プルトゥリフレッシュ ──
   (function() {
     let startY = 0, pulling = false, triggered = false;
@@ -686,3 +755,4 @@
 </script>
 </body>
 </html>
+
