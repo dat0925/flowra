@@ -1249,19 +1249,27 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
       baseAmount: item.amount,  // 元の税抜き金額を保持
       checked: item.amount > 0, // マイナス（値引き）はデフォルトOFF
       tagIds,
+      // AIが返した税率（8 or 10）。なければ後でタグから判定
+      taxRate: item.taxRate || null,
     };
   });
 
   // 税込変換状態
   let taxApplied = false;
 
-  // 8%対象タグ名
-  const TAX_8PCT_TAGS = new Set(['食費','外食','飲み物','菓子','食品']);
+  // 税率取得（AI判定 → タグ名フォールバックの順）
+  // 8%対象タグ名（フォールバック用）
+  const TAX_8PCT_TAG_KEYWORDS = ['食費','外食','飲み物','菓子','食品','肉','魚','野菜','果物',
+    '米','調味料','乾物','ヨーグルト','菓子','嗜好品','弁当','惣菜'];
 
-  function getTaxRate(tagIds) {
-    for (const tid of tagIds) {
+  function getTaxRate(item) {
+    // AIが税率を返していればそれを優先
+    if (item.taxRate === 8)  return 1.08;
+    if (item.taxRate === 10) return 1.10;
+    // フォールバック：タグ名で判定
+    for (const tid of item.tagIds) {
       const name = tags.find(t => t.id === tid)?.name || '';
-      if (TAX_8PCT_TAGS.has(name)) return 1.08;
+      if (TAX_8PCT_TAG_KEYWORDS.some(kw => name.includes(kw))) return 1.08;
     }
     return 1.10;
   }
@@ -1272,7 +1280,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
       ...item,
       amount: item.baseAmount < 0
         ? item.baseAmount  // 値引きは変換しない
-        : Math.round(item.baseAmount * getTaxRate(item.tagIds)),
+        : Math.round(item.baseAmount * getTaxRate(item)),
     }));
     renderConfirmUI();
   }
@@ -1320,11 +1328,18 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
       const amountColor = item.amount < 0 ? 'var(--red)' : 'var(--ink)';
       const nameOpacity = item.checked ? '1' : '0.38';
 
+      // 税率バッジ（税抜き変換ボタンがある場合のみ表示）
+      const rate = getTaxRate(item);
+      const taxBadge = item.amount > 0
+        ? '<span style="font-size:9px;font-weight:700;color:' + (rate === 1.08 ? '#4A7C59' : '#7A7090') + ';background:' + (rate === 1.08 ? '#EEF5F1' : '#F0EEF5') + ';padding:1px 5px;border-radius:6px;margin-left:4px;">' + (rate === 1.08 ? '軽減8%' : '10%') + '</span>'
+        : '';
+
       // タグバッジ
       const tagBadges = primaryTagName
         ? '<span style="font-size:10px;font-weight:600;color:var(--sage-dk);background:var(--sage-bg);padding:1px 7px;border-radius:10px;">' + primaryTagName + '</span>'
           + subTagNames.map(n => '<span style="font-size:10px;color:var(--mid);background:var(--mist);padding:1px 6px;border-radius:10px;">' + n + '</span>').join('')
-        : '<span style="font-size:10px;color:var(--mid-lt);">タグ未設定</span>';
+          + taxBadge
+        : '<span style="font-size:10px;color:var(--mid-lt);">タグ未設定</span>' + taxBadge;
 
       // チェックボックス：左44px幅のタップゾーン＋視認性改善
       const checkBox = item.checked
