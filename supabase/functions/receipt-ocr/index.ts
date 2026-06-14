@@ -3,11 +3,10 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! });
 
-const SUPABASE_URL  = Deno.env.get('SUPABASE_URL')!;
-const SB_ANON_KEY  = Deno.env.get('SB_ANON_KEY')!;
-const SB_SVC_KEY   = Deno.env.get('SB_SERVICE_ROLE_KEY')!;
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
+const SB_ANON_KEY = Deno.env.get('SB_ANON_KEY')!;
+const SB_SVC_KEY  = Deno.env.get('SB_SERVICE_ROLE_KEY')!;
 
-// レシートOCRの月次上限
 const FREE_RECEIPT_LIMIT    = 3;
 const PREMIUM_RECEIPT_LIMIT = 100;
 
@@ -50,7 +49,7 @@ Deno.serve(async (req) => {
     const isPremium = effectivePlan === 'premium' || effectivePlan === 'admin';
     const limit = isPremium ? PREMIUM_RECEIPT_LIMIT : FREE_RECEIPT_LIMIT;
 
-    // 今月の使用回数確認（receipt_usage テーブル）
+    // 今月の使用回数確認
     const monthKey = new Date().toISOString().slice(0, 7);
     const { data: usageRow } = await sb
       .from('receipt_usage')
@@ -61,23 +60,34 @@ Deno.serve(async (req) => {
     const currentCount = usageRow?.count ?? 0;
 
     if (currentCount >= limit) {
-      return json({
-        error: 'LIMIT_REACHED',
-        limit,
-        count: currentCount,
-        isPremium,
-      }, 429);
+      return json({ error: 'LIMIT_REACHED', limit, count: currentCount, isPremium }, 429);
     }
 
-    // 画像を受け取る
+    // 画像・アクティブチームIDを受け取る
     const body = await req.json();
-    const { image, mediaType = 'image/jpeg' } = body;
+    const { image, mediaType = 'image/jpeg', teamId } = body;
     if (!image) return json({ error: '画像が必要です' }, 400);
 
-    // Claude Vision でOCR
+    // ユーザーのタグ一覧を取得（teamIdがあれば使う）
+    let tags: { id: string; name: string }[] = [];
+    if (teamId) {
+      const { data: tagRows } = await sb
+        .from('tags')
+        .select('id, name')
+        .eq('team_id', teamId)
+        .order('sort_order', { ascending: true });
+      tags = tagRows || [];
+    }
+
+    // タグリストをプロンプト用に整形
+    const tagListText = tags.length > 0
+      ? `\n\nユーザーが使っているカテゴリタグ一覧：\n${tags.map(t => `- ${t.name}`).join('\n')}\n\n各品目に対して、上記タグの中から最も適切なものを1つ選んでtagフィールドに入れてください。どれも当てはまらない場合は空文字にしてください。`
+      : '';
+
+    // Claude Vision でOCR＋タグ推定
     const message = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
+      max_tokens: 2048,
       messages: [{
         role: 'user',
         content: [
@@ -93,28 +103,32 @@ Deno.serve(async (req) => {
   "store": "店名（不明なら空文字）",
   "date": "YYYY-MM-DD形式の日付（不明なら空文字）",
   "items": [
-    { "name": "品目名", "amount": 金額の数値（税込・値引き後） }
+    { "name": "品目名", "amount": 金額の数値（税込・値引き後）, "tag": "カテゴリタグ名または空文字" }
   ]
 }
 
 ルール：
-- 小計・合計・消費税の行は含めない
-- ポイント値引き・割引行はマイナス金額で含める（例: { "name": "ポイント値引き", "amount": -50 }）
+- 小計・合計・消費税・お釣りの行は含めない
+- ポイント値引き・割引行はamountをマイナス数値で含める（例: { "name": "ポイント値引き", "amount": -50, "tag": "" }）
 - 金額は数値のみ（¥や円は含めない）
-- 読み取れない品目はスキップ`
+- 読み取れない品目はスキップ
+- 品目名は略さずレシートに印字された名前をそのまま使う${tagListText}`
           }
         ]
       }]
     });
 
     const rawText = message.content[0].type === 'text' ? message.content[0].text : '';
-    let parsed: { store: string; date: string; items: { name: string; amount: number }[] };
+    let parsed: { store: string; date: string; items: { name: string; amount: number; tag?: string }[] };
     try {
       const cleaned = rawText.replace(/```json|```/g, '').trim();
       parsed = JSON.parse(cleaned);
     } catch {
       return json({ error: 'OCR解析に失敗しました', raw: rawText }, 500);
     }
+
+    // タグ名→IDのマップを作成
+    const tagNameToId = new Map(tags.map(t => [t.name, t.id]));
 
     // 使用回数インクリメント
     await sb.rpc('increment_receipt_usage', {
@@ -125,7 +139,15 @@ Deno.serve(async (req) => {
     return json({
       store: parsed.store || '',
       date: parsed.date || '',
-      items: (parsed.items || []).filter(i => i.name && i.amount !== undefined),
+      items: (parsed.items || [])
+        .filter(i => i.name && i.amount !== undefined)
+        .map(i => ({
+          name: i.name,
+          amount: i.amount,
+          // タグ名をIDに変換。マッチしなければ空（フロント側のキーワード推定にフォールバック）
+          tagId: i.tag ? (tagNameToId.get(i.tag) || null) : null,
+          tagName: i.tag || '',
+        })),
       count: currentCount + 1,
       limit,
       isPremium,
