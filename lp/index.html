@@ -647,6 +647,14 @@
     .couple-checklist { background: var(--white); border-radius: 14px; padding: 14px 16px; font-size: 12px; color: var(--mid); line-height: 1.9; }
 
     /* ── CTA ── */
+    /* ── MID CTA ── */
+    .mid-cta-section { background: var(--sage-bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 32px 24px; }
+    .mid-cta-inner { max-width: 720px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .mid-cta-text { font-size: 15px; color: var(--sage-dk); font-weight: 500; }
+    .mid-cta-btn { background: var(--sage); color: #fff; border-radius: 100px; padding: 12px 28px; font-size: 14px; font-weight: 500; text-decoration: none; white-space: nowrap; transition: background 0.2s; }
+    .mid-cta-btn:hover { background: var(--sage-dk); }
+    @media (max-width: 480px) { .mid-cta-inner { flex-direction: column; text-align: center; } }
+
     .cta-section { background: var(--ink); padding: 100px 24px; text-align: center; position: relative; overflow: hidden; }
     .cta-bg { position: absolute; bottom: -100px; left: 50%; transform: translateX(-50%); width: 600px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(74,124,89,0.2) 0%, transparent 70%); pointer-events: none; }
     .cta-title { font-family: 'DM Serif Display', serif; font-size: clamp(32px, 6vw, 60px); line-height: 1.2; letter-spacing: -0.02em; color: #fff; margin-bottom: 16px; }
@@ -859,6 +867,38 @@
     </div>
   </section>
 
+  <!-- SHARING -->
+  <section class="sharing-section">
+    <div class="sharing-inner">
+      <div>
+        <span class="section-label">Sharing</span>
+        <h2 class="section-title">「知らなかった」が<br>なくなります。</h2>
+        <p class="section-desc" style="margin-bottom:0;">招待リンクを送るだけで、すぐに共有スタート。お互いの記録がリアルタイムで見えるから、自然にお金の話ができるようになります。</p>
+      </div>
+      <div class="sharing-visual">
+        <div class="avatar-card">
+          <div class="avatar-circle" style="background:var(--sage);">T</div>
+          <div class="avatar-name">あなた</div>
+          <div class="avatar-role">オーナー · 記録・管理</div>
+        </div>
+        <div class="share-arrow">⇄</div>
+        <div class="avatar-card">
+          <div class="avatar-circle" style="background:var(--gold);">P</div>
+          <div class="avatar-name">パートナー</div>
+          <div class="avatar-role">メンバー · 閲覧・編集</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MID CTA -->
+  <section class="mid-cta-section">
+    <div class="mid-cta-inner">
+      <p class="mid-cta-text">まずは無料で試せます。クレジットカード不要。</p>
+      <a href="https://flowra.taskra.jp" class="mid-cta-btn" onclick="gtag('event','signup_click',{button:'mid_cta'})">無料で使ってみる →</a>
+    </div>
+  </section>
+
   <!-- BUDGET -->
   <section class="budget-section" id="budget">
     <div class="budget-inner">
@@ -997,30 +1037,6 @@
           <div class="step-num">03</div>
           <div class="step-title">レシートを撮ってみる</div>
           <p class="step-desc">最初の記録は「+」→「レシート読み取り」を試してみてください。品目が自動で並びます。</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- SHARING -->
-  <section class="sharing-section">
-    <div class="sharing-inner">
-      <div>
-        <span class="section-label">Sharing</span>
-        <h2 class="section-title">「知らなかった」が<br>なくなります。</h2>
-        <p class="section-desc" style="margin-bottom:0;">招待リンクを送るだけで、すぐに共有スタート。お互いの記録がリアルタイムで見えるから、自然にお金の話ができるようになります。</p>
-      </div>
-      <div class="sharing-visual">
-        <div class="avatar-card">
-          <div class="avatar-circle" style="background:var(--sage);">T</div>
-          <div class="avatar-name">あなた</div>
-          <div class="avatar-role">オーナー · 記録・管理</div>
-        </div>
-        <div class="share-arrow">⇄</div>
-        <div class="avatar-card">
-          <div class="avatar-circle" style="background:var(--gold);">P</div>
-          <div class="avatar-name">パートナー</div>
-          <div class="avatar-role">メンバー · 閲覧・編集</div>
         </div>
       </div>
     </div>
