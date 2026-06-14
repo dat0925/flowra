@@ -1328,10 +1328,15 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
       const amountColor = item.amount < 0 ? 'var(--red)' : 'var(--ink)';
       const nameOpacity = item.checked ? '1' : '0.38';
 
-      // 税率バッジ（税抜き変換ボタンがある場合のみ表示）
+      // 税率バッジ（タップで詳細シートから変更可能・操作できることが見た目でわかる）
       const rate = getTaxRate(item);
       const taxBadge = item.amount > 0
-        ? '<span style="font-size:9px;font-weight:700;color:' + (rate === 1.08 ? '#4A7C59' : '#7A7090') + ';background:' + (rate === 1.08 ? '#EEF5F1' : '#F0EEF5') + ';padding:1px 5px;border-radius:6px;margin-left:4px;">' + (rate === 1.08 ? '軽減8%' : '10%') + '</span>'
+        ? '<span style="font-size:9px;font-weight:700;' +
+          'color:' + (rate === 1.08 ? '#2F5239' : '#5A5070') + ';' +
+          'background:' + (rate === 1.08 ? '#EEF5F1' : '#F0EEF5') + ';' +
+          'border:1.5px solid ' + (rate === 1.08 ? '#4A7C59' : '#9A90B8') + ';' +
+          'padding:0px 5px;border-radius:6px;margin-left:4px;cursor:pointer;">' +
+          (rate === 1.08 ? '軽減8%' : '10%') + '</span>'
         : '';
 
       // タグバッジ
@@ -1544,11 +1549,33 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
             }).join('')
           + '</div></div>'
         : '')
-      // 完了ボタン
-      + '<button id="item-detail-done" style="width:100%;padding:14px;border-radius:14px;background:var(--sage);color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;">完了</button>'
-      + '</div>';
+      // 税率トグル
+      + '<div style="margin-bottom:20px;">'      + '<div style="font-size:11px;color:var(--mid);font-weight:600;margin-bottom:8px;">消費税率</div>'      + '<div style="display:flex;gap:8px;">'      + (() => {          const cur = item.taxRate || (getTaxRate(item) === 1.08 ? 8 : 10);          const btn8 = '<button id="tax-rate-8" style="flex:1;padding:9px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;'            + (cur === 8              ? 'border:2px solid var(--sage);background:var(--sage-bg);color:var(--sage-dk);'              : 'border:1.5px solid var(--mist);background:transparent;color:var(--mid);')            + '">軽減8%（食品）</button>';          const btn10 = '<button id="tax-rate-10" style="flex:1;padding:9px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;'            + (cur === 10              ? 'border:2px solid #9A90B8;background:#F0EEF5;color:#5A5070;'              : 'border:1.5px solid var(--mist);background:transparent;color:var(--mid);')            + '">標準10%</button>';          return btn8 + btn10;        })()      + '</div></div>'      // 完了ボタン
+      + '<button id="item-detail-done" style="width:100%;padding:14px;border-radius:14px;background:var(--sage);color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;">完了</button>'      + '</div>';
 
     document.body.appendChild(sheet);
+
+    // 税率トグル
+    const updateTaxBtns = (selected) => {
+      const btn8  = sheet.querySelector('#tax-rate-8');
+      const btn10 = sheet.querySelector('#tax-rate-10');
+      if (!btn8 || !btn10) return;
+      if (selected === 8) {
+        btn8.style.cssText  = 'flex:1;padding:9px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid var(--sage);background:var(--sage-bg);color:var(--sage-dk);';
+        btn10.style.cssText = 'flex:1;padding:9px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--mist);background:transparent;color:var(--mid);';
+      } else {
+        btn8.style.cssText  = 'flex:1;padding:9px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:1.5px solid var(--mist);background:transparent;color:var(--mid);';
+        btn10.style.cssText = 'flex:1;padding:9px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;border:2px solid #9A90B8;background:#F0EEF5;color:#5A5070;';
+      }
+    };
+    sheet.querySelector('#tax-rate-8')?.addEventListener('click', () => {
+      item.taxRate = 8;
+      updateTaxBtns(8);
+    });
+    sheet.querySelector('#tax-rate-10')?.addEventListener('click', () => {
+      item.taxRate = 10;
+      updateTaxBtns(10);
+    });
 
     // タグチップ
     sheet.querySelectorAll('.detail-tag-chip').forEach(chip => {
