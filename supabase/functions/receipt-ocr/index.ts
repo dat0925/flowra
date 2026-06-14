@@ -68,8 +68,7 @@ Deno.serve(async (req) => {
     const { image, mediaType = 'image/jpeg', teamId } = body;
     if (!image) return json({ error: '画像が必要です' }, 400);
 
-    // ユーザーのタグ一覧を取得（teamIdがあれば使う）
-    // 予算が設定されている主タグのみAIに渡す（全タグを渡すと混乱するため）
+    // タグ一覧と予算情報を並列取得
     let allTags: { id: string; name: string }[] = [];
     let primaryTagIds = new Set<string>();
 
@@ -79,22 +78,31 @@ Deno.serve(async (req) => {
         sb.from('budgets').select('tag_id').eq('team_id', teamId),
       ]);
       allTags = tagRes.data || [];
-      // 予算ありタグID（主タグ）のセット
+      // 予算ありタグ = 主タグ
       primaryTagIds = new Set((budgetRes.data || []).map((b: { tag_id: string }) => b.tag_id));
     }
 
-    // AIには主タグのみ渡す。主タグが0件なら全タグを渡す
-    const tagsForAI = primaryTagIds.size > 0
+    // AIには主タグのみ渡す（0件なら全タグ）
+    const primaryTags = primaryTagIds.size > 0
       ? allTags.filter(t => primaryTagIds.has(t.id))
       : allTags;
 
-    // タグリストをプロンプト用に整形
-    const tagListText = tagsForAI.length > 0
-      ? `\n\nユーザーが使っているメインカテゴリ一覧（この中から1つ選ぶ）：\n${tagsForAI.map(t => `- ${t.name}`).join('\n')}\n\n各品目に対して、上記カテゴリの中から最も適切なものを1つ選んでtagフィールドに入れてください。明らかに当てはまるものがない場合のみ空文字にしてください。食品・飲料・調味料はできる限りいずれかに分類してください。`
+    // サブタグ（予算なし）
+    const subTags = allTags.filter(t => !primaryTagIds.has(t.id));
+
+    // プロンプト用タグテキスト生成
+    const primaryTagText = primaryTags.length > 0
+      ? `メインカテゴリ（必ず1つ選ぶ）：\n${primaryTags.map(t => `- ${t.name}`).join('\n')}`
       : '';
-    
-    // フロント側タグ補完用に全タグも保持
-    const tags = allTags;
+    const subTagText = subTags.length > 0
+      ? `サブカテゴリ（物品・食材の種類を示すものを複数選んでよい）：\n${subTags.map(t => `- ${t.name}`).join('\n')}`
+      : '';
+    const tagListText = (primaryTagText || subTagText)
+      ? `\n\n${primaryTagText}\n\n${subTagText}\n\n【タグ選択ルール】\n- メインカテゴリは上記から1つ選びtagフィールドへ\n- サブカテゴリは物品・食材・飲料の種類を示すものを複数選びsubTagsフィールドへ（配列）\n- 「無駄遣い」「節約可能」「お気に入り」など感情・評価・行動を表すタグは絶対に選ばない\n- 当てはまるものがなければ空文字または空配列にする`
+      : '';
+
+    // タグ名→IDマップ（全タグ）
+    const tagNameToId = new Map(allTags.map(t => [t.name, t.id]));
 
     // Claude Vision でOCR＋タグ推定
     const message = await anthropic.messages.create({
@@ -131,16 +139,13 @@ Deno.serve(async (req) => {
     });
 
     const rawText = message.content[0].type === 'text' ? message.content[0].text : '';
-    let parsed: { store: string; date: string; items: { name: string; amount: number; tag?: string }[] };
+    let parsed: { store: string; date: string; items: { name: string; amount: number; tag?: string; subTags?: string[] }[] };
     try {
       const cleaned = rawText.replace(/```json|```/g, '').trim();
       parsed = JSON.parse(cleaned);
     } catch {
       return json({ error: 'OCR解析に失敗しました', raw: rawText }, 500);
     }
-
-    // タグ名→IDのマップを作成
-    const tagNameToId = new Map(tags.map(t => [t.name, t.id]));
 
     // 使用回数インクリメント
     await sb.rpc('increment_receipt_usage', {
@@ -156,9 +161,13 @@ Deno.serve(async (req) => {
         .map(i => ({
           name: i.name,
           amount: i.amount,
-          // タグ名をIDに変換。マッチしなければ空（フロント側のキーワード推定にフォールバック）
+          // メインタグ名→ID変換
           tagId: i.tag ? (tagNameToId.get(i.tag) || null) : null,
           tagName: i.tag || '',
+          // サブタグ名→ID変換（マッチしたもののみ）
+          subTagIds: (i.subTags || [])
+            .map((name: string) => tagNameToId.get(name))
+            .filter((id): id is string => !!id),
         })),
       count: currentCount + 1,
       limit,
