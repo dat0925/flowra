@@ -4,6 +4,31 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flowra — レシートを撮るだけ。家計が動く。</title>
+
+  <!-- SEO / OGP -->
+  <meta name="description" content="レシートを撮るだけ。AIが品目・金額を自動読み取り。パートナーとリアルタイム共有できる家計管理アプリ。月¥398から。">
+  <link rel="canonical" href="https://flowra.taskra.jp/lp/">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://flowra.taskra.jp/lp/">
+  <meta property="og:title" content="Flowra — レシートを撮るだけ。家計が動く。">
+  <meta property="og:description" content="レシートを撮るだけ。AIが品目・金額を自動読み取り。パートナーとリアルタイム共有できる家計管理アプリ。月¥398から。">
+  <meta property="og:image" content="https://flowra.taskra.jp/icon-512.png">
+  <meta property="og:site_name" content="Flowra">
+  <meta property="og:locale" content="ja_JP">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Flowra — レシートを撮るだけ。家計が動く。">
+  <meta name="twitter:description" content="レシートを撮るだけ。AIが品目・金額を自動読み取り。パートナーとリアルタイム共有できる家計管理アプリ。月¥398から。">
+  <meta name="twitter:image" content="https://flowra.taskra.jp/icon-512.png">
+
+  <!-- Google Analytics 4 -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-M40916RMNH"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-M40916RMNH');
+  </script>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600&family=Noto+Serif+JP:wght@400;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
@@ -673,7 +698,7 @@
     <a href="https://flowra.taskra.jp/lp/" class="nav-logo">Flow<span>ra</span></a>
     <div class="nav-right">
       <a href="#pricing" class="nav-link">料金</a>
-      <a href="https://flowra.taskra.jp" class="nav-cta">無料で始める →</a>
+      <a href="https://flowra.taskra.jp" class="nav-cta" onclick="gtag('event','signup_click',{button:'nav'})">無料で始める →</a>
     </div>
   </nav>
 
@@ -697,7 +722,7 @@
     </p>
 
     <div class="hero-actions">
-      <a href="https://flowra.taskra.jp" class="btn-primary">
+      <a href="https://flowra.taskra.jp" class="btn-primary" onclick="gtag('event','signup_click',{button:'hero'})">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         無料で使ってみる
       </a>
@@ -1027,7 +1052,7 @@
             <li class="limit">AIアドバイス：月5回</li>
             <li class="limit">レシート読み取り：月3回</li>
           </ul>
-          <a href="https://flowra.taskra.jp" class="pricing-btn pricing-btn-free">無料で始める</a>
+          <a href="https://flowra.taskra.jp" class="pricing-btn pricing-btn-free" onclick="gtag('event','signup_click',{button:'pricing_free'})">無料で始める</a>
         </div>
 
         <!-- Premium -->
@@ -1047,7 +1072,7 @@
             <li class="ok">新機能への優先アクセス</li>
             <li class="ok">開発への要望受付</li>
           </ul>
-          <a id="btn-premium-lp" href="https://buy.stripe.com/00w00i1Rx4Lwbmy2c3fQI02" class="pricing-btn pricing-btn-premium" target="_blank" rel="noopener">
+          <a id="btn-premium-lp" href="https://buy.stripe.com/00w00i1Rx4Lwbmy2c3fQI02" class="pricing-btn pricing-btn-premium" target="_blank" rel="noopener" onclick="gtag('event','premium_click',{button:'pricing_premium'})">
             Premiumプランに申し込む
           </a>
         </div>
@@ -1097,7 +1122,7 @@
     <div class="cta-bg"></div>
     <h2 class="cta-title">まず、<em>撮ってみて</em>ください。</h2>
     <p class="cta-desc">Googleアカウントで、今すぐ使えます。無料です。</p>
-    <a href="https://flowra.taskra.jp" class="btn-primary-inv">
+    <a href="https://flowra.taskra.jp" class="btn-primary-inv" onclick="gtag('event','signup_click',{button:'bottom_cta'})">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       Flowraを無料で使う
     </a>
@@ -1235,3 +1260,4 @@
   </script>
 </body>
 </html>
+
