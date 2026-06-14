@@ -1222,20 +1222,28 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
   const budgetMap = await DB.getBudgetTagIds();
 
   // 各品目の状態（チェック・タグ・金額）
-  // AIがtagIdを返した場合はそれを優先、なければキーワード推定にフォールバック
+  // AIが返したタグIDを優先。なければキーワード推定にフォールバック
   let itemStates = items.map(item => {
-    let tagIds;
+    let tagIds = new Set();
+
+    // ── メインタグ（主タグ）の設定 ──
     if (item.tagId) {
-      // AIがタグIDを直接返した場合
-      tagIds = new Set([item.tagId]);
+      tagIds.add(item.tagId);
     } else if (item.tagName) {
-      // AIがタグ名を返したがIDへの変換が必要な場合
       const matched = tags.find(t => t.name === item.tagName);
-      tagIds = matched ? new Set([matched.id]) : autoAssignTags(item.name, tags, budgetMap);
-    } else {
-      // AIがタグを返せなかった場合はキーワード推定
+      if (matched) tagIds.add(matched.id);
+    }
+
+    // ── サブタグの設定（AIが返したsubTagIds）──
+    if (item.subTagIds && item.subTagIds.length > 0) {
+      item.subTagIds.forEach(id => tagIds.add(id));
+    }
+
+    // ── フォールバック：AIがメインタグを返せなかった場合のみキーワード推定 ──
+    if (tagIds.size === 0) {
       tagIds = autoAssignTags(item.name, tags, budgetMap);
     }
+
     return {
       ...item,
       baseAmount: item.amount,  // 元の税抜き金額を保持
