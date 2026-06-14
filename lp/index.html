@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flowra — あなたの家計を、やさしく。</title>
+  <title>Flowra — レシートを撮るだけ。家計が動く。</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600&family=Noto+Serif+JP:wght@400;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
@@ -23,12 +23,11 @@
       --mid-lt:  #B0C4BB;
       --border:  #E4DDD4;
       --white:   #ffffff;
+      --red:     #B83232;
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     html { scroll-behavior: smooth; }
-
     body {
       font-family: 'Noto Sans JP', sans-serif;
       background: var(--stone);
@@ -46,31 +45,35 @@
       justify-content: space-between;
       padding: 0 32px;
       height: 60px;
-      background: rgba(245,242,237,0.85);
+      background: rgba(245,242,237,0.9);
       backdrop-filter: blur(16px);
       border-bottom: 1px solid var(--border);
     }
-
     .nav-logo {
       font-family: 'DM Serif Display', serif;
       font-size: 22px;
       color: var(--ink);
       letter-spacing: -0.02em;
+      text-decoration: none;
     }
     .nav-logo span { color: var(--sage); }
-
+    .nav-right { display: flex; align-items: center; gap: 12px; }
+    .nav-link {
+      font-size: 13px;
+      color: var(--mid);
+      text-decoration: none;
+      padding: 6px 4px;
+    }
     .nav-cta {
       background: var(--sage);
       color: #fff;
       border: none;
       border-radius: 100px;
       padding: 9px 22px;
-      font-family: 'Noto Sans JP', sans-serif;
       font-size: 13px;
       font-weight: 500;
       cursor: pointer;
       text-decoration: none;
-      display: inline-block;
       transition: background 0.2s;
     }
     .nav-cta:hover { background: var(--sage-dk); }
@@ -83,28 +86,16 @@
       align-items: center;
       justify-content: center;
       padding: 100px 24px 80px;
+      text-align: center;
       position: relative;
       overflow: hidden;
-      text-align: center;
     }
-
     .hero-bg {
-      position: absolute;
-      inset: 0;
+      position: absolute; inset: 0;
       background:
         radial-gradient(ellipse 80% 60% at 50% 10%, rgba(74,124,89,0.10) 0%, transparent 70%),
         radial-gradient(ellipse 50% 40% at 80% 80%, rgba(184,151,62,0.07) 0%, transparent 60%);
       pointer-events: none;
-    }
-
-    /* 草むらっぽい波 */
-    .hero-wave {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      height: 120px;
-      background: var(--ink);
-      clip-path: ellipse(60% 100% at 50% 100%);
-      opacity: 0.03;
     }
 
     .hero-eyebrow {
@@ -123,46 +114,28 @@
       opacity: 0;
       animation: fadeUp 0.6s ease forwards 0.1s;
     }
-
-    .hero-dot {
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--sage);
-    }
+    .hero-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--sage); }
 
     .hero-title {
       font-family: 'DM Serif Display', serif;
-      font-size: clamp(42px, 8vw, 80px);
-      line-height: 1.1;
+      font-size: clamp(38px, 7vw, 72px);
+      line-height: 1.15;
       letter-spacing: -0.03em;
       color: var(--ink);
-      margin-bottom: 8px;
+      margin-bottom: 16px;
       opacity: 0;
       animation: fadeUp 0.7s ease forwards 0.25s;
     }
-    .hero-title em {
-      font-style: italic;
-      color: var(--sage);
-    }
-
-    .hero-subtitle-jp {
-      font-family: 'Noto Serif JP', serif;
-      font-size: clamp(16px, 3vw, 22px);
-      font-weight: 400;
-      color: var(--mid);
-      margin-bottom: 36px;
-      opacity: 0;
-      animation: fadeUp 0.7s ease forwards 0.4s;
-    }
+    .hero-title em { font-style: italic; color: var(--sage); }
 
     .hero-desc {
-      max-width: 480px;
+      max-width: 460px;
       font-size: 15px;
       line-height: 1.9;
       color: var(--mid);
-      margin-bottom: 44px;
+      margin-bottom: 40px;
       opacity: 0;
-      animation: fadeUp 0.7s ease forwards 0.55s;
+      animation: fadeUp 0.7s ease forwards 0.4s;
     }
 
     .hero-actions {
@@ -170,8 +143,9 @@
       gap: 12px;
       flex-wrap: wrap;
       justify-content: center;
+      margin-bottom: 16px;
       opacity: 0;
-      animation: fadeUp 0.7s ease forwards 0.7s;
+      animation: fadeUp 0.7s ease forwards 0.55s;
     }
 
     .btn-primary {
@@ -183,17 +157,13 @@
       border: none;
       border-radius: 100px;
       padding: 15px 32px;
-      font-family: 'Noto Sans JP', sans-serif;
       font-size: 15px;
       font-weight: 500;
       cursor: pointer;
       text-decoration: none;
       transition: transform 0.2s, box-shadow 0.2s;
     }
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(28,43,34,0.2);
-    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(28,43,34,0.2); }
 
     .btn-ghost {
       display: inline-flex;
@@ -204,230 +174,177 @@
       border: 1.5px solid var(--border);
       border-radius: 100px;
       padding: 14px 28px;
-      font-family: 'Noto Sans JP', sans-serif;
       font-size: 14px;
       font-weight: 400;
       cursor: pointer;
       text-decoration: none;
       transition: border-color 0.2s, background 0.2s;
     }
-    .btn-ghost:hover {
-      border-color: var(--sage);
-      background: var(--sage-bg);
-    }
+    .btn-ghost:hover { border-color: var(--sage); background: var(--sage-bg); }
 
     .hero-note {
-      margin-top: 20px;
       font-size: 12px;
       color: var(--mid-lt);
       opacity: 0;
-      animation: fadeUp 0.7s ease forwards 0.85s;
+      animation: fadeUp 0.7s ease forwards 0.7s;
     }
 
-    /* モックアップ */
-    .hero-mockup {
-      margin-top: 72px;
-      position: relative;
-      opacity: 0;
-      animation: fadeUp 0.9s ease forwards 0.95s;
-    }
-
-    .phone-frame {
-      width: 260px;
-      height: 520px;
+    /* ── RECEIPT DEMO SECTION ── */
+    .receipt-section {
       background: var(--ink);
-      border-radius: 40px;
-      padding: 14px;
-      box-shadow:
-        0 40px 80px rgba(28,43,34,0.25),
-        0 0 0 1px rgba(255,255,255,0.08) inset;
-      position: relative;
-    }
-
-    .phone-screen {
-      width: 100%;
-      height: 100%;
-      background: var(--stone);
-      border-radius: 28px;
+      padding: 100px 24px;
       overflow: hidden;
-      position: relative;
     }
-
-    .phone-statusbar {
-      display: flex;
-      justify-content: space-between;
+    .receipt-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 72px;
       align-items: center;
-      padding: 10px 16px 0;
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--ink);
+    }
+    @media (max-width: 720px) {
+      .receipt-inner { grid-template-columns: 1fr; gap: 48px; }
     }
 
-    .phone-header {
-      background: var(--ink);
-      color: #fff;
-      padding: 10px 16px;
+    .receipt-copy .section-label { color: var(--sage-lt); }
+    .receipt-copy .section-title { color: #fff; margin-bottom: 16px; }
+    .receipt-copy .section-desc  { color: rgba(255,255,255,0.55); margin-bottom: 32px; }
+
+    .receipt-steps {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 12px;
+      flex-direction: column;
+      gap: 20px;
     }
-
-    .phone-month {
-      font-family: 'Noto Serif JP', serif;
-      font-size: 13px;
-    }
-
-    .phone-body { padding: 12px 12px; }
-
-    .phone-summary {
-      background: var(--ink);
-      border-radius: 14px;
-      padding: 14px 16px;
-      margin-bottom: 12px;
-      color: #fff;
-    }
-
-    .phone-summary-label {
-      font-size: 9px;
-      color: rgba(255,255,255,0.5);
-      margin-bottom: 2px;
-    }
-
-    .phone-summary-amount {
-      font-family: 'Noto Serif JP', serif;
-      font-size: 20px;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-    }
-
-    .phone-summary-sub {
+    .receipt-step {
       display: flex;
-      gap: 12px;
-      margin-top: 10px;
+      align-items: flex-start;
+      gap: 14px;
     }
-
-    .phone-summary-item {
-      font-size: 9px;
-      color: rgba(255,255,255,0.6);
-    }
-
-    .phone-summary-item strong {
-      display: block;
-      font-size: 12px;
-      font-weight: 600;
-      color: #fff;
-    }
-
-    .phone-tx {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 9px 10px;
-      background: var(--white);
-      border-radius: 10px;
-      margin-bottom: 6px;
-    }
-
-    .phone-tx-icon {
+    .receipt-step-num {
       width: 28px;
       height: 28px;
-      border-radius: 8px;
+      border-radius: 50%;
+      background: var(--sage);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
       display: flex;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .receipt-step-text {
+      font-size: 14px;
+      color: rgba(255,255,255,0.75);
+      line-height: 1.6;
+    }
+    .receipt-step-text strong { color: #fff; }
+
+    /* レシートOCRモック */
+    .receipt-mock {
+      position: relative;
+    }
+    .receipt-phone {
+      width: 240px;
+      margin: 0 auto;
+      background: #1a1a1a;
+      border-radius: 36px;
+      padding: 12px;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+    }
+    .receipt-phone-screen {
+      background: #fff;
+      border-radius: 26px;
+      overflow: hidden;
+      min-height: 380px;
+    }
+    .receipt-screen-header {
+      background: var(--ink);
+      color: #fff;
+      padding: 14px 16px 10px;
       font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .receipt-screen-body {
+      padding: 12px;
+    }
+    .receipt-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 10px;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      background: var(--stone);
+      opacity: 0;
+      transform: translateX(12px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+    }
+    .receipt-item.show {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    .receipt-item-check {
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      background: var(--sage);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 11px;
       flex-shrink: 0;
     }
-
-    .phone-tx-info { flex: 1; min-width: 0; }
-
-    .phone-tx-name {
-      font-size: 10px;
-      font-weight: 500;
+    .receipt-item-name {
+      flex: 1;
+      font-size: 11px;
       color: var(--ink);
+      font-weight: 500;
     }
-
-    .phone-tx-tag {
+    .receipt-item-tag {
       font-size: 9px;
       color: var(--mid);
     }
-
-    .phone-tx-amount {
-      font-family: 'Noto Serif JP', serif;
+    .receipt-item-price {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .receipt-save-btn {
+      width: 100%;
+      background: var(--sage);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      padding: 12px;
       font-size: 12px;
       font-weight: 600;
+      margin-top: 8px;
+      opacity: 0;
+      transition: opacity 0.4s ease 1.2s;
+    }
+    .receipt-save-btn.show { opacity: 1; }
+
+    /* フリーバッジ */
+    .receipt-free-badge {
+      position: absolute;
+      bottom: -16px;
+      right: 0;
+      background: var(--gold-bg);
+      border: 1.5px solid var(--gold);
+      border-radius: 100px;
+      padding: 6px 14px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--gold);
       white-space: nowrap;
     }
-
-    .phone-tx-amount.income { color: var(--sage); }
-    .phone-tx-amount.expense { color: var(--ink); }
-
-    .phone-nav {
-      position: absolute;
-      bottom: 0; left: 0; right: 0;
-      background: var(--white);
-      border-top: 1px solid var(--border);
-      display: flex;
-      padding: 8px 0 14px;
-    }
-
-    .phone-nav-item {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      font-size: 8px;
-      color: var(--mid-lt);
-    }
-
-    .phone-nav-item.active { color: var(--sage); }
-
-    .phone-nav-dot {
-      width: 20px;
-      height: 20px;
-      border-radius: 6px;
-      background: currentColor;
-      opacity: 0.15;
-    }
-
-    .phone-nav-item.active .phone-nav-dot {
-      background: var(--sage);
-      opacity: 1;
-    }
-
-    /* 浮かぶカード装飾 */
-    .float-card {
-      position: absolute;
-      background: var(--white);
-      border-radius: 16px;
-      padding: 12px 16px;
-      box-shadow: 0 8px 32px rgba(28,43,34,0.12);
-      font-size: 12px;
-      white-space: nowrap;
-      animation: floatY 4s ease-in-out infinite;
-    }
-
-    .float-card-1 {
-      left: -100px;
-      top: 120px;
-      animation-delay: 0s;
-    }
-
-    .float-card-2 {
-      right: -80px;
-      top: 200px;
-      animation-delay: 2s;
-    }
-
-    @keyframes floatY {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-8px); }
-    }
-
-    .float-label { font-size: 10px; color: var(--mid); margin-bottom: 2px; }
-    .float-value { font-family: 'Noto Serif JP', serif; font-weight: 600; color: var(--ink); }
 
     /* ── FEATURES ── */
     .section {
@@ -435,7 +352,6 @@
       max-width: 960px;
       margin: 0 auto;
     }
-
     .section-label {
       display: inline-block;
       font-size: 11px;
@@ -445,7 +361,6 @@
       text-transform: uppercase;
       margin-bottom: 16px;
     }
-
     .section-title {
       font-family: 'DM Serif Display', serif;
       font-size: clamp(28px, 5vw, 48px);
@@ -454,67 +369,48 @@
       color: var(--ink);
       margin-bottom: 16px;
     }
-
     .section-desc {
       font-size: 15px;
       line-height: 1.9;
       color: var(--mid);
       max-width: 480px;
-      margin-bottom: 64px;
+      margin-bottom: 56px;
     }
 
     .features-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 20px;
+      gap: 16px;
     }
-
     .feature-card {
       background: var(--white);
       border: 1px solid var(--border);
       border-radius: 20px;
-      padding: 28px 24px;
-      transition: transform 0.25s, box-shadow 0.25s;
+      padding: 24px 22px;
       opacity: 0;
       transform: translateY(20px);
+      transition: transform 0.25s, box-shadow 0.25s;
     }
-
     .feature-card.visible {
       opacity: 1;
       transform: translateY(0);
       transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.25s;
     }
-
-    .feature-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 40px rgba(28,43,34,0.1);
-    }
-
+    .feature-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(28,43,34,0.08); }
     .feature-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
+      width: 40px; height: 40px;
+      border-radius: 10px;
       background: var(--sage-bg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-bottom: 16px;
-      font-size: 20px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 14px;
+      font-size: 18px;
     }
-
     .feature-name {
       font-family: 'Noto Serif JP', serif;
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--ink);
-      margin-bottom: 8px;
+      font-size: 15px; font-weight: 600;
+      color: var(--ink); margin-bottom: 6px;
     }
-
-    .feature-desc {
-      font-size: 13.5px;
-      line-height: 1.8;
-      color: var(--mid);
-    }
+    .feature-desc { font-size: 13px; line-height: 1.8; color: var(--mid); }
 
     /* ── BUDGET SECTION ── */
     .budget-section {
@@ -522,7 +418,6 @@
       background: var(--sage-bg);
       overflow: hidden;
     }
-
     .budget-inner {
       max-width: 960px;
       margin: 0 auto;
@@ -531,655 +426,217 @@
       gap: 72px;
       align-items: center;
     }
-
     @media (max-width: 720px) {
-      .budget-inner { grid-template-columns: 1fr; gap: 48px; }
+      .budget-inner { grid-template-columns: 1fr; gap: 40px; }
     }
-
     .budget-copy .section-label { color: var(--sage-dk); }
+    .budget-copy .section-desc { margin-bottom: 28px; }
 
-    .budget-copy .section-title { margin-bottom: 16px; }
-
-    .budget-copy .section-desc { margin-bottom: 32px; }
-
-    .budget-points {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .budget-point {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      font-size: 14px;
-      color: var(--ink);
-      line-height: 1.6;
-    }
-
+    .budget-points { display: flex; flex-direction: column; gap: 14px; }
+    .budget-point { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; color: var(--ink); line-height: 1.6; }
     .budget-point-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
-      background: var(--sage);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      flex-shrink: 0;
-      margin-top: 1px;
+      width: 28px; height: 28px; border-radius: 8px;
+      background: var(--sage); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; flex-shrink: 0; margin-top: 1px;
     }
 
-    /* 予算UIモック */
     .budget-ui {
       background: var(--white);
       border-radius: 24px;
       padding: 24px 20px;
       box-shadow: 0 20px 60px rgba(28,43,34,0.10);
     }
-
     .budget-ui-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      display: flex; align-items: center; justify-content: space-between;
       margin-bottom: 20px;
     }
-
-    .budget-ui-title {
-      font-family: 'Noto Serif JP', serif;
-      font-size: 14px;
-      font-weight: 600;
-      color: var(--ink);
-    }
-
-    .budget-ui-month {
-      font-size: 12px;
-      color: var(--mid);
-      background: var(--stone);
-      padding: 4px 10px;
-      border-radius: 100px;
-    }
-
-    .budget-row {
-      margin-bottom: 16px;
-    }
-
-    .budget-row-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 7px;
-    }
-
-    .budget-row-label {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--ink);
-    }
-
-    .budget-row-icon {
-      font-size: 14px;
-    }
-
-    .budget-row-amounts {
-      font-size: 12px;
-      color: var(--mid);
-    }
-
-    .budget-row-amounts strong {
-      color: var(--ink);
-      font-weight: 600;
-    }
-
-    .budget-bar-track {
-      width: 100%;
-      height: 8px;
-      background: var(--stone);
-      border-radius: 100px;
-      overflow: hidden;
-    }
-
-    .budget-bar-fill {
-      height: 100%;
-      border-radius: 100px;
-      transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
-      width: 0;
-    }
-
-    .budget-bar-fill.safe   { background: var(--sage); }
-    .budget-bar-fill.warn   { background: var(--gold); }
-    .budget-bar-fill.over   { background: #B83232; }
-
-    .budget-row-pct {
-      font-size: 11px;
-      font-weight: 600;
-      margin-top: 4px;
-      text-align: right;
-    }
+    .budget-ui-title { font-family: 'Noto Serif JP', serif; font-size: 14px; font-weight: 600; color: var(--ink); }
+    .budget-ui-month { font-size: 12px; color: var(--mid); background: var(--stone); padding: 4px 10px; border-radius: 100px; }
+    .budget-row { margin-bottom: 14px; }
+    .budget-row-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
+    .budget-row-label { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--ink); }
+    .budget-row-amounts { font-size: 12px; color: var(--mid); }
+    .budget-row-amounts strong { color: var(--ink); font-weight: 600; }
+    .budget-bar-track { width: 100%; height: 8px; background: var(--stone); border-radius: 100px; overflow: hidden; }
+    .budget-bar-fill { height: 100%; border-radius: 100px; transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1); width: 0; }
+    .budget-bar-fill.safe { background: var(--sage); }
+    .budget-bar-fill.warn { background: var(--gold); }
+    .budget-bar-fill.over  { background: var(--red); }
+    .budget-row-pct { font-size: 11px; font-weight: 600; margin-top: 4px; text-align: right; }
     .budget-row-pct.safe { color: var(--sage); }
     .budget-row-pct.warn { color: var(--gold); }
-    .budget-row-pct.over { color: #B83232; }
+    .budget-row-pct.over  { color: var(--red); }
+    .budget-total-row { border-top: 1px solid var(--border); padding-top: 14px; margin-top: 4px; }
+    .budget-total-row .budget-row-label { font-weight: 600; }
 
-    .budget-total-row {
-      border-top: 1px solid var(--border);
-      padding-top: 14px;
-      margin-top: 4px;
-    }
-
-    .budget-total-row .budget-row-label {
-      font-weight: 600;
-      font-size: 13px;
-    }
-
-    .budget-section-visible .budget-bar-fill {
-      /* アニメーション開始はJSで */
-    }
-
-    /* ── HOW ── */
-    /* ── AI セクション ── */
-    .ai-section {
-      padding: 100px 24px;
-      background: var(--ink);
-      overflow: hidden;
-    }
-
+    /* ── AI SECTION ── */
+    .ai-section { padding: 100px 24px; background: var(--ink); overflow: hidden; }
     .ai-inner {
-      max-width: 960px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 72px;
-      align-items: center;
+      max-width: 960px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 72px; align-items: center;
     }
-
     @media (max-width: 720px) {
       .ai-inner { grid-template-columns: 1fr; gap: 48px; }
     }
-
     .ai-copy .section-label { color: var(--sage-lt); }
     .ai-copy .section-title { color: #fff; margin-bottom: 16px; }
     .ai-copy .section-desc  { color: rgba(255,255,255,0.55); margin-bottom: 32px; }
+    .ai-points { display: flex; flex-direction: column; gap: 14px; }
+    .ai-point { display: flex; align-items: flex-start; gap: 12px; font-size: 14px; color: rgba(255,255,255,0.75); line-height: 1.6; }
+    .ai-point-icon { width: 28px; height: 28px; border-radius: 8px; background: var(--sage); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; margin-top: 1px; }
 
-    .ai-points {
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .ai-point {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      font-size: 14px;
-      color: rgba(255,255,255,0.75);
-      line-height: 1.6;
-    }
-
-    .ai-point-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 8px;
-      background: var(--sage);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-
-    /* AIモックUI */
-    .ai-mock {
-      background: #fff;
-      border-radius: 24px;
-      padding: 20px;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    }
-
-    .ai-mock-header {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--ink);
-      margin-bottom: 14px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .ai-mock-header::before {
-      content: '☆';
-      color: var(--sage);
-    }
-
+    .ai-mock { background: #fff; border-radius: 24px; padding: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+    .ai-mock-header { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 14px; display: flex; align-items: center; gap: 6px; }
+    .ai-mock-header::before { content: '✦'; color: var(--sage); }
     .ai-mock-answer {
-      background: var(--sage-bg);
-      border: 1px solid var(--mist);
-      border-radius: 12px;
-      padding: 14px 16px;
-      font-size: 13px;
-      color: var(--ink);
-      line-height: 1.7;
-      margin-bottom: 14px;
-      min-height: 72px;
+      background: var(--sage-bg); border: 1px solid var(--mist);
+      border-radius: 12px; padding: 14px 16px;
+      font-size: 13px; color: var(--ink); line-height: 1.7;
+      margin-bottom: 14px; min-height: 72px;
       transition: opacity 0.3s;
     }
-
-    .ai-mock-chips {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-bottom: 14px;
-    }
-
+    .ai-mock-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
     .ai-mock-chip {
-      padding: 7px 14px;
-      border-radius: 100px;
+      padding: 7px 14px; border-radius: 100px;
       border: 1.5px solid var(--border);
-      font-size: 12px;
-      color: var(--ink);
-      cursor: pointer;
-      transition: all 0.2s;
-      background: #fff;
-      user-select: none;
+      font-size: 12px; color: var(--ink);
+      cursor: pointer; transition: all 0.2s;
+      background: #fff; user-select: none;
     }
-
-    .ai-mock-chip:hover,
-    .ai-mock-chip.active {
-      border-color: var(--sage);
-      color: var(--sage);
-      background: var(--sage-bg);
-    }
-
-    .ai-mock-free {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-    }
-
-    .ai-mock-input {
-      flex: 1;
-      border: 1.5px solid var(--border);
-      border-radius: 100px;
-      padding: 8px 16px;
-      font-size: 12px;
-      color: var(--ink);
-      outline: none;
-      font-family: inherit;
-      background: #fff;
-    }
-
+    .ai-mock-chip:hover, .ai-mock-chip.active { border-color: var(--sage); color: var(--sage); background: var(--sage-bg); }
+    .ai-mock-free { display: flex; gap: 8px; align-items: center; }
+    .ai-mock-input { flex: 1; border: 1.5px solid var(--border); border-radius: 100px; padding: 8px 16px; font-size: 12px; color: var(--ink); outline: none; font-family: inherit; background: #fff; }
     .ai-mock-input:focus { border-color: var(--sage); }
+    .ai-mock-btn { background: var(--sage); color: #fff; border: none; border-radius: 100px; padding: 8px 16px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .ai-mock-ts { font-size: 11px; color: var(--mid-lt); margin-top: 8px; }
 
-    .ai-mock-btn {
-      background: var(--sage);
-      color: #fff;
-      border: none;
-      border-radius: 100px;
-      padding: 8px 16px;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
+    /* ── HOW ── */
+    .how-section { background: var(--warm); padding: 100px 24px; }
+    .how-inner { max-width: 960px; margin: 0 auto; }
+    .how-section .section-label { color: var(--sage); }
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 32px; }
+    .step { opacity: 0; transform: translateY(20px); }
+    .step.visible { opacity: 1; transform: translateY(0); transition: opacity 0.5s ease, transform 0.5s ease; }
+    .step-num { font-family: 'DM Serif Display', serif; font-size: 48px; line-height: 1; color: rgba(28,43,34,0.07); margin-bottom: 8px; }
+    .step-title { font-family: 'Noto Serif JP', serif; font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 8px; }
+    .step-desc { font-size: 13px; line-height: 1.8; color: var(--mid); }
+
+    /* ── SHARING ── */
+    .sharing-section { padding: 100px 24px; background: var(--stone); }
+    .sharing-inner {
+      max-width: 960px; margin: 0 auto;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 72px; align-items: center;
     }
-
-    .ai-mock-ts {
-      font-size: 11px;
-      color: var(--mid-lt);
-      margin-top: 8px;
+    @media (max-width: 720px) {
+      .sharing-inner { grid-template-columns: 1fr; gap: 40px; }
     }
-
-    .how-section {
-      background: var(--ink);
-      padding: 100px 24px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .how-bg {
-      position: absolute;
-      top: -100px; right: -100px;
-      width: 400px; height: 400px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(74,124,89,0.15) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    .how-inner {
-      max-width: 960px;
-      margin: 0 auto;
-    }
-
-    .how-section .section-label { color: var(--sage-lt); }
-    .how-section .section-title { color: #fff; }
-    .how-section .section-desc { color: rgba(255,255,255,0.5); }
-
-    .steps {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 32px;
-    }
-
-    .step {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-
-    .step.visible {
-      opacity: 1;
-      transform: translateY(0);
-      transition: opacity 0.5s ease, transform 0.5s ease;
-    }
-
-    .step-num {
-      font-family: 'DM Serif Display', serif;
-      font-size: 48px;
-      line-height: 1;
-      color: rgba(255,255,255,0.08);
-      margin-bottom: 8px;
-    }
-
-    .step-title {
-      font-family: 'Noto Serif JP', serif;
-      font-size: 15px;
-      font-weight: 600;
-      color: #fff;
-      margin-bottom: 8px;
-    }
-
-    .step-desc {
-      font-size: 13px;
-      line-height: 1.8;
-      color: rgba(255,255,255,0.45);
-    }
-
-    /* ── PREMIUM ── */
-    .premium-section {
-      padding: 100px 24px;
-      background: var(--warm);
-    }
-
-    .premium-inner {
-      max-width: 960px;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 64px;
-      align-items: center;
-    }
-
-    @media (max-width: 680px) {
-      .premium-inner { grid-template-columns: 1fr; gap: 40px; }
-      .float-card-1, .float-card-2 { display: none; }
-    }
-
-    .premium-visual {
-      display: flex;
-      gap: 12px;
-    }
-
+    .sharing-visual { display: flex; gap: 12px; align-items: center; justify-content: center; }
     .avatar-card {
-      flex: 1;
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      padding: 20px 16px;
-      text-align: center;
+      flex: 1; background: var(--white); border: 1px solid var(--border);
+      border-radius: 20px; padding: 20px 16px; text-align: center;
     }
-
     .avatar-circle {
-      width: 52px;
-      height: 52px;
-      border-radius: 50%;
+      width: 52px; height: 52px; border-radius: 50%;
       margin: 0 auto 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      font-weight: 600;
-      color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 600; color: #fff;
     }
-
-    .avatar-name {
-      font-size: 12px;
-      font-weight: 500;
-      color: var(--ink);
-      margin-bottom: 4px;
-    }
-
-    .avatar-role {
-      font-size: 10px;
-      color: var(--mid-lt);
-    }
-
-    .share-arrow {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      color: var(--mid-lt);
-    }
+    .avatar-name { font-size: 12px; font-weight: 500; color: var(--ink); margin-bottom: 4px; }
+    .avatar-role { font-size: 10px; color: var(--mid-lt); }
+    .share-arrow { display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--mid-lt); flex-shrink: 0; }
 
     /* ── PRICING ── */
+    .pricing-section { padding: 100px 24px; background: var(--white); }
+    .pricing-section-inner { max-width: 720px; margin: 0 auto; text-align: center; }
+    .pricing-section-inner .section-desc { margin: 0 auto 48px; }
+
     .pricing-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 20px;
-      max-width: 680px;
-      margin: 0 auto;
     }
-    @media (max-width: 600px) {
-      .pricing-grid { grid-template-columns: 1fr; max-width: 360px; }
+    @media (max-width: 580px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+      nav .nav-link { display: none; }
     }
+
     .pricing-card {
-      background: var(--white);
+      background: var(--stone);
       border: 1.5px solid var(--border);
       border-radius: 24px;
       padding: 28px 24px 24px;
       text-align: left;
       position: relative;
     }
-    .pricing-card-featured {
-      border-color: var(--sage);
-      background: #F0F7F3;
-    }
+    .pricing-card-featured { border-color: var(--sage); background: #F0F7F3; }
     .pricing-badge {
-      position: absolute;
-      top: -13px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--sage);
-      color: #fff;
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      padding: 4px 14px;
-      border-radius: 100px;
-      white-space: nowrap;
+      position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
+      background: var(--sage); color: #fff;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+      padding: 4px 14px; border-radius: 100px; white-space: nowrap;
     }
-    .pricing-plan-name {
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: 0.1em;
-      color: var(--sage);
-      margin-bottom: 10px;
-    }
-    .pricing-price-wrap {
-      display: flex;
-      align-items: baseline;
-      gap: 4px;
-      margin-bottom: 4px;
-    }
-    .pricing-price {
-      font-family: 'Noto Serif JP', serif;
-      font-size: 36px;
-      font-weight: 700;
-      color: var(--ink);
-    }
+    .pricing-plan-name { font-size: 12px; font-weight: 700; letter-spacing: 0.1em; color: var(--sage); margin-bottom: 10px; }
+    .pricing-price-wrap { display: flex; align-items: baseline; gap: 4px; margin-bottom: 4px; }
+    .pricing-price { font-family: 'Noto Serif JP', serif; font-size: 36px; font-weight: 700; color: var(--ink); }
     .pricing-per { font-size: 13px; color: var(--mid); }
-    .pricing-desc { font-size: 12px; color: var(--mid-lt); margin-bottom: 20px; }
-    .pricing-features {
-      list-style: none;
-      padding: 0;
-      margin: 0 0 24px;
-      display: flex;
-      flex-direction: column;
-      gap: 9px;
-    }
-    .pricing-features li {
-      font-size: 13px;
-      color: var(--ink);
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      line-height: 1.5;
-    }
+    .pricing-sub { font-size: 12px; color: var(--mid-lt); margin-bottom: 20px; }
+    .pricing-features { list-style: none; padding: 0; margin: 0 0 24px; display: flex; flex-direction: column; gap: 9px; }
+    .pricing-features li { font-size: 13px; color: var(--ink); display: flex; align-items: flex-start; gap: 8px; line-height: 1.5; }
     .pricing-features li::before { flex-shrink: 0; margin-top: 1px; font-size: 12px; font-weight: 700; }
     .pricing-features li.ok::before  { content: '✓'; color: var(--sage); }
     .pricing-features li.limit::before { content: '◦'; color: var(--mid-lt); }
     .pricing-features li.limit { color: var(--mid); }
     .pricing-btn {
-      display: block;
-      width: 100%;
-      padding: 14px;
-      border-radius: 14px;
-      font-size: 14px;
-      font-weight: 600;
-      text-align: center;
-      text-decoration: none;
-      cursor: pointer;
-      transition: opacity 0.15s;
-      box-sizing: border-box;
+      display: block; width: 100%; padding: 14px;
+      border-radius: 14px; font-size: 14px; font-weight: 600;
+      text-align: center; text-decoration: none;
+      cursor: pointer; transition: opacity 0.15s; box-sizing: border-box;
+      font-family: inherit;
     }
     .pricing-btn:active { opacity: 0.75; }
-    .pricing-btn-free   { background: var(--stone); color: var(--ink); border: 1.5px solid var(--border); }
+    .pricing-btn-free    { background: var(--white); color: var(--ink); border: 1.5px solid var(--border); }
     .pricing-btn-premium { background: var(--sage); color: #fff; border: none; }
 
-    /* ── FREE BADGE ── */
-    .free-section {
-      padding: 100px 24px;
-      text-align: center;
-    }
+    .pricing-note { font-size: 12px; color: var(--mid-lt); margin-top: 28px; line-height: 1.8; }
 
-    .free-badge {
-      display: inline-flex;
-      flex-direction: column;
-      align-items: center;
-      background: var(--sage-bg);
-      border: 1.5px solid rgba(74,124,89,0.25);
-      border-radius: 24px;
-      padding: 40px 56px;
-      margin-bottom: 32px;
+    /* カップル訴求 */
+    .couple-story {
+      max-width: 560px; margin: 48px auto 0;
+      background: var(--stone); border-radius: 24px;
+      padding: 28px 24px;
     }
-
-    .free-price {
-      font-family: 'DM Serif Display', serif;
-      font-size: 72px;
-      line-height: 1;
-      color: var(--ink);
-      letter-spacing: -0.04em;
-      margin-bottom: 4px;
-    }
-
-    .free-label {
-      font-size: 14px;
-      color: var(--mid);
-    }
-
-    .free-features {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 24px;
-      text-align: left;
-    }
-
-    .free-features li {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 14px;
-      color: var(--ink);
-    }
-
-    .check {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--sage);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      flex-shrink: 0;
-    }
+    .couple-story-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--sage); margin-bottom: 14px; }
+    .couple-story-title { font-family: 'Noto Serif JP', serif; font-size: 18px; font-weight: 700; color: var(--ink); line-height: 1.5; margin-bottom: 18px; }
+    .chat-bubbles { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+    .chat-row { display: flex; gap: 10px; align-items: flex-start; }
+    .chat-row.right { flex-direction: row-reverse; }
+    .chat-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+    .chat-bubble { border-radius: 0 12px 12px 12px; padding: 9px 12px; font-size: 12px; color: var(--ink); line-height: 1.6; max-width: 80%; }
+    .chat-row.right .chat-bubble { border-radius: 12px 0 12px 12px; }
+    .chat-bubble-left  { background: var(--sage-bg); }
+    .chat-bubble-right { background: #E8EEF0; }
+    .chat-note { font-size: 10px; color: var(--mid); margin-top: 3px; }
+    .couple-checklist { background: var(--white); border-radius: 14px; padding: 14px 16px; font-size: 12px; color: var(--mid); line-height: 1.9; }
 
     /* ── CTA ── */
-    .cta-section {
-      background: var(--ink);
-      padding: 100px 24px;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .cta-bg {
-      position: absolute;
-      bottom: -100px; left: 50%;
-      transform: translateX(-50%);
-      width: 600px; height: 300px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(74,124,89,0.2) 0%, transparent 70%);
-      pointer-events: none;
-    }
-
-    .cta-title {
-      font-family: 'DM Serif Display', serif;
-      font-size: clamp(32px, 6vw, 60px);
-      line-height: 1.2;
-      letter-spacing: -0.02em;
-      color: #fff;
-      margin-bottom: 16px;
-    }
-
-    .cta-title em {
-      font-style: italic;
-      color: var(--sage-lt);
-    }
-
-    .cta-desc {
-      font-size: 15px;
-      color: rgba(255,255,255,0.5);
-      margin-bottom: 40px;
-    }
-
+    .cta-section { background: var(--ink); padding: 100px 24px; text-align: center; position: relative; overflow: hidden; }
+    .cta-bg { position: absolute; bottom: -100px; left: 50%; transform: translateX(-50%); width: 600px; height: 300px; border-radius: 50%; background: radial-gradient(circle, rgba(74,124,89,0.2) 0%, transparent 70%); pointer-events: none; }
+    .cta-title { font-family: 'DM Serif Display', serif; font-size: clamp(32px, 6vw, 60px); line-height: 1.2; letter-spacing: -0.02em; color: #fff; margin-bottom: 16px; }
+    .cta-title em { font-style: italic; color: var(--sage-lt); }
+    .cta-desc { font-size: 15px; color: rgba(255,255,255,0.5); margin-bottom: 40px; }
     .btn-primary-inv {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      background: #fff;
-      color: var(--ink);
-      border: none;
-      border-radius: 100px;
-      padding: 16px 36px;
-      font-family: 'Noto Sans JP', sans-serif;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: none;
+      display: inline-flex; align-items: center; gap: 8px;
+      background: #fff; color: var(--ink);
+      border: none; border-radius: 100px;
+      padding: 16px 36px; font-size: 15px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
       transition: transform 0.2s, box-shadow 0.2s;
+      font-family: inherit;
     }
-
-    .btn-primary-inv:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 12px 32px rgba(255,255,255,0.15);
-    }
+    .btn-primary-inv:hover { transform: translateY(-2px); box-shadow: 0 12px 32px rgba(255,255,255,0.15); }
 
     /* ── FOOTER ── */
     footer {
@@ -1188,20 +645,12 @@
       padding: 32px 24px;
       text-align: center;
     }
-
-    .footer-logo {
-      font-family: 'DM Serif Display', serif;
-      font-size: 20px;
-      color: rgba(255,255,255,0.4);
-      margin-bottom: 8px;
-    }
-
+    .footer-logo { font-family: 'DM Serif Display', serif; font-size: 20px; color: rgba(255,255,255,0.4); margin-bottom: 12px; }
     .footer-logo span { color: var(--sage-lt); }
-
-    .footer-copy {
-      font-size: 12px;
-      color: rgba(255,255,255,0.2);
-    }
+    .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 16px; flex-wrap: wrap; }
+    .footer-links a { font-size: 12px; color: rgba(255,255,255,0.3); text-decoration: none; }
+    .footer-links a:hover { color: rgba(255,255,255,0.6); }
+    .footer-copy { font-size: 12px; color: rgba(255,255,255,0.2); }
 
     /* ── ANIMATIONS ── */
     @keyframes fadeUp {
@@ -1209,11 +658,11 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    /* ── RESPONSIVE ── */
     @media (max-width: 640px) {
       nav { padding: 0 20px; }
-      .phone-frame { width: 220px; height: 440px; }
-      .phone-summary-amount { font-size: 17px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
     }
   </style>
 </head>
@@ -1221,30 +670,30 @@
 
   <!-- NAV -->
   <nav>
-    <div class="nav-logo">Flow<span>ra</span></div>
-    <a href="https://flowra.taskra.jp" class="nav-cta">無料で始める →</a>
+    <a href="https://flowra.taskra.jp/lp/" class="nav-logo">Flow<span>ra</span></a>
+    <div class="nav-right">
+      <a href="#pricing" class="nav-link">料金</a>
+      <a href="https://flowra.taskra.jp" class="nav-cta">無料で始める →</a>
+    </div>
   </nav>
 
   <!-- HERO -->
   <section class="hero">
     <div class="hero-bg"></div>
-    <div class="hero-wave"></div>
 
     <div class="hero-eyebrow">
       <div class="hero-dot"></div>
-      完全無料 · Google ログインで即スタート
+      完全無料で始められる · Google ログイン即スタート
     </div>
 
     <h1 class="hero-title">
-      あなたの<em>お金</em>を、<br>もっと自然に。
+      レシートを撮るだけ。<br><em>家計が動く。</em>
     </h1>
 
-    <p class="hero-subtitle-jp">家計管理アプリ Flowra</p>
-
     <p class="hero-desc">
-      ひとりでも、ふたりでも使えるシンプルな家計簿。<br>
-      記録・共有・確認がスムーズにできる、<br>
-      毎日使いたくなるアプリです。
+      撮ったら品目を自動抽出。AIが毎月の傾向を分析して、<br>
+      具体的なアドバイスをくれる家計アプリ。<br>
+      ひとりでも、パートナーと一緒でも。
     </p>
 
     <div class="hero-actions">
@@ -1252,151 +701,135 @@
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
         無料で使ってみる
       </a>
-      <a href="#features" class="btn-ghost">詳しく見る</a>
+      <a href="#receipt" class="btn-ghost">どう使えるの？</a>
     </div>
+    <p class="hero-note">登録不要 · 広告なし · クレカ不要</p>
+  </section>
 
-    <p class="hero-note">登録不要 · 広告なし · ずっと無料</p>
+  <!-- RECEIPT DEMO -->
+  <section class="receipt-section" id="receipt">
+    <div class="receipt-inner">
 
-    <div class="hero-mockup">
-      <!-- 浮かぶカード -->
-      <div class="float-card float-card-1">
-        <div class="float-label">今月の支出</div>
-        <div class="float-value">¥87,400</div>
+      <div class="receipt-copy">
+        <span class="section-label">Receipt OCR</span>
+        <h2 class="section-title" style="color:#fff;">撮るだけで、<br>全部登録される。</h2>
+        <p class="section-desc">レシートを1枚撮影するだけ。品目・金額をAIが読み取って、1商品1レコードで自動保存します。「マルタイ棒ラーメン」まで品目名で検索できます。</p>
+        <div class="receipt-steps">
+          <div class="receipt-step">
+            <div class="receipt-step-num">1</div>
+            <div class="receipt-step-text"><strong>「+」→ レシート読み取り</strong>でカメラ起動。カメラロールからも選択可。</div>
+          </div>
+          <div class="receipt-step">
+            <div class="receipt-step-num">2</div>
+            <div class="receipt-step-text">AIが<strong>品目・金額・タグ</strong>を自動で読み取る。数秒で一覧が出る。</div>
+          </div>
+          <div class="receipt-step">
+            <div class="receipt-step-num">3</div>
+            <div class="receipt-step-text">確認して「保存」。<strong>税込変換ボタン</strong>で税率ごとに一括修正も。</div>
+          </div>
+        </div>
+        <div style="margin-top:28px;display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:100px;padding:7px 16px;">
+          <span style="font-size:12px;color:rgba(255,255,255,0.5);">Free: 月3回 ·</span>
+          <span style="font-size:12px;color:var(--sage-lt);">Premium: 月100回</span>
+        </div>
       </div>
-      <div class="float-card float-card-2">
-        <div class="float-label">パートナーと共有中</div>
-        <div class="float-value">✓ リアルタイム同期</div>
-      </div>
 
-      <div class="phone-frame">
-        <div class="phone-screen">
-          <div class="phone-statusbar">
-            <span>9:41</span>
-            <span>●●●</span>
-          </div>
-          <div class="phone-header">
-            <span style="font-size:11px;opacity:0.6;">Flowra</span>
-            <span class="phone-month">2026年6月</span>
-            <div style="width:28px;height:28px;border-radius:50%;background:var(--sage);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;">T</div>
-          </div>
-          <div class="phone-body">
-            <div class="phone-summary">
-              <div class="phone-summary-label">残高合計</div>
-              <div class="phone-summary-amount">¥1,240,500</div>
-              <div class="phone-summary-sub">
-                <div class="phone-summary-item">
-                  <strong style="color:#6FA882;">+ ¥350,000</strong>
-                  収入
+      <div class="receipt-mock">
+        <div class="receipt-phone">
+          <div class="receipt-phone-screen">
+            <div class="receipt-screen-header">
+              <span>📷</span> レシート確認
+            </div>
+            <div class="receipt-screen-body">
+              <div style="font-size:10px;color:var(--mid);margin-bottom:8px;">オーケー 幕張店 · 6点</div>
+
+              <div class="receipt-item" id="ri-1">
+                <div class="receipt-item-check">✓</div>
+                <div style="flex:1;">
+                  <div class="receipt-item-name">マルタイ棒ラーメン</div>
+                  <div class="receipt-item-tag">食費</div>
                 </div>
-                <div class="phone-summary-item">
-                  <strong>− ¥87,400</strong>
-                  支出
+                <div class="receipt-item-price">¥178</div>
+              </div>
+              <div class="receipt-item" id="ri-2">
+                <div class="receipt-item-check">✓</div>
+                <div style="flex:1;">
+                  <div class="receipt-item-name">国産豚バラ肉</div>
+                  <div class="receipt-item-tag">食費</div>
                 </div>
+                <div class="receipt-item-price">¥486</div>
               </div>
-            </div>
-
-            <div class="phone-tx">
-              <div class="phone-tx-icon" style="background:#EEF5F1;">🛒</div>
-              <div class="phone-tx-info">
-                <div class="phone-tx-name">スーパー</div>
-                <div class="phone-tx-tag">食費</div>
+              <div class="receipt-item" id="ri-3">
+                <div class="receipt-item-check">✓</div>
+                <div style="flex:1;">
+                  <div class="receipt-item-name">シャンプー詰替</div>
+                  <div class="receipt-item-tag">日用品</div>
+                </div>
+                <div class="receipt-item-price">¥398</div>
               </div>
-              <div class="phone-tx-amount expense">−¥3,200</div>
-            </div>
-
-            <div class="phone-tx">
-              <div class="phone-tx-icon" style="background:#FBF5E6;">🚃</div>
-              <div class="phone-tx-info">
-                <div class="phone-tx-name">交通費</div>
-                <div class="phone-tx-tag">交通</div>
+              <div class="receipt-item" id="ri-4">
+                <div class="receipt-item-check">✓</div>
+                <div style="flex:1;">
+                  <div class="receipt-item-name">玉ねぎ 3個入</div>
+                  <div class="receipt-item-tag">食費</div>
+                </div>
+                <div class="receipt-item-price">¥158</div>
               </div>
-              <div class="phone-tx-amount expense">−¥1,540</div>
-            </div>
-
-            <div class="phone-tx">
-              <div class="phone-tx-icon" style="background:#EEF5F1;">💰</div>
-              <div class="phone-tx-info">
-                <div class="phone-tx-name">給与</div>
-                <div class="phone-tx-tag">収入</div>
+              <div class="receipt-item" id="ri-5">
+                <div class="receipt-item-check">✓</div>
+                <div style="flex:1;">
+                  <div class="receipt-item-name">トイレットペーパー</div>
+                  <div class="receipt-item-tag">日用品</div>
+                </div>
+                <div class="receipt-item-price">¥328</div>
               </div>
-              <div class="phone-tx-amount income">+¥250,000</div>
-            </div>
-          </div>
 
-          <div class="phone-nav">
-            <div class="phone-nav-item active">
-              <div class="phone-nav-dot"></div>
-              <span>ホーム</span>
-            </div>
-            <div class="phone-nav-item">
-              <div class="phone-nav-dot"></div>
-              <span>記録</span>
-            </div>
-            <div class="phone-nav-item">
-              <div class="phone-nav-dot"></div>
-              <span>口座</span>
-            </div>
-            <div class="phone-nav-item">
-              <div class="phone-nav-dot"></div>
-              <span>設定</span>
+              <button class="receipt-save-btn" id="receipt-save-btn">5件を保存する</button>
             </div>
           </div>
         </div>
+        <div class="receipt-free-badge">📷 Free: 月3回まで無料</div>
       </div>
+
     </div>
   </section>
 
   <!-- FEATURES -->
   <section class="section" id="features">
     <span class="section-label">Features</span>
-    <h2 class="section-title">使いたくなる<br>理由があります。</h2>
-    <p class="section-desc">難しい設定は不要。開いたらすぐ使えるシンプルさと、ひとりでも、ふたりで使っても嬉しい機能を揃えました。</p>
+    <h2 class="section-title">シンプルで、<br>ちゃんと使える。</h2>
+    <p class="section-desc">記録・予算・AI・共有。必要なものを、余計なものなしで。</p>
 
     <div class="features-grid">
       <div class="feature-card">
-        <div class="feature-icon">👫</div>
-        <div class="feature-name">パートナー共有</div>
-        <p class="feature-desc">招待リンクを送るだけで、家計をリアルタイムで共有。お互いの収支が一目でわかります。</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📱</div>
-        <div class="feature-name">PWA対応</div>
-        <p class="feature-desc">ホーム画面に追加すればアプリのように使えます。インストール不要で、iPhoneでもAndroidでも。</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🏦</div>
-        <div class="feature-name">複数口座管理</div>
-        <p class="feature-desc">財布・クレカ・銀行口座をまとめて管理。口座間の振替も簡単に記録できます。</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🏷️</div>
-        <div class="feature-name">カテゴリタグ</div>
-        <p class="feature-desc">食費・交通・娯楽など、自由にタグをカスタマイズ。支出の傾向がパッとわかります。</p>
+        <div class="feature-icon">🤖</div>
+        <div class="feature-name">AIアドバイス</div>
+        <p class="feature-desc">「今月どう？」「先月と比べて？」と聞くだけ。固定費は除いた節約ヒントを、直近3ヶ月のデータで返してくれます。</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🎯</div>
         <div class="feature-name">予算管理</div>
-        <p class="feature-desc">タグごとに月予算を設定すると、ホーム画面に進捗バーが表示されます。80%超で黄色、オーバーで赤に変わります。</p>
+        <p class="feature-desc">タグごとに月予算を設定すると進捗バーが表示されます。80%超で黄色、オーバーで赤。使いすぎに気づける設計。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👫</div>
+        <div class="feature-name">パートナー共有</div>
+        <p class="feature-desc">招待リンクを送るだけでリアルタイム共有。どちらが記録してもすぐ反映されます。「知らなかった」が減ります。</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏦</div>
+        <div class="feature-name">複数口座管理</div>
+        <p class="feature-desc">財布・クレカ・銀行口座をまとめて管理。口座間の振替も記録でき、残高合計が一目でわかります。</p>
       </div>
       <div class="feature-card">
         <div class="feature-icon">🔍</div>
         <div class="feature-name">全期間検索</div>
-        <p class="feature-desc">メモ・タグ名で全期間の記録を瞬時に検索。「あの出費いくらだっけ？」がすぐ解決。</p>
+        <p class="feature-desc">品目名・タグ名で全期間を即検索。レシート読み取りで保存した品目名まで検索できます。</p>
       </div>
       <div class="feature-card">
-        <div class="feature-icon">🤖</div>
-        <div class="feature-name">AIアドバイス</div>
-        <p class="feature-desc">「今月どう？」と聞くだけで、直近3ヶ月のデータをもとに具体的なアドバイスを返します。自由に質問できるフリー入力つき。</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📅</div>
-        <div class="feature-name">かんたん月移動</div>
-        <p class="feature-desc">ヘッダーの「&lt; &gt;」ボタンで月をサクサク移動。どの画面からでもすぐに先月・来月の記録にアクセスできます。</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📷</div>
-        <div class="feature-name">レシート読み取り</div>
-        <div class="feature-desc">撮影するだけで品目を自動抽出。1商品1レコードで保存するから、品目名でも検索できる。</div>
+        <div class="feature-icon">📱</div>
+        <div class="feature-name">PWA対応</div>
+        <p class="feature-desc">ホーム画面に追加すればアプリそのもの。インストール不要で、iPhoneでもAndroidでも動きます。</p>
       </div>
     </div>
   </section>
@@ -1404,8 +837,6 @@
   <!-- BUDGET -->
   <section class="budget-section" id="budget">
     <div class="budget-inner">
-
-      <!-- コピー -->
       <div class="budget-copy">
         <span class="section-label">Budget</span>
         <h2 class="section-title">記録して、<br>終わらない。</h2>
@@ -1417,7 +848,7 @@
           </div>
           <div class="budget-point">
             <div class="budget-point-icon">⚠️</div>
-            <div>80%を超えると黄色、オーバーすると赤に。ひと目で気づける色分け表示。</div>
+            <div>80%超で黄色、オーバーで赤。ひと目で気づける色分け表示。</div>
           </div>
           <div class="budget-point">
             <div class="budget-point-icon">📅</div>
@@ -1426,88 +857,62 @@
         </div>
       </div>
 
-      <!-- UIモック -->
       <div class="budget-ui" id="budget-ui-mock">
         <div class="budget-ui-header">
           <div class="budget-ui-title">今月の予算</div>
           <div class="budget-ui-month">2026年6月</div>
         </div>
-
         <div class="budget-row">
           <div class="budget-row-head">
-            <div class="budget-row-label">
-              <span class="budget-row-icon">🍽️</span>食費
-            </div>
+            <div class="budget-row-label">🍽️ 食費</div>
             <div class="budget-row-amounts"><strong>¥38,200</strong> / ¥50,000</div>
           </div>
-          <div class="budget-bar-track">
-            <div class="budget-bar-fill safe" data-pct="76"></div>
-          </div>
+          <div class="budget-bar-track"><div class="budget-bar-fill safe" data-pct="76"></div></div>
           <div class="budget-row-pct safe">76%</div>
         </div>
-
         <div class="budget-row">
           <div class="budget-row-head">
-            <div class="budget-row-label">
-              <span class="budget-row-icon">🚃</span>交通費
-            </div>
+            <div class="budget-row-label">🚃 交通費</div>
             <div class="budget-row-amounts"><strong>¥17,400</strong> / ¥20,000</div>
           </div>
-          <div class="budget-bar-track">
-            <div class="budget-bar-fill warn" data-pct="87"></div>
-          </div>
+          <div class="budget-bar-track"><div class="budget-bar-fill warn" data-pct="87"></div></div>
           <div class="budget-row-pct warn">87%</div>
         </div>
-
         <div class="budget-row">
           <div class="budget-row-head">
-            <div class="budget-row-label">
-              <span class="budget-row-icon">🎮</span>娯楽・趣味
-            </div>
+            <div class="budget-row-label">🎮 娯楽・趣味</div>
             <div class="budget-row-amounts"><strong>¥23,600</strong> / ¥20,000</div>
           </div>
-          <div class="budget-bar-track">
-            <div class="budget-bar-fill over" data-pct="100"></div>
-          </div>
+          <div class="budget-bar-track"><div class="budget-bar-fill over" data-pct="100"></div></div>
           <div class="budget-row-pct over">118% 超過</div>
         </div>
-
         <div class="budget-row">
           <div class="budget-row-head">
-            <div class="budget-row-label">
-              <span class="budget-row-icon">🛒</span>日用品
-            </div>
+            <div class="budget-row-label">🛒 日用品</div>
             <div class="budget-row-amounts"><strong>¥8,900</strong> / ¥15,000</div>
           </div>
-          <div class="budget-bar-track">
-            <div class="budget-bar-fill safe" data-pct="59"></div>
-          </div>
+          <div class="budget-bar-track"><div class="budget-bar-fill safe" data-pct="59"></div></div>
           <div class="budget-row-pct safe">59%</div>
         </div>
-
         <div class="budget-row budget-total-row">
           <div class="budget-row-head">
             <div class="budget-row-label">合計</div>
             <div class="budget-row-amounts"><strong>¥88,100</strong> / ¥105,000</div>
           </div>
-          <div class="budget-bar-track">
-            <div class="budget-bar-fill safe" data-pct="84"></div>
-          </div>
+          <div class="budget-bar-track"><div class="budget-bar-fill safe" data-pct="84"></div></div>
           <div class="budget-row-pct safe">84%</div>
         </div>
       </div>
-
     </div>
   </section>
 
   <!-- AI -->
   <section class="ai-section" id="ai">
     <div class="ai-inner">
-
       <div class="ai-copy">
         <span class="section-label">AI Advice</span>
         <h2 class="section-title">聞けば、<br>答えてくれる。</h2>
-        <p class="section-desc">家計データをもとに、AIが具体的なアドバイスをします。「今月どう？」と聞くだけでOK。数字が苦手でも、家計と向き合えます。</p>
+        <p class="section-desc">家計データをもとに、AIが具体的なアドバイスをします。住宅ローンなどの固定費は自動で判別して、節約可能な出費だけを提案します。</p>
         <div class="ai-points">
           <div class="ai-point">
             <div class="ai-point-icon">💬</div>
@@ -1515,16 +920,19 @@
           </div>
           <div class="ai-point">
             <div class="ai-point-icon">📊</div>
-            <div>直近3ヶ月の全取引データをもとに回答。過去の支出も踏まえた的確なアドバイスを返します。</div>
+            <div>直近3ヶ月の全取引データをもとに回答。固定費を自動除外した的確な節約提案。</div>
           </div>
           <div class="ai-point">
             <div class="ai-point-icon">🔁</div>
-            <div>会話の文脈を引き継ぐので「その中で食費だけは？」と掘り下げた質問もOK。</div>
+            <div>会話の文脈を引き継ぐので「その中で食費だけは？」と掘り下げもOK。</div>
           </div>
+        </div>
+        <div style="margin-top:28px;display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:100px;padding:7px 16px;">
+          <span style="font-size:12px;color:rgba(255,255,255,0.5);">Free: 月5回 ·</span>
+          <span style="font-size:12px;color:var(--sage-lt);">Premium: 月6,000回（1日200回）</span>
         </div>
       </div>
 
-      <!-- インタラクティブUIモック -->
       <div class="ai-mock" id="ai-lp-mock">
         <div class="ai-mock-header">AI アドバイス</div>
         <div class="ai-mock-answer" id="ai-lp-answer">今月は月初6日時点で支出が¥38,400。食費と交通費が先月より抑えられていて、このペースなら月末の収支はプラスになりそうです。</div>
@@ -1540,167 +948,146 @@
           <button class="ai-mock-btn" id="ai-lp-btn">聞く</button>
         </div>
       </div>
-
     </div>
   </section>
 
   <!-- HOW -->
   <section class="how-section">
-    <div class="how-bg"></div>
     <div class="how-inner">
       <span class="section-label">How to start</span>
-      <h2 class="section-title">3ステップで<br>始められます。</h2>
-      <p class="section-desc">面倒な初期設定はありません。Googleアカウントがあればすぐスタート。</p>
-
+      <h2 class="section-title">3分で始められます。</h2>
+      <p class="section-desc" style="margin-bottom:48px;">面倒な初期設定はありません。Googleアカウントがあればすぐスタート。</p>
       <div class="steps">
         <div class="step">
           <div class="step-num">01</div>
           <div class="step-title">Googleでログイン</div>
-          <p class="step-desc">Googleアカウントでワンタップログイン。メールアドレスや個人情報の入力は不要です。</p>
+          <p class="step-desc">Googleアカウントでワンタップ。メールアドレスや個人情報の入力は不要です。</p>
         </div>
         <div class="step">
           <div class="step-num">02</div>
           <div class="step-title">口座・タグを設定</div>
-          <p class="step-desc">使っている口座とカテゴリタグを登録するだけ。オンボーディングに沿って3分で完了します。</p>
+          <p class="step-desc">よく使う口座をプリセットから選ぶだけ。オンボーディングに沿って3分で完了します。</p>
         </div>
         <div class="step">
           <div class="step-num">03</div>
-          <div class="step-title">パートナーを招待（任意）</div>
-          <p class="step-desc">招待リンクをLINEやメッセージで送るだけ。すぐにデータが共有されます。</p>
+          <div class="step-title">レシートを撮ってみる</div>
+          <p class="step-desc">最初の記録は「+」→「レシート読み取り」を試してみてください。品目が自動で並びます。</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- PREMIUM -->
-  <section class="premium-section">
-    <div class="premium-inner">
+  <!-- SHARING -->
+  <section class="sharing-section">
+    <div class="sharing-inner">
       <div>
         <span class="section-label">Sharing</span>
-        <h2 class="section-title">シンプルだから<br>続けられる。</h2>
-        <p class="section-desc" style="margin-bottom:0;">
-          「今月いくら使ったの？」がなくなります。
-          お互いの記録がリアルタイムで見えるから、
-          自然にお金の話ができるようになります。
-        </p>
+        <h2 class="section-title">「知らなかった」が<br>なくなります。</h2>
+        <p class="section-desc" style="margin-bottom:0;">招待リンクを送るだけで、すぐに共有スタート。お互いの記録がリアルタイムで見えるから、自然にお金の話ができるようになります。</p>
       </div>
-      <div class="premium-visual">
+      <div class="sharing-visual">
         <div class="avatar-card">
           <div class="avatar-circle" style="background:var(--sage);">T</div>
           <div class="avatar-name">あなた</div>
-          <div class="avatar-role">オーナー</div>
-          <div style="margin-top:12px;font-size:10px;color:var(--sage);background:var(--sage-bg);padding:4px 8px;border-radius:100px;">記録・管理</div>
+          <div class="avatar-role">オーナー · 記録・管理</div>
         </div>
         <div class="share-arrow">⇄</div>
         <div class="avatar-card">
           <div class="avatar-circle" style="background:var(--gold);">P</div>
           <div class="avatar-name">パートナー</div>
-          <div class="avatar-role">メンバー</div>
-          <div style="margin-top:12px;font-size:10px;color:var(--mid);background:var(--stone);padding:4px 8px;border-radius:100px;">閲覧・編集</div>
+          <div class="avatar-role">メンバー · 閲覧・編集</div>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- FREE -->
-  <section class="free-section" id="pricing">
-    <span class="section-label">Pricing</span>
-    <h2 class="section-title" style="margin-bottom:12px;">シンプルな2プラン</h2>
-    <p style="font-size:15px;color:var(--mid);margin-bottom:48px;line-height:1.7;">
-      記録・予算管理はずっと無料。<br>AIをもっと使いたくなったら、コーヒー1杯分。
-    </p>
+  <!-- PRICING -->
+  <section class="pricing-section" id="pricing">
+    <div class="pricing-section-inner">
+      <span class="section-label">Pricing</span>
+      <h2 class="section-title" style="margin-bottom:12px;">シンプルな2プラン</h2>
+      <p class="section-desc">記録・予算管理はずっと無料。AIとレシート読み取りをもっと使いたくなったら、コーヒー1杯分。</p>
 
-    <div class="pricing-grid">
-
-      <!-- Free -->
-      <div class="pricing-card">
-        <div class="pricing-plan-name">Free</div>
-        <div class="pricing-price-wrap">
-          <span class="pricing-price">¥0</span>
-          <span class="pricing-per">/ 月</span>
-        </div>
-        <div class="pricing-desc">まず使ってみる</div>
-        <ul class="pricing-features">
-          <li class="ok">収支の記録・編集（無制限）</li>
-          <li class="ok">パートナーとの共有</li>
-          <li class="ok">複数口座・タグ管理</li>
-          <li class="ok">タグ別予算管理・進捗バー</li>
-          <li class="ok">全期間の検索</li>
-          <li class="ok">広告なし</li>
-          <li class="limit">AIアドバイス：月5回まで</li>
-          <li class="limit">レシート読み取り：月3回まで</li>
-        </ul>
-        <a href="https://flowra.taskra.jp" class="pricing-btn pricing-btn-free">
-          無料で始める
-        </a>
-      </div>
-
-      <!-- Premium -->
-      <div class="pricing-card pricing-card-featured">
-        <div class="pricing-badge">おすすめ</div>
-        <div class="pricing-plan-name">Premium</div>
-        <div class="pricing-price-wrap">
-          <span class="pricing-price">¥398</span>
-          <span class="pricing-per">/ 月</span>
-        </div>
-        <div class="pricing-desc">2人で使えば ¥199 / 人</div>
-        <ul class="pricing-features">
-          <li class="ok">Freeの全機能</li>
-          <li class="ok"><strong>AIアドバイス：月6,000回</strong></li>
-          <li class="ok" style="font-size:11px;color:var(--mid);padding-left:16px;">1日200回。使い切れません。</li>
-          <li class="ok"><strong>📷 レシート読み取り：月100回</strong></li>
-          <li class="ok" style="font-size:11px;color:var(--mid);padding-left:16px;">撮影→品目自動抽出→1商品1レコードで保存。</li>
-          <li class="ok">口座・タグ：無制限</li>
-          <li class="ok">新機能への優先アクセス</li>
-          <li class="ok">開発チームへの要望受付</li>
-        </ul>
-        <a id="btn-premium-lp" href="https://buy.stripe.com/00w00i1Rx4Lwbmy2c3fQI02" class="pricing-btn pricing-btn-premium"
-          target="_blank" rel="noopener">
-          Premiumプランに申し込む
-        </a>
-      </div>
-
-    </div>
-
-    <p style="font-size:12px;color:var(--mid-lt);margin-top:32px;line-height:1.8;">
-      Freeプランはクレジットカード不要で今すぐ始められます。<br>
-      Premiumプランは月¥398（税込）。いつでもキャンセル可能です。
-    </p>
-
-    <!-- カップル訴求ストーリー -->
-    <div style="max-width:560px;margin:48px auto 0;background:var(--white);border-radius:24px;padding:32px 28px;box-shadow:0 4px 24px rgba(0,0,0,0.06);">
-      <div style="font-size:11px;font-weight:700;letter-spacing:0.1em;color:var(--sage);margin-bottom:16px;">REAL SCENARIO</div>
-      <h3 style="font-family:'Noto Serif JP',serif;font-size:20px;font-weight:700;color:var(--ink);line-height:1.5;margin-bottom:20px;">
-        パートナーを誘えば、<br>ふたりで¥199 / 人。
-      </h3>
-
-      <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:24px;">
-        <div style="display:flex;gap:12px;align-items:flex-start;">
-          <div style="width:32px;height:32px;border-radius:50%;background:var(--sage-bg);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">妻</div>
-          <div style="background:var(--sage-bg);border-radius:0 14px 14px 14px;padding:10px 14px;font-size:13px;color:var(--ink);line-height:1.6;">
-            Flowraいいよ。家計いっしょに管理しよ？<br>
-            <span style="font-size:11px;color:var(--mid);">Premiumは月¥398。ひとりでも、2人で使えば¥199 / 人。</span>
+      <div class="pricing-grid">
+        <!-- Free -->
+        <div class="pricing-card">
+          <div class="pricing-plan-name">FREE</div>
+          <div class="pricing-price-wrap">
+            <span class="pricing-price">¥0</span>
+            <span class="pricing-per">/ 月</span>
           </div>
+          <div class="pricing-sub">まず使ってみる</div>
+          <ul class="pricing-features">
+            <li class="ok">収支の記録・編集（無制限）</li>
+            <li class="ok">パートナーとの共有</li>
+            <li class="ok">複数口座・タグ管理</li>
+            <li class="ok">タグ別予算管理・進捗バー</li>
+            <li class="ok">全期間の検索</li>
+            <li class="ok">広告なし</li>
+            <li class="limit">AIアドバイス：月5回</li>
+            <li class="limit">レシート読み取り：月3回</li>
+          </ul>
+          <a href="https://flowra.taskra.jp" class="pricing-btn pricing-btn-free">無料で始める</a>
         </div>
-        <div style="display:flex;gap:12px;align-items:flex-start;flex-direction:row-reverse;">
-          <div style="width:32px;height:32px;border-radius:50%;background:#E8EEF0;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">夫</div>
-          <div style="background:#F0F4F5;border-radius:14px 0 14px 14px;padding:10px 14px;font-size:13px;color:var(--ink);line-height:1.6;">
-            コーヒー1杯より安いじゃん。<br>
-            <span style="font-size:11px;color:var(--mid);">まあ、いいか。</span>
+
+        <!-- Premium -->
+        <div class="pricing-card pricing-card-featured">
+          <div class="pricing-badge">おすすめ</div>
+          <div class="pricing-plan-name">PREMIUM</div>
+          <div class="pricing-price-wrap">
+            <span class="pricing-price">¥398</span>
+            <span class="pricing-per">/ 月</span>
           </div>
-        </div>
-        <div style="display:flex;gap:12px;align-items:flex-start;">
-          <div style="width:32px;height:32px;border-radius:50%;background:var(--sage-bg);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;">妻</div>
-          <div style="background:var(--sage-bg);border-radius:0 14px 14px 14px;padding:10px 14px;font-size:13px;color:var(--ink);line-height:1.6;">
-            招待リンク送るね。あなたが登録してくれたら私もAI使い放題になるから🙌
-          </div>
+          <div class="pricing-sub">2人で使えば ¥199 / 人</div>
+          <ul class="pricing-features">
+            <li class="ok">Freeの全機能</li>
+            <li class="ok"><strong>AIアドバイス：月6,000回</strong></li>
+            <li class="ok"><strong>📷 レシート読み取り：月100回</strong></li>
+            <li class="ok">口座・タグ：無制限</li>
+            <li class="ok">新機能への優先アクセス</li>
+            <li class="ok">開発への要望受付</li>
+          </ul>
+          <a id="btn-premium-lp" href="https://buy.stripe.com/00w00i1Rx4Lwbmy2c3fQI02" class="pricing-btn pricing-btn-premium" target="_blank" rel="noopener">
+            Premiumプランに申し込む
+          </a>
         </div>
       </div>
 
-      <div style="background:var(--stone);border-radius:14px;padding:16px 18px;font-size:12px;color:var(--mid);line-height:1.8;">
-        ✓ どちらか1人がPremiumに登録すれば、招待した相手もAIアドバイスが使い放題<br>
-        ✓ AIは月6,000回まで。ひとりでも2人でも日常使いで使い切れません<br>
-        ✓ 個人の資産管理でも使いたくなったら、それぞれ登録する選択肢も
+      <p class="pricing-note">
+        Freeプランはクレジットカード不要で今すぐ始められます。<br>
+        Premiumプランは月¥398（税込）。いつでもキャンセル可能です。
+      </p>
+
+      <!-- カップル訴求 -->
+      <div class="couple-story">
+        <div class="couple-story-label">REAL SCENARIO</div>
+        <div class="couple-story-title">パートナーを誘えば、<br>ふたりで ¥199 / 人。</div>
+        <div class="chat-bubbles">
+          <div class="chat-row">
+            <div class="chat-avatar" style="background:var(--sage-bg);">妻</div>
+            <div>
+              <div class="chat-bubble chat-bubble-left">Flowraいいよ。家計いっしょに管理しよ？</div>
+              <div class="chat-note">Premium月¥398 → 2人で割れば¥199 / 人</div>
+            </div>
+          </div>
+          <div class="chat-row right">
+            <div class="chat-avatar" style="background:#E8EEF0;">夫</div>
+            <div>
+              <div class="chat-bubble chat-bubble-right">コーヒー1杯より安いじゃん。まあいいか。</div>
+            </div>
+          </div>
+          <div class="chat-row">
+            <div class="chat-avatar" style="background:var(--sage-bg);">妻</div>
+            <div>
+              <div class="chat-bubble chat-bubble-left">招待リンク送るね。あなたが登録してくれたら私もAI使い放題になるから🙌</div>
+            </div>
+          </div>
+        </div>
+        <div class="couple-checklist">
+          ✓ どちらか1人がPremiumなら、招待した相手もAI・レシートが無制限<br>
+          ✓ AIは月6,000回。2人で毎日使っても使い切れません<br>
+          ✓ ひとりで使う場合でも月¥398で十分元が取れます
+        </div>
       </div>
     </div>
   </section>
@@ -1708,8 +1095,8 @@
   <!-- CTA -->
   <section class="cta-section">
     <div class="cta-bg"></div>
-    <h2 class="cta-title">さあ、<em>今日から</em><br>始めましょう。</h2>
-    <p class="cta-desc">Googleアカウントで、すぐに使えます。</p>
+    <h2 class="cta-title">まず、<em>撮ってみて</em>ください。</h2>
+    <p class="cta-desc">Googleアカウントで、今すぐ使えます。無料です。</p>
     <a href="https://flowra.taskra.jp" class="btn-primary-inv">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       Flowraを無料で使う
@@ -1719,17 +1106,21 @@
   <!-- FOOTER -->
   <footer>
     <div class="footer-logo">Flow<span>ra</span></div>
+    <div class="footer-links">
+      <a href="/privacy">プライバシーポリシー</a>
+      <a href="/terms">利用規約</a>
+      <a href="mailto:support@taskra.jp">お問い合わせ</a>
+    </div>
     <p class="footer-copy">© 2026 Flowra. All rights reserved.</p>
   </footer>
 
   <script>
     // スクロールアニメーション
     const observer = new IntersectionObserver((entries) => {
-      entries.forEach((entry, i) => {
+      entries.forEach(entry => {
         if (entry.isIntersecting) {
-          setTimeout(() => {
-            entry.target.classList.add('visible');
-          }, entry.target.dataset.delay || 0);
+          const delay = entry.target.dataset.delay || 0;
+          setTimeout(() => entry.target.classList.add('visible'), delay);
         }
       });
     }, { threshold: 0.15 });
@@ -1738,39 +1129,55 @@
       el.dataset.delay = i * 80;
       observer.observe(el);
     });
-
     document.querySelectorAll('.step').forEach((el, i) => {
       el.dataset.delay = i * 120;
       observer.observe(el);
     });
 
-    // 予算バー: スクロールインで幅アニメーション
+    // 予算バーアニメーション
     const budgetObserver = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
           entry.target.querySelectorAll('.budget-bar-fill').forEach((bar, i) => {
             const pct = Math.min(parseInt(bar.dataset.pct, 10), 100);
-            setTimeout(() => {
-              bar.style.width = pct + '%';
-            }, i * 120);
+            setTimeout(() => { bar.style.width = pct + '%'; }, i * 120);
           });
           budgetObserver.unobserve(entry.target);
         }
       });
     }, { threshold: 0.3 });
-
     const budgetMock = document.getElementById('budget-ui-mock');
     if (budgetMock) budgetObserver.observe(budgetMock);
 
-    // AIモック インタラクション
+    // レシートOCRデモアニメーション
+    const receiptObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const items = ['ri-1','ri-2','ri-3','ri-4','ri-5'];
+        items.forEach((id, i) => {
+          setTimeout(() => {
+            const el = document.getElementById(id);
+            if (el) el.classList.add('show');
+          }, i * 220);
+        });
+        setTimeout(() => {
+          const btn = document.getElementById('receipt-save-btn');
+          if (btn) btn.classList.add('show');
+        }, items.length * 220);
+        receiptObserver.unobserve(entry.target);
+      });
+    }, { threshold: 0.4 });
+    const receiptPhone = document.querySelector('.receipt-phone');
+    if (receiptPhone) receiptObserver.observe(receiptPhone);
+
+    // AIモックインタラクション
     const aiAnswers = {
       monthly: '今月は月初6日時点で支出が¥38,400。食費と交通費が先月より抑えられていて、このペースなら月末の収支はプラスになりそうです。',
       compare: '先月と比べると支出が¥12,000ほど少ないペースです。特に娯楽費が先月の¥28,000から¥9,800に抑えられているのが大きいですね。',
-      saving: '食費が¥38,200と予算の76%なので順調です。ただ外食が週3回のペースなので、週2回に減らすと月¥8,000ほど節約できそうです。',
-      top: '今月の支出で一番多いのは食費の¥38,200です。次いで交通費¥17,400、娯楽・趣味¥23,600と続いています。',
+      saving: '食費は予算の76%で順調です。外食が週3回のペースなので、週2回に減らすと月¥8,000ほど節約できそうです。住宅ローンなど固定費は対象外で計算しています。',
+      top: '今月一番多いのは食費の¥38,200。次いで娯楽・趣味¥23,600、交通費¥17,400と続いています。',
       free: '5月1日の支出は¥4,200でした。内訳は昼食¥1,200とスーパーでの買い物¥3,000です。',
     };
-
     const aiAnswerEl = document.getElementById('ai-lp-answer');
     const aiTsEl     = document.getElementById('ai-lp-ts');
     const aiInputEl  = document.getElementById('ai-lp-input');
@@ -1807,16 +1214,12 @@
         }, 200);
       }
     }
-
     aiBtnEl?.addEventListener('click', submitAiFree);
     aiInputEl?.addEventListener('keydown', e => { if (e.key === 'Enter') submitAiFree(); });
 
-    // Payment Link に Supabase user_id を client_reference_id として埋め込む
-    // ログイン済みユーザーのみ：?client_reference_id=USER_ID を付加
+    // Payment LinkにSupabase user_idを埋め込む
     (async () => {
       try {
-        const SUPABASE_URL = 'https://copyzpsyagscqrvkrwjo.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNvcHl6cHN5YWdzY3Fydmtyd2pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTUxNjU2MDAsImV4cCI6MjAzMDc0MTYwMH0.placeholder';
         const storageKey = 'sb-copyzpsyagscqrvkrwjo-auth-token';
         const raw = localStorage.getItem(storageKey);
         if (!raw) return;
