@@ -1221,13 +1221,28 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
   const { DB } = await import('./db.js');
   const budgetMap = await DB.getBudgetTagIds();
 
-  // 各品目の状態（チェック・タグ・金額）。タグを自動推定して初期設定
-  let itemStates = items.map(item => ({
-    ...item,
-    baseAmount: item.amount,  // 元の税抜き金額を保持
-    checked: item.amount > 0, // マイナス（値引き）はデフォルトOFF
-    tagIds: autoAssignTags(item.name, tags, budgetMap),
-  }));
+  // 各品目の状態（チェック・タグ・金額）
+  // AIがtagIdを返した場合はそれを優先、なければキーワード推定にフォールバック
+  let itemStates = items.map(item => {
+    let tagIds;
+    if (item.tagId) {
+      // AIがタグIDを直接返した場合
+      tagIds = new Set([item.tagId]);
+    } else if (item.tagName) {
+      // AIがタグ名を返したがIDへの変換が必要な場合
+      const matched = tags.find(t => t.name === item.tagName);
+      tagIds = matched ? new Set([matched.id]) : autoAssignTags(item.name, tags, budgetMap);
+    } else {
+      // AIがタグを返せなかった場合はキーワード推定
+      tagIds = autoAssignTags(item.name, tags, budgetMap);
+    }
+    return {
+      ...item,
+      baseAmount: item.amount,  // 元の税抜き金額を保持
+      checked: item.amount > 0, // マイナス（値引き）はデフォルトOFF
+      tagIds,
+    };
+  });
 
   // 税込変換状態
   let taxApplied = false;
