@@ -972,6 +972,14 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
         padding:4px 10px;border-radius:6px;border:1px solid var(--border);">
         ⚙ 管理画面
       </a>
+    </div>
+    <div style="text-align:center;margin-top:16px;display:flex;justify-content:center;gap:16px;flex-wrap:wrap;">
+      <a href="https://flowra.taskra.jp/lp/terms/" target="_blank" rel="noopener"
+        style="font-size:11px;color:var(--mid-lt);text-decoration:none;">利用規約</a>
+      <a href="https://flowra.taskra.jp/lp/privacy/" target="_blank" rel="noopener"
+        style="font-size:11px;color:var(--mid-lt);text-decoration:none;">プライバシーポリシー</a>
+      <a href="https://flowra.taskra.jp/lp/contact/" target="_blank" rel="noopener"
+        style="font-size:11px;color:var(--mid-lt);text-decoration:none;">お問い合わせ</a>
     </div>`;
 
   // タグリスト描画
