@@ -189,6 +189,17 @@ Deno.serve(async (req) => {
     const tagNameToId = new Map(allTags.map(t => [t.name, t.id]));
     const promptText = buildPromptText(tagListText);
 
+    // ── APIキーの存在確認 ──
+    if (provider === 'anthropic' && !ANTHROPIC_API_KEY) {
+      return json({ error: 'Anthropic APIキーが設定されていません。管理者にお問い合わせください。' }, 500);
+    }
+    if (provider === 'google' && !GOOGLE_API_KEY) {
+      return json({ error: 'Google APIキーが設定されていません。Supabaseの環境変数にGOOGLE_API_KEYを追加してください。' }, 500);
+    }
+    if (provider === 'openai' && !OPENAI_API_KEY) {
+      return json({ error: 'OpenAI APIキーが設定されていません。Supabaseの環境変数にOPENAI_API_KEYを追加してください。' }, 500);
+    }
+
     // ── プロバイダーに応じてAPI呼び出し ──
     let rawText = '';
     if (provider === 'anthropic') {
