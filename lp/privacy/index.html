@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プライバシーポリシー — Flowra</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600&family=Noto+Serif+JP:wght@400;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --sage:   #4A7C59;
+      --sage-bg:#EEF5F1;
+      --ink:    #1C2B22;
+      --mid:    #7A9485;
+      --mid-lt: #B0C4BB;
+      --stone:  #F5F2ED;
+      --border: #E4DDD4;
+      --white:  #ffffff;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: var(--stone);
+      color: var(--ink);
+      line-height: 1.8;
+    }
+
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      height: 56px;
+      background: rgba(245,242,237,0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 20px;
+      color: var(--ink);
+      text-decoration: none;
+      letter-spacing: -0.02em;
+    }
+    .nav-logo span { color: var(--sage); }
+    .nav-back {
+      font-size: 13px;
+      color: var(--mid);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .nav-back:hover { color: var(--ink); }
+
+    .page-wrap {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 64px 24px 120px;
+    }
+
+    .page-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      color: var(--sage);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .page-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(28px, 5vw, 44px);
+      line-height: 1.2;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      margin-bottom: 12px;
+    }
+
+    .page-updated {
+      font-size: 13px;
+      color: var(--mid-lt);
+      margin-bottom: 56px;
+      padding-bottom: 32px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .doc-section {
+      margin-bottom: 48px;
+    }
+
+    .doc-section h2 {
+      font-family: 'Noto Serif JP', serif;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 14px;
+      padding-left: 12px;
+      border-left: 3px solid var(--sage);
+    }
+
+    .doc-section p {
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.9;
+      margin-bottom: 12px;
+    }
+
+    .doc-section ul {
+      padding-left: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .doc-section ul li {
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.8;
+      padding-left: 18px;
+      position: relative;
+    }
+
+    .doc-section ul li::before {
+      content: '·';
+      position: absolute;
+      left: 6px;
+      color: var(--sage);
+      font-weight: 700;
+    }
+
+    .doc-section a {
+      color: var(--sage);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    .info-box {
+      background: var(--sage-bg);
+      border: 1px solid rgba(74,124,89,0.15);
+      border-radius: 14px;
+      padding: 18px 20px;
+      font-size: 13px;
+      color: var(--ink);
+      line-height: 1.8;
+      margin-top: 16px;
+    }
+
+    .info-box strong { color: var(--sage); }
+
+    footer {
+      background: var(--ink);
+      padding: 28px 24px;
+      text-align: center;
+    }
+    .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; flex-wrap: wrap; }
+    .footer-links a { font-size: 12px; color: rgba(255,255,255,0.35); text-decoration: none; }
+    .footer-links a:hover { color: rgba(255,255,255,0.7); }
+    .footer-copy { font-size: 12px; color: rgba(255,255,255,0.2); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 16px; }
+      .page-wrap { padding: 48px 20px 80px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="https://flowra.taskra.jp/lp/" class="nav-logo">Flow<span>ra</span></a>
+  <a href="https://flowra.taskra.jp/lp/" class="nav-back">← LPに戻る</a>
+</nav>
+
+<div class="page-wrap">
+  <div class="page-label">Legal</div>
+  <h1 class="page-title">プライバシーポリシー</h1>
+  <p class="page-updated">制定日：2026年6月14日　最終更新：2026年6月14日</p>
+
+  <div class="doc-section">
+    <p>Flowra（以下「本サービス」）は、ユーザーの個人情報保護を重要な責務と考えています。本ポリシーは、本サービスが収集する情報、その利用目的、および管理方法について説明します。</p>
+  </div>
+
+  <div class="doc-section">
+    <h2>1. 事業者情報</h2>
+    <p>本サービスは個人が運営するサービスです。</p>
+    <div class="info-box">
+      <strong>運営者：</strong>Flowra 開発チーム<br>
+      <strong>お問い合わせ：</strong><a href="mailto:support@taskra.jp">support@taskra.jp</a>
+    </div>
+  </div>
+
+  <div class="doc-section">
+    <h2>2. 収集する情報</h2>
+    <p>本サービスは以下の情報を収集します。</p>
+    <ul>
+      <li><strong>Googleアカウント情報：</strong>ログイン時にGoogleが提供するユーザーID・メールアドレス・表示名・プロフィール画像。本サービスはGoogleのパスワードを取得しません。</li>
+      <li><strong>家計データ：</strong>ユーザーが入力した収支記録・口座情報・タグ・予算・メモ。</li>
+      <li><strong>レシート画像：</strong>「レシート読み取り」機能を使用した場合、アップロードされた画像をAI（Anthropic Claude）に送信して品目を抽出します。画像はAI処理後に保持しません。</li>
+      <li><strong>利用ログ：</strong>AIアドバイス・レシート読み取りの月次利用回数。</li>
+      <li><strong>決済情報：</strong>Premiumプランの決済はStripe社が処理します。クレジットカード情報は本サービスのサーバーに保存されません。</li>
+    </ul>
+  </div>
+
+  <div class="doc-section">
+    <h2>3. 情報の利用目的</h2>
+    <ul>
+      <li>本サービスの提供・維持・改善</li>
+      <li>ユーザー認証およびチーム共有機能の提供</li>
+      <li>AIアドバイス・レシート読み取り機能の提供</li>
+      <li>利用制限（Free/Premiumプランの回数管理）の実施</li>
+      <li>Premiumプランの課金管理（Stripe連携）</li>
+      <li>障害対応・セキュリティの確保</li>
+    </ul>
+  </div>
+
+  <div class="doc-section">
+    <h2>4. 第三者への提供</h2>
+    <p>本サービスは以下の場合を除き、ユーザーの個人情報を第三者に提供しません。</p>
+    <ul>
+      <li><strong>Supabase（米国）：</strong>データベース・認証基盤として利用。家計データはSupabaseのサーバーに保存されます。</li>
+      <li><strong>Anthropic（米国）：</strong>AIアドバイス・レシート読み取り機能に使用。家計の集計データおよびレシート画像を送信します。</li>
+      <li><strong>Stripe（米国）：</strong>Premiumプランの決済処理に使用。</li>
+      <li><strong>Google（米国）：</strong>OAuth認証（ログイン）に使用。</li>
+      <li>法令に基づき開示が必要な場合。</li>
+    </ul>
+    <p>上記いずれも、サービス提供に必要な範囲内に限定して提供します。</p>
+  </div>
+
+  <div class="doc-section">
+    <h2>5. データの保存と保護</h2>
+    <ul>
+      <li>家計データはSupabaseのPostgreSQLデータベースに暗号化して保存されます。</li>
+      <li>Row Level Security（RLS）により、各ユーザーは自分のチームのデータのみ参照できます。</li>
+      <li>通信はすべてHTTPSで暗号化されます。</li>
+      <li>レシート画像はAI処理後に本サービスのシステム内に保存されません。</li>
+    </ul>
+  </div>
+
+  <div class="doc-section">
+    <h2>6. データの削除</h2>
+    <p>ユーザーはいつでも以下の方法でデータを削除できます。</p>
+    <ul>
+      <li>個別の記録・口座・タグはアプリ内から削除できます。</li>
+      <li>アカウント全体の削除をご希望の場合は <a href="mailto:support@taskra.jp">support@taskra.jp</a> までご連絡ください。受領後14日以内に対応します。</li>
+    </ul>
+  </div>
+
+  <div class="doc-section">
+    <h2>7. Cookieおよびローカルストレージ</h2>
+    <p>本サービスは広告目的のCookieを使用しません。以下の目的でブラウザのLocalStorageおよびIndexedDBを使用します。</p>
+    <ul>
+      <li>ログインセッションの維持</li>
+      <li>オフラインキャッシュ（家計データの高速表示）</li>
+      <li>表示設定の保存（表示中の月・アコーディオン開閉状態など）</li>
+    </ul>
+  </div>
+
+  <div class="doc-section">
+    <h2>8. 未成年者の利用</h2>
+    <p>本サービスは18歳未満の方を対象としていません。18歳未満の方は保護者の同意を得た上でご利用ください。</p>
+  </div>
+
+  <div class="doc-section">
+    <h2>9. ポリシーの変更</h2>
+    <p>本ポリシーを変更する場合は、本ページにて告知します。重要な変更がある場合は、アプリ内でも通知します。変更後も本サービスを継続利用された場合、変更後のポリシーに同意したものとみなします。</p>
+  </div>
+
+  <div class="doc-section">
+    <h2>10. お問い合わせ</h2>
+    <p>プライバシーに関するご質問・ご要望は下記までご連絡ください。</p>
+    <div class="info-box">
+      <strong>メール：</strong><a href="mailto:support@taskra.jp">support@taskra.jp</a><br>
+      通常3営業日以内にご返答します。
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-links">
+    <a href="https://flowra.taskra.jp/lp/">Flowra トップ</a>
+    <a href="https://flowra.taskra.jp/lp/privacy/">プライバシーポリシー</a>
+    <a href="https://flowra.taskra.jp/lp/terms/">利用規約</a>
+    <a href="mailto:support@taskra.jp">お問い合わせ</a>
+  </div>
+  <p class="footer-copy">© 2026 Flowra. All rights reserved.</p>
+</footer>
+
+</body>
+</html>
