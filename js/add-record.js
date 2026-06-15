@@ -951,7 +951,7 @@ async function showSuggest(onSave, onReady, accounts, tags) {
       if (err.error === 'LIMIT_REACHED') {
         const msg = err.isPremium
           ? 'レシート読み取りの今月の上限（' + err.limit + '回）に達しました'
-          : 'レシート読み取りは月' + err.limit + '回まで（Premiumで月100回）';
+          : 'レシート読み取りは月' + err.limit + '回まで（Premiumで月200回）';
         showToast(msg);
       } else {
         showToast('読み取りエラー: ' + (err.message || '不明'));
@@ -1621,3 +1621,4 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
   // モーダルに確認UIをレンダリング
   renderConfirmUI();
 }
+
