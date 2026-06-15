@@ -229,8 +229,11 @@ export async function openEditRecord(tx, onSave) {
             </div>
             <div class="row-body">
               <div class="row-label">メモ</div>
-              <input class="text-input" id="memo-input" type="text"
-                placeholder="メモを入力（任意）" value="${state.memo}">
+              <textarea class="text-input" id="memo-input"
+                placeholder="メモを入力（任意）"
+                rows="1"
+                style="resize:none;overflow:hidden;line-height:1.5;padding-top:10px;padding-bottom:10px;"
+              >${state.memo ? state.memo.replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''}</textarea>
             </div>
           </div>
 
@@ -451,7 +454,19 @@ export async function openEditRecord(tx, onSave) {
     });
 
     sheet.querySelector('#date-input')?.addEventListener('change',  e => state.date   = e.target.value);
-    sheet.querySelector('#memo-input')?.addEventListener('input',   e => state.memo   = e.target.value);
+    const memoEl = sheet.querySelector('#memo-input');
+    if (memoEl) {
+      // 自動高さ調整
+      const autoResize = (el) => {
+        el.style.height = 'auto';
+        el.style.height = el.scrollHeight + 'px';
+      };
+      autoResize(memoEl);
+      memoEl.addEventListener('input', e => {
+        state.memo = e.target.value;
+        autoResize(e.target);
+      });
+    }
 
 
     // 口座選択
@@ -778,6 +793,7 @@ function calcFn(left, right, op) {
   }
   return Math.max(0, r);
 }
+
 
 
 
