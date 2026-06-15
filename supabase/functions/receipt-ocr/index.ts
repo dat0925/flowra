@@ -7,8 +7,8 @@ const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY') || '';
 const GOOGLE_API_KEY    = Deno.env.get('GOOGLE_API_KEY') || '';
 const OPENAI_API_KEY    = Deno.env.get('OPENAI_API_KEY') || '';
 
-const FREE_RECEIPT_LIMIT    = 3;
-const PREMIUM_RECEIPT_LIMIT = 100;
+const FREE_RECEIPT_LIMIT    = 10;
+const PREMIUM_RECEIPT_LIMIT = 200;
 
 const corsHeaders = {
   'Access-Control-Allow-Origin':  '*',
