@@ -41,7 +41,14 @@ function buildPromptText(tagListText: string): string {
 - taxRateは日本の消費税法に基づき判定する：
   ・飲食料品（食材・調味料・飲み物・お菓子・アイスなど）→ 8
   ・酒類・外食・日用品・衣類・医薬品・化粧品など → 10
-  ・判断に迷う場合はレシートの税区分記号（※や★など）を参考にする${tagListText}`;
+  ・判断に迷う場合はレシートの税区分記号（※や★など）を参考にする
+
+【タグ分類の重要ルール】
+メインカテゴリは品目の性質を正確に判断して選ぶこと：
+- お菓子・スナック・アイス・ジュース・コーヒー・酒類など「必需品ではない嗜好品」→「嗜好品」
+- 食材・調味料・米・乾物・冷凍食品など「料理に使う食品」→「食費」
+- シャンプー・洗剤・ティッシュ・トイレットペーパーなど「生活用品」→「日用品」
+- 「食費」はデフォルトで選ばず、品目の性質をよく考えて分類すること${tagListText}`;
 }
 
 async function callAnthropic(model: string, image: string, mediaType: string, promptText: string): Promise<string> {
