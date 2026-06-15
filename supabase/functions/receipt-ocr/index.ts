@@ -80,7 +80,10 @@ async function callGoogle(model: string, image: string, mediaType: string, promp
           { text: promptText }
         ]
       }],
-      generationConfig: { maxOutputTokens: 2048 }
+      generationConfig: {
+        maxOutputTokens: 2048,
+        thinkingConfig: { thinkingBudget: 0 },
+      }
     })
   });
   const data = await res.json();
@@ -91,7 +94,10 @@ async function callGoogle(model: string, image: string, mediaType: string, promp
     if (code === 429) throw new Error('Google APIの利用制限に達しました。しばらく待ってから再試行してください。');
     throw new Error(`Gemini error: ${data.error.message}`);
   }
-  return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  // thinkingモードの場合、parts[0]がthought、parts[1]がテキストになる
+  const parts = data.candidates?.[0]?.content?.parts || [];
+  const textPart = parts.find((p: {text?: string; thought?: boolean}) => !p.thought && p.text);
+  return textPart?.text || parts[0]?.text || '';
 }
 
 async function callOpenAI(model: string, image: string, mediaType: string, promptText: string): Promise<string> {
