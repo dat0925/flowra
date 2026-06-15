@@ -299,8 +299,9 @@
     .toast.show { opacity: 1; }
 
     @media (max-width: 600px) {
-      .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-      .stat-num { font-size: 22px; }
+      .stats-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 6px; }
+      .stat-num { font-size: 18px; }
+      .stat-label { font-size: 9px; }
       .user-table { font-size: 11px; }
     }
   </style>
@@ -337,21 +338,7 @@
 
   <div class="admin-content">
 
-    <!-- 統計 -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-num" id="stat-total">—</div>
-        <div class="stat-label">総ユーザー</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-premium" style="color:#4A7C59;">—</div>
-        <div class="stat-label">Premiumプラン</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-num" id="stat-active">—</div>
-        <div class="stat-label">今月AI利用</div>
-      </div>
-    </div>
+    <!-- 統計 -->\n    <div class="stats-grid" style="grid-template-columns: repeat(4, 1fr);">\n      <div class="stat-card">\n        <div class="stat-num" id="stat-total">—</div>\n        <div class="stat-label">総ユーザー</div>\n      </div>\n      <div class="stat-card">\n        <div class="stat-num" id="stat-premium" style="color:#4A7C59;">—</div>\n        <div class="stat-label">Premiumプラン</div>\n      </div>\n      <div class="stat-card">\n        <div class="stat-num" id="stat-active">—</div>\n        <div class="stat-label">今月AI利用</div>\n      </div>\n      <div class="stat-card">\n        <div class="stat-num" id="stat-ocr">—</div>\n        <div class="stat-label">今月OCR回数</div>\n      </div>\n    </div>
 
     <!-- OCRモデル設定 -->
     <div class="admin-section" id="ocr-settings-section">
@@ -494,6 +481,13 @@
       .eq('month_key', monthKey)
       .gt('count', 0);
     document.getElementById('stat-active').textContent = usage?.length ?? '—';
+
+    const { data: ocrUsage } = await supabase
+      .from('receipt_usage')
+      .select('count')
+      .eq('month_key', monthKey);
+    const ocrTotal = (ocrUsage || []).reduce((sum, r) => sum + (r.count || 0), 0);
+    document.getElementById('stat-ocr').textContent = ocrTotal || '—';
   }
 
   // ── ユーザー一覧 ──
