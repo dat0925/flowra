@@ -1,4 +1,3 @@
-import Anthropic from 'https://esm.sh/@anthropic-ai/sdk@0.27.3?target=deno';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL      = Deno.env.get('SUPABASE_URL')!;
@@ -46,6 +45,7 @@ function buildPromptText(tagListText: string): string {
 }
 
 async function callAnthropic(model: string, image: string, mediaType: string, promptText: string): Promise<string> {
+  const { default: Anthropic } = await import('https://esm.sh/@anthropic-ai/sdk@0.27.3?target=deno');
   const anthropic = new Anthropic({ apiKey: ANTHROPIC_API_KEY });
   try {
     const message = await anthropic.messages.create({
