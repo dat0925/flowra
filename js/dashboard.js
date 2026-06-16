@@ -20,6 +20,7 @@ let _aiAdviceCache = null; // { answer, question, ts, year, month }
 export function clearAiAdviceCache() { _aiAdviceCache = null; }
 let _freeAnswerCache = null; // { answer, ts, year, month }
 let _freeHistoryCache = []; // [{ q, a }, ...] 画面切り替えをまたいで保持
+let _limitShownThisSession = false; // AI上限ポップアップは1セッション1回のみ
 
 // 口座タイプ別アイコン
 const ACCT_ICON = {
@@ -559,8 +560,6 @@ function setupAiSummary(transactions, year, month) {
   }
 
   // Edge Function呼び出し（使用回数チェック付き）
-  let _limitShownThisSession = false;
-
   async function callAI(question, data) {
     const plan = await DB.getUserPlan().catch(() => 'free');
     const isAdmin = plan === 'admin';
@@ -993,4 +992,5 @@ function setupAccordions() {
     });
   });
 }
+
 
