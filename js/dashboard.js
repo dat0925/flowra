@@ -830,7 +830,12 @@ function setupAiSummary(transactions, year, month) {
         });
       } catch (e) {
         if (e.message === 'LIMIT_REACHED') {
-          answerEl.style.display = 'none';
+          answerEl.style.display = 'block';
+          answerEl.innerHTML = '<div style="font-size:12px;color:var(--mid-lt);padding:4px 0;">今月のAI回数上限に達しました。<br><span style="color:var(--sage);cursor:pointer;text-decoration:underline;" onclick="document.querySelector(\'[data-upgrade]\')?.click()">Premiumにアップグレードする →</span></div>';
+          if (!_limitShownThisSession) {
+            _limitShownThisSession = true;
+            showUpgradeSheet(false);
+          }
         } else {
           answerEl.innerHTML = '<div style="font-size:12px;color:rgba(255,100,100,0.8);padding:4px 0;">エラー: ' + e.message + '</div>';
         }
