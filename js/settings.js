@@ -935,6 +935,20 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
           </svg>
           招待リンクを発行
         </button>
+        <!-- 発行後に表示される招待UI -->
+        <div id="invite-url-area" style="display:none;margin-top:12px;">
+          <div style="display:flex;align-items:center;gap:8px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;">
+            <span style="font-size:12px;color:var(--mid);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" id="invite-url-display"></span>
+            <button id="btn-copy-invite" style="flex-shrink:0;background:none;border:none;padding:2px 6px;cursor:pointer;color:var(--sage);">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+          </div>
+          <button id="btn-share-invite" style="margin-top:8px;width:100%;padding:11px;border-radius:10px;border:1.5px solid var(--sage);background:none;color:var(--sage);font-size:14px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+            LINEやメールでシェア
+          </button>
+          <div style="margin-top:8px;font-size:11px;color:var(--mid);text-align:center;">7日間有効</div>
+        </div>
       </div>
     </div>
 
@@ -1132,18 +1146,55 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
     try {
       const invite = await DB.createInviteForOwnTeam('member');
       const url = `${window.location.origin}?invite=${invite.token}`;
-      let copied = false;
-      try { await navigator.clipboard.writeText(url); copied = true; } catch (_) {}
-      if (copied) {
-        showToast('招待リンクをコピーしました（7日間有効）');
-      } else {
-        showInviteUrlDialog(url);
+      const short = '…' + url.slice(-12);
+
+      // URLエリアを表示
+      const area = document.getElementById('invite-url-area');
+      const display = document.getElementById('invite-url-display');
+      if (area && display) {
+        display.textContent = url;
+        area.style.display = 'block';
       }
+
+      // クリップボードにコピー＋トースト
+      try { await navigator.clipboard.writeText(url); } catch (_) {}
+      showToast('コピーしました: ' + short);
+
+      // コピーボタン（重複登録防止）
+      const copyBtn = document.getElementById('btn-copy-invite');
+      if (copyBtn && !copyBtn.dataset.bound) {
+        copyBtn.dataset.bound = '1';
+        copyBtn.addEventListener('click', async () => {
+          try { await navigator.clipboard.writeText(url); } catch (_) {}
+          showToast('コピーしました: ' + short);
+        });
+      }
+
+      // シェアボタン（Web Share API）
+      const shareBtn = document.getElementById('btn-share-invite');
+      if (shareBtn && !shareBtn.dataset.bound) {
+        shareBtn.dataset.bound = '1';
+        shareBtn.addEventListener('click', async () => {
+          if (navigator.share) {
+            try {
+              await navigator.share({
+                title: 'Flowra 招待リンク',
+                text: '家計管理アプリ Flowra（フローラ）に招待します。このリンクから参加してください。',
+                url,
+              });
+            } catch (_) {}
+          } else {
+            try { await navigator.clipboard.writeText(url); } catch (_) {}
+            showToast('コピーしました: ' + short);
+          }
+        });
+      }
+
     } catch (e) {
       showToast('エラー: ' + e.message);
     } finally {
       btn.disabled = false;
-      btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> 招待リンクを発行`;
+      btn.innerHTML = `<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg> 新しいリンクを発行`;
     }
   });
 
@@ -1705,6 +1756,7 @@ function openTagAddSheet(tags) {
     if (e.key === 'Enter') doAdd();
   });
 }
+
 
 
 
