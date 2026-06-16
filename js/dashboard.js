@@ -295,6 +295,20 @@ async function renderContent(content, accounts, transactions, year, month, fromC
                 <div style="padding:4px 18px 16px;">${rows}${totalRow}</div>
               </div>
             </div>`;
+        } else {
+          budgetHTML = `
+            <div class="panel" style="margin-bottom:0;">
+              <div class="panel-head" style="cursor:default;">
+                <div class="panel-title">予算 <span style="font-size:11px;font-weight:400;color:var(--mid);margin-left:4px;">${year}年${month}月</span></div>
+                <a id="link-budget-setting-empty" style="font-size:12px;color:var(--sage);text-decoration:none;cursor:pointer;">設定 ›</a>
+              </div>
+              <div style="padding:20px 18px 24px;text-align:center;">
+                <div style="font-size:24px;margin-bottom:10px;">📊</div>
+                <div style="font-size:13px;font-weight:500;color:var(--ink);margin-bottom:6px;">予算をまだ設定していません</div>
+                <div style="font-size:12px;color:var(--mid);line-height:1.6;margin-bottom:16px;">タグごとに予算を設定すると<br>使いすぎを防げます</div>
+                <button id="btn-go-budget-empty" style="padding:9px 24px;border-radius:100px;border:1.5px solid var(--sage);background:none;color:var(--sage);font-size:13px;font-weight:500;cursor:pointer;">予算を設定する</button>
+              </div>
+            </div>`;
         }
       }
     } catch(e) { console.error('[Budget]', e); /* 予算取得失敗は無視 */ }
@@ -379,6 +393,12 @@ async function renderContent(content, accounts, transactions, year, month, fromC
 
 
   document.getElementById('link-budget-setting')?.addEventListener('click', () => {
+    import('./router.js').then(({ Router }) => Router.navigate('settings'));
+  });
+  document.getElementById('link-budget-setting-empty')?.addEventListener('click', () => {
+    import('./router.js').then(({ Router }) => Router.navigate('settings'));
+  });
+  document.getElementById('btn-go-budget-empty')?.addEventListener('click', () => {
     import('./router.js').then(({ Router }) => Router.navigate('settings'));
   });
   setupBalanceToggle();
