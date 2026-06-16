@@ -851,8 +851,8 @@ export const DB = {
   },
 
   // レシートOCRの月次上限
-  FREE_RECEIPT_LIMIT:    3,
-  PREMIUM_RECEIPT_LIMIT: 100,
+  FREE_RECEIPT_LIMIT:    10,
+  PREMIUM_RECEIPT_LIMIT: 200,
 
   // 今月のレシートOCR使用回数を取得
   async getReceiptUsageThisMonth() {
@@ -887,5 +887,6 @@ export const DB = {
     return data; // { store, date, items, count, limit, isPremium }
   },
 };
+
 
 
