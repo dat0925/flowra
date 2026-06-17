@@ -7,6 +7,14 @@
 --
 -- 対応: get_all_user_plans() と同様に、SECURITY DEFINER + 管理者チェック付きのRPCを
 --       経由して全ユーザーの当月利用回数を取得するようにする。
+--
+-- ⚠️ 修正履歴: RETURNS TABLE (user_id UUID, ...) と定義すると、関数内に
+--   「user_id」という名前のOUTパラメータ（変数）が暗黒に作られる。
+--   管理者チェックのWHERE句で「user_id = auth.uid()」と書くと、
+--   user_plansテーブルの列ではなくこのOUT変数を指しているとみなされ
+--   「column reference "user_id" is ambiguous」エラーになり、
+--   全ユーザー（管理者自身を含む）が取得できなくなる事象が発生した。
+--   テーブル名を明示（user_plans.user_id）して回避する。
 
 CREATE OR REPLACE FUNCTION get_all_ai_usage(p_month_key TEXT)
 RETURNS TABLE (user_id UUID, count INT)
@@ -15,7 +23,7 @@ SECURITY DEFINER
 AS $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM user_plans WHERE user_id = auth.uid() AND plan = 'admin'
+    SELECT 1 FROM user_plans WHERE user_plans.user_id = auth.uid() AND user_plans.plan = 'admin'
   ) THEN
     RAISE EXCEPTION 'Admin only';
   END IF;
@@ -34,7 +42,7 @@ SECURITY DEFINER
 AS $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM user_plans WHERE user_id = auth.uid() AND plan = 'admin'
+    SELECT 1 FROM user_plans WHERE user_plans.user_id = auth.uid() AND user_plans.plan = 'admin'
   ) THEN
     RAISE EXCEPTION 'Admin only';
   END IF;
