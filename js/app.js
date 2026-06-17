@@ -12,6 +12,7 @@ import { fmt, showToast, openModal, closeModal } from './utils.js';
 import { renderRecords }     from './records.js';
 import { clearAll }          from './cache.js';
 import { DB }                from './db.js';
+import { Announcements }     from './announcements.js';
 
 export { fmt, showToast, openModal, closeModal };
 
@@ -178,6 +179,11 @@ function showApp(user) {
   };
   document.getElementById('btn-add-desktop')?.addEventListener('click', openAdd);
   document.getElementById('btn-add-mobile')?.addEventListener('click', openAdd);
+
+  // お知らせベル：バッジ更新＋クリックで一覧パネルを開く
+  Announcements.refreshBadge();
+  document.getElementById('btn-announce')?.addEventListener('click', () => Announcements.openPanel());
+  document.getElementById('btn-announce-d')?.addEventListener('click', () => Announcements.openPanel());
 
   const lastPage = localStorage.getItem('flowra_last_page') || 'dashboard';
   Router.navigate(lastPage);

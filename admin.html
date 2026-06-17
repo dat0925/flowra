@@ -396,6 +396,31 @@
       </div>
     </div>
 
+    <!-- お知らせ管理 -->
+    <div class="admin-section" id="announce-section">
+      <div class="admin-section-title">
+        <span>📢 お知らせ管理</span>
+      </div>
+      <div style="padding:4px 0 16px;">
+        <p style="font-size:13px;color:var(--mid);margin:0 0 16px;">投稿すると、全ユーザーのアプリ画面上部のベルアイコンに通知バッジが表示されます。</p>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <label style="font-size:12px;color:var(--mid);display:block;margin-bottom:6px;">タイトル</label>
+            <input type="text" id="announce-title-input" class="admin-input" style="width:100%;" placeholder="例: AIアドバイスの利用上限を変更しました">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--mid);display:block;margin-bottom:6px;">本文</label>
+            <textarea id="announce-body-input" class="admin-input" style="width:100%;min-height:90px;resize:vertical;" placeholder="ユーザーに表示する本文を入力"></textarea>
+          </div>
+          <button class="admin-btn btn-primary" id="btn-post-announce" style="align-self:flex-start;">投稿する</button>
+        </div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:12px;">
+        <div style="font-size:12px;color:var(--mid);margin-bottom:8px;">投稿済み（新しい順）</div>
+        <div id="announce-log"><div class="spinner"></div></div>
+      </div>
+    </div>
+
     <!-- ユーザー一覧 -->
     <div class="admin-section">
       <div class="admin-section-title">
@@ -477,7 +502,7 @@
     document.getElementById('auth-wall').style.display = 'none';
     document.getElementById('admin-app').style.display = 'block';
     document.getElementById('admin-user-email').textContent = user.email;
-    await Promise.all([loadStats(), loadUserList(), loadOcrModel()]);
+    await Promise.all([loadStats(), loadUserList(), loadOcrModel(), loadAnnounceLog()]);
   }
 
   if (session) boot(session);
@@ -728,6 +753,72 @@
     } else {
       document.getElementById('current-model-display').textContent = model;
       toast('✓ モデルを ' + model + ' に変更しました');
+    }
+  });
+
+  // ── お知らせ管理 ──
+  function escapeHtml(s) {
+    return String(s).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+  }
+
+  async function loadAnnounceLog() {
+    const logEl = document.getElementById('announce-log');
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('id, title, body, created_at')
+      .order('created_at', { ascending: false })
+      .limit(30);
+    if (error) {
+      logEl.innerHTML = '<div style="font-size:12px;color:#B83232;">取得に失敗しました: ' + error.message + '</div>';
+      return;
+    }
+    if (!data || data.length === 0) {
+      logEl.innerHTML = '<div style="font-size:12px;color:var(--mid-lt);padding:8px 0;">まだ投稿がありません</div>';
+      return;
+    }
+    logEl.innerHTML = data.map(a =>
+      '<div style="border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">'
+      + '<div style="flex:1;min-width:0;">'
+      + '<div style="font-size:11px;color:var(--mid-lt);margin-bottom:2px;">' + fmtDate(a.created_at) + '</div>'
+      + '<div style="font-size:13px;font-weight:600;color:var(--ink);">' + escapeHtml(a.title) + '</div>'
+      + '<div style="font-size:12px;color:var(--mid);white-space:pre-wrap;margin-top:2px;">' + escapeHtml(a.body) + '</div>'
+      + '</div>'
+      + '<button class="admin-btn btn-secondary btn-delete-announce" data-id="' + a.id + '" style="padding:5px 10px;font-size:11px;flex-shrink:0;">削除</button>'
+      + '</div>'
+    ).join('');
+
+    logEl.querySelectorAll('.btn-delete-announce').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        if (!confirm('このお知らせを削除しますか？')) return;
+        const { error: delErr } = await supabase.rpc('delete_announcement', { p_id: btn.dataset.id });
+        if (delErr) { toast('❌ エラー: ' + delErr.message); return; }
+        toast('✓ 削除しました');
+        loadAnnounceLog();
+      });
+    });
+  }
+
+  document.getElementById('btn-post-announce').addEventListener('click', async () => {
+    const titleEl = document.getElementById('announce-title-input');
+    const bodyEl  = document.getElementById('announce-body-input');
+    const title = titleEl.value.trim();
+    const body  = bodyEl.value.trim();
+    if (!title || !body) { toast('タイトルと本文を入力してください'); return; }
+
+    const btn = document.getElementById('btn-post-announce');
+    btn.disabled = true;
+    btn.textContent = '投稿中...';
+    const { error } = await supabase.rpc('create_announcement', { p_title: title, p_body: body });
+    btn.disabled = false;
+    btn.textContent = '投稿する';
+
+    if (error) {
+      toast('❌ エラー: ' + error.message);
+    } else {
+      titleEl.value = '';
+      bodyEl.value = '';
+      toast('✓ お知らせを投稿しました');
+      loadAnnounceLog();
     }
   });
 
