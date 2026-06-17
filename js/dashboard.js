@@ -21,6 +21,7 @@ export function clearAiAdviceCache() { _aiAdviceCache = null; }
 let _freeAnswerCache = null; // { answer, ts, year, month }
 let _freeHistoryCache = []; // [{ q, a }, ...] 画面切り替えをまたいで保持
 let _limitShownThisSession = false; // AI上限ポップアップは1セッション1回のみ
+let _aiBusy = false; // AIリクエスト中の多重タップ防止（チップボタン・フリー入力で共有）
 
 // 自動一言アドバイス（ページ読み込み時）の永続キャッシュ
 // 重要: _aiAdviceCacheはモジュール変数のためフルリロード（PWA再起動・iOSのバックグラウンド
@@ -802,21 +803,43 @@ function setupAiSummary(transactions, year, month) {
   // ボタンクリック → 詳細回答
   btns.forEach(btn => {
     btn.addEventListener('click', async () => {
-      const q = btn.dataset.q;
+      if (_aiBusy) return; // リクエスト中は無視（多重タップでAI回数を無駄に消費しないように）
+      _aiBusy = true;
 
+      const q = btn.dataset.q;
+      const freeInputEl = document.getElementById('ai-free-input');
+      const freeBtnEl   = document.getElementById('ai-free-btn');
+
+      // 押した本人にもタップが効いたことが伝わるよう、ボタン自体の表示を一時的に変更
+      const originalLabel = btn.innerHTML;
       btns.forEach(b => {
         b.style.border = '1px solid var(--border)';
         b.style.color  = 'var(--mid)';
         b.style.background = 'none';
+        if (b !== btn) { b.style.opacity = '0.4'; b.style.pointerEvents = 'none'; }
       });
       btn.style.border = '1px solid var(--sage)';
       btn.style.color  = 'var(--sage)';
       btn.style.background = 'var(--sage-bg)';
+      btn.style.pointerEvents = 'none';
+      btn.innerHTML = '<div style="display:inline-flex;align-items:center;gap:5px;">'
+        + '<div style="width:10px;height:10px;border:1.5px solid var(--sage-lt);border-top-color:var(--sage);border-radius:50%;animation:spin 0.7s linear infinite;flex-shrink:0;"></div>'
+        + '考え中…</div>';
+      if (freeInputEl) freeInputEl.disabled = true;
+      if (freeBtnEl)   { freeBtnEl.style.opacity = '0.4'; freeBtnEl.style.pointerEvents = 'none'; }
 
       answerEl.style.display = 'block';
-      answerEl.innerHTML = '<div style="display:flex;align-items:center;gap:6px;color:var(--mid-lt);font-size:12px;padding:4px 0 8px;">'
-        + '<div style="width:11px;height:11px;border:1.5px solid var(--sage-lt);border-top-color:var(--sage);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>'
-        + '考え中…</div>';
+      answerEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--sage);font-size:13px;font-weight:500;padding:6px 0 10px;">'
+        + '<div style="width:15px;height:15px;border:2px solid var(--sage-lt);border-top-color:var(--sage);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>'
+        + 'AIが考え中…</div>';
+
+      const resetButtons = () => {
+        _aiBusy = false;
+        btns.forEach(b => { b.style.opacity = ''; b.style.pointerEvents = ''; });
+        btn.innerHTML = originalLabel;
+        if (freeInputEl) freeInputEl.disabled = false;
+        if (freeBtnEl)   { freeBtnEl.style.opacity = ''; freeBtnEl.style.pointerEvents = ''; }
+      };
 
       try {
         const prevM = month === 1 ? 12 : month - 1;
@@ -871,6 +894,7 @@ function setupAiSummary(transactions, year, month) {
         // モジュール変数にキャッシュ
         _aiAdviceCache = { answer, question: q, ts: now.toISOString(), year, month };
         _saveAutoAdviceToStorage(_aiAdviceCache);
+        resetButtons();
         // 残り回数バッジを更新
         DB.getUserPlan().catch(() => 'free').then(async plan => {
           if (plan === 'premium' || plan === 'admin') return;
@@ -888,6 +912,7 @@ function setupAiSummary(transactions, year, month) {
           }
         });
       } catch (e) {
+        resetButtons();
         if (e.message === 'LIMIT_REACHED') {
           answerEl.style.display = 'block';
           answerEl.innerHTML = '<div style="font-size:12px;color:var(--mid-lt);padding:4px 0;">今月のAI回数上限に達しました。<br><span style="color:var(--sage);cursor:pointer;text-decoration:underline;" onclick="document.querySelector(\'[data-upgrade]\')?.click()">Premiumにアップグレードする →</span></div>';
@@ -911,9 +936,28 @@ function setupAiSummary(transactions, year, month) {
   async function submitFreeQuery() {
     const q = freeInput?.value?.trim();
     if (!q) return;
+    if (_aiBusy) return; // リクエスト中は無視（多重タップでAI回数を無駄に消費しないように）
+    _aiBusy = true;
+
+    const originalFreeBtnLabel = freeBtn ? freeBtn.innerHTML : '';
+    btns.forEach(b => { b.style.opacity = '0.4'; b.style.pointerEvents = 'none'; });
+    if (freeInput) freeInput.disabled = true;
+    if (freeBtn) {
+      freeBtn.style.pointerEvents = 'none';
+      freeBtn.innerHTML = '<div style="width:11px;height:11px;border:1.5px solid rgba(255,255,255,0.5);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;"></div>';
+    }
 
     answerEl.style.display = 'block';
-    answerEl.innerHTML = '<div style="font-size:12px;color:var(--mid);">考え中…</div>';
+    answerEl.innerHTML = '<div style="display:flex;align-items:center;gap:8px;color:var(--sage);font-size:13px;font-weight:500;padding:6px 0 10px;">'
+      + '<div style="width:15px;height:15px;border:2px solid var(--sage-lt);border-top-color:var(--sage);border-radius:50%;animation:spin 0.8s linear infinite;flex-shrink:0;"></div>'
+      + 'AIが考え中…</div>';
+
+    const resetFreeUi = () => {
+      _aiBusy = false;
+      btns.forEach(b => { b.style.opacity = ''; b.style.pointerEvents = ''; });
+      if (freeInput) freeInput.disabled = false;
+      if (freeBtn) { freeBtn.style.pointerEvents = ''; freeBtn.innerHTML = originalFreeBtnLabel; }
+    };
 
     const tsEl = document.getElementById('ai-timestamp');
 
@@ -976,8 +1020,9 @@ function setupAiSummary(transactions, year, month) {
         tsEl.style.display = 'block';
         tsEl.textContent = label + ' の回答';
       }
-
+      resetFreeUi();
     } catch(e) {
+      resetFreeUi();
       answerEl.innerHTML = '<div style="font-size:12px;color:rgba(255,100,100,0.8);">エラー: ' + e.message + '</div>';
     }
   }
