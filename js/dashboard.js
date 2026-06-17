@@ -706,7 +706,7 @@ function setupAiSummary(transactions, year, month) {
             <span style="color:var(--sage);font-weight:700;">✓</span> 新機能への優先アクセス
           </li>
         </ul>
-        <button onclick="window.open('mailto:support@taskra.jp?subject=Premiumプラン申込','_blank')"
+        <button onclick="window.open('https://buy.stripe.com/00w00i1Rx4Lwbmy2c3fQI02','_blank')"
           style="width:100%;padding:15px;border-radius:14px;border:none;background:var(--sage);
           color:#fff;font-size:15px;font-weight:600;cursor:pointer;">
           Premiumプランに申し込む
