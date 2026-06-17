@@ -1088,8 +1088,9 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
     }
 
     // AI・レシート使用量を表示
-    const aiLimit      = isPremium ? 6000 : 5;
-    const receiptLimit = isPremium ? 100  : 3;
+    // 上限値はdb.jsの定数を参照（ハードコードしていると改修時に更新漏れが起きるため）
+    const aiLimit      = isPremium ? DB.PREMIUM_AI_LIMIT      : DB.FREE_AI_LIMIT;
+    const receiptLimit = isPremium ? DB.PREMIUM_RECEIPT_LIMIT : DB.FREE_RECEIPT_LIMIT;
     const [aiCount, receiptCount] = await Promise.all([
       DB.getAiUsageThisMonth(),
       DB.getReceiptUsageThisMonth(),
