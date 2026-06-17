@@ -40,7 +40,7 @@ serve(async (req) => {
 
     const tagLines = tagBreakdown.map((t: any) => {
       const isFixed = fixedCostTags.includes(t.name);
-      const budgetInfo = budgets.find((b: any) => b.tagId === t.tagId);
+      const budgetInfo = budgets.find((b: any) => b.name === t.name);
       const label = (isFixed ? "（固定費）" : "") + (budgetInfo ? `（予算¥${budgetInfo.amount.toLocaleString()}）` : "");
       return `  ${t.name}: ¥${t.amount.toLocaleString()}${label}`;
     }).join("\n");
