@@ -22,6 +22,26 @@ let _freeAnswerCache = null; // { answer, ts, year, month }
 let _freeHistoryCache = []; // [{ q, a }, ...] 画面切り替えをまたいで保持
 let _limitShownThisSession = false; // AI上限ポップアップは1セッション1回のみ
 
+// 自動一言アドバイス（ページ読み込み時）の永続キャッシュ
+// 重要: _aiAdviceCacheはモジュール変数のためフルリロード（PWA再起動・iOSのバックグラウンド
+// プロセス終了後の再起動等）で消える。これに加えて、これまで自動一言の.then()内で
+// _aiAdviceCacheへの保存が行われていなかったため「ホームに来るたび」呼ばれ続けていた
+// （SPA内のタブ切り替えで戻るだけでも再実行される状態だった）。
+// localStorageにチーム×年月単位で保存し、両方のケースで再呼び出しを防止する。
+function _autoAdviceStorageKey() {
+  const teamId = DB.getActiveTeamId() || 'noteam';
+  return 'flowra_ai_auto_' + teamId;
+}
+function _loadAutoAdviceFromStorage() {
+  try {
+    const raw = localStorage.getItem(_autoAdviceStorageKey());
+    return raw ? JSON.parse(raw) : null;
+  } catch { return null; }
+}
+function _saveAutoAdviceToStorage(payload) {
+  try { localStorage.setItem(_autoAdviceStorageKey(), JSON.stringify(payload)); } catch {}
+}
+
 // 口座タイプ別アイコン
 const ACCT_ICON = {
   cash:   { bg: '#F0EDE8', stroke: '#7A9485', path: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/>' },
@@ -492,6 +512,14 @@ function setupAiSummary(transactions, year, month) {
   const answerEl = document.getElementById('ai-answer');
   const autoEl   = document.getElementById('ai-auto-answer');
 
+  // モジュール変数のキャッシュが無い場合（フルリロード直後等）はlocalStorageから復元を試みる
+  if (!_aiAdviceCache) {
+    const stored = _loadAutoAdviceFromStorage();
+    if (stored && stored.year === year && stored.month === month) {
+      _aiAdviceCache = stored;
+    }
+  }
+
   // 月が変わったらチップ回答・フリー回答・会話履歴をクリア
   const sameMonth = _aiAdviceCache && _aiAdviceCache.year === year && _aiAdviceCache.month === month;
   if (!sameMonth) {
@@ -727,6 +755,11 @@ function setupAiSummary(transactions, year, month) {
       clearTimeout(tid);
       const el = document.getElementById('ai-auto-answer');
       if (el) el.innerHTML = answer.split('\n').join('<br>');
+      // ここでキャッシュに保存しないと、ホーム画面に戻るたび（タブ切り替え含む）に
+      // 自動でAPIが再実行されてしまう。月が変わるまでは再利用する。
+      const payload = { answer, question: 'monthly', ts: new Date().toISOString(), year, month };
+      _aiAdviceCache = payload;
+      _saveAutoAdviceToStorage(payload);
     }).catch(e => {
       clearTimeout(tid);
       const el = document.getElementById('ai-auto-answer');
@@ -812,6 +845,7 @@ function setupAiSummary(transactions, year, month) {
         }
         // モジュール変数にキャッシュ
         _aiAdviceCache = { answer, question: q, ts: now.toISOString(), year, month };
+        _saveAutoAdviceToStorage(_aiAdviceCache);
         // 残り回数バッジを更新
         DB.getUserPlan().catch(() => 'free').then(async plan => {
           if (plan === 'premium' || plan === 'admin') return;
