@@ -7,17 +7,17 @@ import { supabase } from './config.js';
 import { Sound } from './sound.js';
 
 const LAST_SEEN_KEY = 'flowra_announce_last_seen';
-const LIST_LIMIT = 30;
+const PAGE_SIZE = 20; // 1回の取得件数（「もっと見る」で追加読み込み）
 
 export const Announcements = {
 
-  // お知らせ一覧を取得（新しい順）
-  async list() {
+  // お知らせ一覧をページ単位で取得（新しい順）。offsetは0始まり。
+  async listPage(offset = 0) {
     const { data, error } = await supabase
       .from('announcements')
       .select('id, title, body, created_at')
       .order('created_at', { ascending: false })
-      .limit(LIST_LIMIT);
+      .range(offset, offset + PAGE_SIZE - 1);
     if (error) { console.error('お知らせ取得エラー:', error); return []; }
     return data || [];
   },
@@ -31,8 +31,9 @@ export const Announcements = {
   },
 
   // 未読件数を計算（lastSeenより新しいものをカウント。未取得なら全件未読扱い）
+  // バッジは最大9+でまとめて表示するため、直近1ページ分のチェックで十分。
   async getUnreadCount() {
-    const items = await this.list();
+    const items = await this.listPage(0);
     if (items.length === 0) return 0;
     const lastSeen = this.getLastSeenAt();
     if (!lastSeen) return items.length;
@@ -102,27 +103,58 @@ export const Announcements = {
       else { panel.style.transform = ''; panel.style.transition = 'transform 0.2s ease'; }
     }, { passive: true });
 
-    const items = await this.list();
     const listEl = document.getElementById('announce-list');
-    if (!listEl) return; // パネルが既に閉じられていた場合
+    let offset = 0;
+    let markedRead = false;
 
-    if (items.length === 0) {
-      listEl.innerHTML = '<div style="text-align:center;color:var(--mid-lt);font-size:13px;padding:40px 0;">お知らせはまだありません</div>';
-    } else {
-      listEl.innerHTML = items.map(a => {
-        const d = new Date(a.created_at);
-        const dateStr = d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
-        return '<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">'
-          + '<div style="font-size:11px;color:var(--mid-lt);margin-bottom:4px;">' + dateStr + '</div>'
-          + '<div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:6px;">' + escapeHtml(a.title) + '</div>'
-          + '<div style="font-size:13px;color:var(--mid);white-space:pre-wrap;line-height:1.6;">' + escapeHtml(a.body) + '</div>'
-          + '</div>';
-      }).join('');
+    const renderItem = a => {
+      const d = new Date(a.created_at);
+      const dateStr = d.getFullYear() + '/' + (d.getMonth() + 1) + '/' + d.getDate();
+      return '<div style="background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;">'
+        + '<div style="font-size:11px;color:var(--mid-lt);margin-bottom:4px;">' + dateStr + '</div>'
+        + '<div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:6px;">' + escapeHtml(a.title) + '</div>'
+        + '<div style="font-size:13px;color:var(--mid);white-space:pre-wrap;line-height:1.6;">' + escapeHtml(a.body) + '</div>'
+        + '</div>';
+    };
 
-      // 一番新しいお知らせの時刻を既読として保存し、バッジを消す
-      this.setLastSeenAt(items[0].created_at);
-      this.refreshBadge();
-    }
+    const loadMore = async () => {
+      const items = await this.listPage(offset);
+      if (!document.getElementById('announce-list')) return; // パネルが既に閉じられていた場合
+
+      document.getElementById('announce-more-wrap')?.remove();
+
+      if (offset === 0 && items.length === 0) {
+        listEl.innerHTML = '<div style="text-align:center;color:var(--mid-lt);font-size:13px;padding:40px 0;">お知らせはまだありません</div>';
+        return;
+      }
+      if (offset === 0) listEl.innerHTML = '';
+
+      listEl.insertAdjacentHTML('beforeend', items.map(renderItem).join(''));
+
+      // 最初の1件目（一番新しいお知らせ）を既読として保存し、バッジを消す
+      if (!markedRead && items.length > 0) {
+        markedRead = true;
+        this.setLastSeenAt(items[0].created_at);
+        this.refreshBadge();
+      }
+
+      offset += items.length;
+
+      // 取得件数がPAGE_SIZEちょうど＝まだ続きがある可能性が高い→もっと見るボタンを表示
+      if (items.length === PAGE_SIZE) {
+        const moreWrap = document.createElement('div');
+        moreWrap.id = 'announce-more-wrap';
+        moreWrap.style.cssText = 'text-align:center;padding:8px 0 16px;';
+        moreWrap.innerHTML = '<button id="btn-announce-more" style="padding:8px 20px;background:none;border:1.5px solid var(--border);border-radius:20px;font-size:13px;color:var(--mid);cursor:pointer;">もっと見る</button>';
+        listEl.appendChild(moreWrap);
+        document.getElementById('btn-announce-more').addEventListener('click', () => {
+          document.getElementById('btn-announce-more').textContent = '読み込み中...';
+          loadMore();
+        });
+      }
+    };
+
+    await loadMore();
   },
 };
 
