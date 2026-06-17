@@ -14,6 +14,14 @@ import { showOnboardingForReplay } from './onboarding.js';
 // 予算保存関数をモジュール変数で保持（DOMプロパティは不安定なため）
 let _currentSaveBudgetsFn = null;
 
+// renderSettings()は複数のawaitを挟むため、設定タブを連打したりプルトゥリフレッシュを
+// 連続実行すると複数の呼び出しが同時に進行することがある。
+// その場合、後から開始した呼び出しがDOMを丸ごと上書きした後に、先行する呼び出しが
+// 同じid（plan-badge等）の要素へ追記してしまい、プランバッジ等が二重・多重表示される。
+// このシーケンス番号で「自分が最新の呼び出しか」をawait直後に毎回チェックし、
+// 古い呼び出しはDOM書き込みを行わずに中断する。
+let _settingsRenderSeq = 0;
+
 function openSubPage(title, renderFn, { showSave = false, onSave = null, onAdd = null } = {}) {
   document.getElementById('settings-subpage')?.remove();
 
@@ -91,6 +99,9 @@ function openSubPage(title, renderFn, { showSave = false, onSave = null, onAdd =
 }
 
 export async function renderSettings() {
+  // 自分の呼び出し番号を確保。以降、await直後に毎回これが最新かを確認する
+  const mySeq = ++_settingsRenderSeq;
+
   const content = document.getElementById('page-content');
   content.innerHTML = '<div class="spinner"></div>';
 
@@ -101,20 +112,25 @@ export async function renderSettings() {
       DB.getTags(),
       DB.getAllTeams(),
     ]);
+    if (mySeq !== _settingsRenderSeq) return; // 後続の呼び出しが走っているため中断
     await putTags(tags);
+    if (mySeq !== _settingsRenderSeq) return;
 
     const ownEntry  = allTeams.find(t => t.role === 'owner');
     const ownTeamId = ownEntry?.team_id;
     const ownTeam   = ownTeamId ? await DB.getTeamById(ownTeamId) : null;
+    if (mySeq !== _settingsRenderSeq) return;
     const userPlan  = await DB.getUserPlan();
+    if (mySeq !== _settingsRenderSeq) return;
 
     // メンバー情報なしで先に描画（画面揺れを防ぐためスペーサーを確保）
-    renderSettingsContent(content, user, ownTeam, ownTeamId, tags, [], [], userPlan);
+    renderSettingsContent(content, user, ownTeam, ownTeamId, tags, [], [], userPlan, mySeq);
 
     // メンバー情報はバックグラウンドで取得して差し込む
     const ownMembers = ownTeamId
       ? await DB.getTeamMemberProfilesForTeam(ownTeamId)
       : [];
+    if (mySeq !== _settingsRenderSeq) return;
     const joinedEntries = allTeams.filter(t => t.role !== 'owner');
     const joinedTeams = await Promise.all(
       joinedEntries.map(async e => {
@@ -122,11 +138,13 @@ export async function renderSettings() {
         return { entry: e, members };
       })
     );
+    if (mySeq !== _settingsRenderSeq) return;
 
     // メンバーリストだけ更新（画面全体を再描画しない）
     updateMembersSection(ownTeamId, ownMembers, joinedTeams, tags);
 
   } catch (e) {
+    if (mySeq !== _settingsRenderSeq) return; // 古い呼び出しのエラー表示で最新画面を消さない
     content.innerHTML = '<div class="empty-state"><div class="empty-state-title">エラー: ' + e.message + '</div></div>';
   }
 }
@@ -842,7 +860,7 @@ function setupSettingsDynamicEvents(content, user, ownTeam, ownTeamId, tags, own
   setupTagBudgetPageEvents(tags);
 }
 
-async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ownMembers = [], joinedTeams = [], userPlan = "free") {
+async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ownMembers = [], joinedTeams = [], userPlan = "free", renderSeq = null) {
   content.innerHTML = `
     <!-- プロフィール -->
     <div class="panel" style="margin-bottom:16px;">
@@ -1011,6 +1029,13 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
     }
   } catch(_) {}
 
+  // ここまでにawaitを挟んでいるため、設定タブ連打やプルトゥリフレッシュ連続実行で
+  // 後から開始した呼び出しがcontent.innerHTMLを丸ごと上書きしている可能性がある。
+  // その場合、この古い呼び出しがdocument.getElementById('plan-badge')で取得する要素は
+  // 新しい呼び出しが描画した要素になってしまい、そこへ追記すると二重表示になる。
+  // 古い呼び出しはここで中断し、以降のDOM書き込み・イベント登録を行わない。
+  if (renderSeq !== null && renderSeq !== _settingsRenderSeq) return;
+
   // 予算件数ラベル（非同期で取得）
   // タグ管理・予算管理ページ遷移（初回描画時）
   setupTagBudgetPageEvents(tags);
@@ -1043,6 +1068,8 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
     const badgeColor = isPremium ? 'var(--sage)' : 'var(--mid-lt)';
     const badgeBg    = isPremium ? 'rgba(74,124,89,0.1)' : 'var(--stone)';
     const badgeText  = isPremium ? '✦ Premium' : 'Free';
+    // 追記前に必ずクリアしておく（何らかの理由で複数回呼ばれても多重表示にならないための保険）
+    planBadgeEl.innerHTML = '';
     const span = document.createElement('span');
     span.style.cssText = 'font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;color:' + badgeColor + ';background:' + badgeBg;
     span.textContent = badgeText;
@@ -1067,6 +1094,8 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
       DB.getAiUsageThisMonth(),
       DB.getReceiptUsageThisMonth(),
     ]);
+    // 上のawaitでも新しい呼び出しに先行されている可能性があるため再チェック
+    if (renderSeq !== null && renderSeq !== _settingsRenderSeq) return;
 
     function usageBar(label, count, limit) {
       const pct      = Math.min(100, Math.round(count / limit * 100));
