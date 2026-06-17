@@ -1064,10 +1064,11 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
   const planBadgeEl = document.getElementById('plan-badge');
   const planBtnEl   = document.getElementById('btn-manage-plan');
   if (planBadgeEl) {
-    const isPremium = userPlan === 'premium' || userPlan === 'admin';
+    const isAdmin   = userPlan === 'admin';
+    const isPremium = userPlan === 'premium' || isAdmin;
     const badgeColor = isPremium ? 'var(--sage)' : 'var(--mid-lt)';
     const badgeBg    = isPremium ? 'rgba(74,124,89,0.1)' : 'var(--stone)';
-    const badgeText  = isPremium ? '✦ Premium' : 'Free';
+    const badgeText  = isAdmin ? '✦ Admin' : isPremium ? '✦ Premium' : 'Free';
     // 追記前に必ずクリアしておく（何らかの理由で複数回呼ばれても多重表示にならないための保険）
     planBadgeEl.innerHTML = '';
     const span = document.createElement('span');
