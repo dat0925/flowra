@@ -17,6 +17,7 @@ serve(async (req) => {
       tagBreakdown = [],
       budgets = [],
       prevIncome = 0, prevExpense = 0, prevTagBreakdown = [],
+      avgIncome = 0,    // 過去の確定済み月の平均収入（給料未入金による誤判定を防ぐための参考値）
       todayDate,        // 例: 3  (何日時点か)
       daysInMonth,      // 例: 30
       fixedCostTags = [], // 過去3ヶ月の推移から固定費と推定されたタグ名の配列
@@ -30,6 +31,7 @@ serve(async (req) => {
     const elapsed  = Math.round((today / totalDays) * 100);
     const isEarly  = today <= 10;
     const isMid    = today > 10 && today <= 20;
+    const isLate   = !isEarly && !isMid;
     const monthContext = isEarly
       ? `今日は${month}月${today}日で月初（月の約${elapsed}%経過）。まだデータが少ないため、月全体の評価は控えて現時点の傾向だけコメントすること。`
       : isMid
@@ -51,16 +53,20 @@ serve(async (req) => {
       ? `\n- 支出内訳に「（固定費）」と付いているタグは毎月ほぼ一定で本人が変えにくい支出のため、節約提案や改善提案の対象にしない。食費・交際費・娯楽費など変動費・裁量支出に絞って提案すること。`
       : "";
 
+    const incomeTimingNote = (avgIncome > 0 && income < avgIncome * 0.5 && !isLate)
+      ? `\n- 重要: 今月の収入（¥${income.toLocaleString()}）が過去の平均月収入（¥${avgIncome.toLocaleString()}）の半分未満で、まだ月末でない。これは赤字が確定したわけではなく、給料等の入金がまだ反映されていないだけの可能性が高い。「収入が少なく赤字」と断定せず、入金タイミングの可能性を踏まえて慎重にコメントすること。`
+      : "";
+
     const systemPrompt = `あなたは家計アドバイザーです。夫婦・カップルの家計データを見て、短く・具体的・ポジティブなアドバイスをします。
 - 回答は2〜3文以内。箇条書き不可。数字を使って具体的に。
 - 月途中なら月全体の評価・予測をしない。現時点の傾向だけ述べる。
-- 収入がある月はそれを踏まえてコメントする（収入を無視して赤字と言わない）。${fixedCostNote}
+- 収入がある月はそれを踏まえてコメントする（収入を無視して赤字と言わない）。${fixedCostNote}${incomeTimingNote}
 - 日本語で答える。`;
 
     const prompts: Record<string, string> = {
       monthly: `${monthContext}
 収入: ¥${income.toLocaleString()}、支出: ¥${expense.toLocaleString()}、収支: ¥${(income - expense).toLocaleString()}
-支出内訳:\n${tagLines || "  データなし"}
+${avgIncome > 0 ? `参考: 過去の月平均収入は¥${avgIncome.toLocaleString()}程度です。\n` : ""}支出内訳:\n${tagLines || "  データなし"}
 この状況を2〜3文で一言コメントしてください。`,
 
       compare: `${monthContext}

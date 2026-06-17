@@ -607,6 +607,30 @@ function setupAiSummary(transactions, year, month) {
     }
   }
 
+  // 過去の確定済み月の平均収入を推定（給料未入金による「無収入っぽい」誤判定を防ぐための参考値）
+  // 収入が0だった月（記録漏れ等の可能性）は平均から除外する
+  async function estimateAvgIncome(currentYear, currentMonth) {
+    try {
+      const months = [];
+      for (let i = 1; i <= 3; i++) {
+        let m = currentMonth - i;
+        let y = currentYear;
+        if (m <= 0) { m += 12; y -= 1; }
+        months.push({ year: y, month: m });
+      }
+      const results = await Promise.all(
+        months.map(({ year, month }) => DB.getTransactions({ year, month, pageSize: 500 }))
+      );
+      const monthlyIncomes = results
+        .map(r => (r.data || []).filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0))
+        .filter(v => v > 0);
+      if (monthlyIncomes.length === 0) return 0;
+      return Math.round(monthlyIncomes.reduce((s, v) => s + v, 0) / monthlyIncomes.length);
+    } catch {
+      return 0;
+    }
+  }
+
   // Edge Function呼び出し（使用回数チェック付き）
   async function callAI(question, data) {
     const plan = await DB.getUserPlan().catch(() => 'free');
@@ -742,16 +766,17 @@ function setupAiSummary(transactions, year, month) {
       }
     }, 12000);
 
-    callAI('monthly', {
+    estimateAvgIncome(year, month).then(avgIncome => callAI('monthly', {
       year, month, income, expense,
       tagBreakdown: getTagBreakdown(transactions),
       budgets: [],
       prevYear: month === 1 ? year - 1 : year,
       prevMonth: month === 1 ? 12 : month - 1,
       prevIncome: 0, prevExpense: 0, prevTagBreakdown: [],
+      avgIncome,
       todayDate: new Date().getDate(),
       daysInMonth: new Date(year, month, 0).getDate(),
-    }).then(answer => {
+    })).then(answer => {
       clearTimeout(tid);
       const el = document.getElementById('ai-auto-answer');
       if (el) el.innerHTML = answer.split('\n').join('<br>');
