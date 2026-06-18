@@ -34,6 +34,22 @@ Stripe サンドボックス → 本番切り替え手順（実施済み）：
 5. **テストデータのクリーンアップ**
    - `user_plans` テーブルのテスト決済で作られた Stripe Customer ID を削除 or 本番 ID に差し替え（要確認: 完了済みか未確認）
 
+### ⚠️ インシデント: 本番Webhookエンドポイントが未登録だった（2026-06-18）
+
+Stripeから「Taskraアカウントに関連付けられたWebhookエンドポイントへの送信に失敗し続けている」という
+メールが届いた。メール本文の「Taskraアカウント」はStripeアカウント名（複数アプリで共通の
+Stripeアカウントを使っているため）であり、記載されたURL（`copyzpsyagscqrvkrwjo.supabase.co/...`）から
+Flowraの話だと判断した。
+
+調査の結果、原因は署名シークレットの不一致などではなく、**本番（Live）モードの送信先（Webhook
+エンドポイント）がそもそも1件も登録されていなかった**こと。上記チェックリストの「1. Webhook
+エンドポイントを登録」が、本番移行時に実施されていなかったと見られる。
+
+対応：本人がStripeダッシュボード（Liveモード）で新規にWebhookエンドポイントを作成。
+- URL: `https://copyzpsyagscqrvkrwjo.supabase.co/functions/v1/stripe-webhook`
+- イベント: `checkout.session.completed` / `customer.subscription.created` / `customer.subscription.updated` / `customer.subscription.deleted`
+- 発行された署名シークレットをSupabase Secretsの`STRIPE_WEBHOOK_SECRET`に設定し、`stripe-webhook`を再デプロイ済み
+
 ---
 
 ## プロジェクト概要
