@@ -34,21 +34,43 @@ Stripe サンドボックス → 本番切り替え手順（実施済み）：
 5. **テストデータのクリーンアップ**
    - `user_plans` テーブルのテスト決済で作られた Stripe Customer ID を削除 or 本番 ID に差し替え（要確認: 完了済みか未確認）
 
-### ⚠️ インシデント: 本番Webhookエンドポイントが未登録だった（2026-06-18）
+### ⚠️ インシデント: 本番Webhookエンドポイントが未登録だった → 実は4層のバグが重なっていた（2026-06-18）
 
 Stripeから「Taskraアカウントに関連付けられたWebhookエンドポイントへの送信に失敗し続けている」という
 メールが届いた。メール本文の「Taskraアカウント」はStripeアカウント名（複数アプリで共通の
 Stripeアカウントを使っているため）であり、記載されたURL（`copyzpsyagscqrvkrwjo.supabase.co/...`）から
 Flowraの話だと判断した。
 
-調査の結果、原因は署名シークレットの不一致などではなく、**本番（Live）モードの送信先（Webhook
-エンドポイント）がそもそも1件も登録されていなかった**こと。上記チェックリストの「1. Webhook
-エンドポイントを登録」が、本番移行時に実施されていなかったと見られる。
+調査・対応する過程で、根本原因が1つではなく**4層重なっていた**ことが分かった。1つ直しても次の層で
+別のエラーが出る、という形で発覚していった。
 
-対応：本人がStripeダッシュボード（Liveモード）で新規にWebhookエンドポイントを作成。
-- URL: `https://copyzpsyagscqrvkrwjo.supabase.co/functions/v1/stripe-webhook`
-- イベント: `checkout.session.completed` / `customer.subscription.created` / `customer.subscription.updated` / `customer.subscription.deleted`
-- 発行された署名シークレットをSupabase Secretsの`STRIPE_WEBHOOK_SECRET`に設定し、`stripe-webhook`を再デプロイ済み
+1. **本番（Live）モードの送信先（Webhookエンドポイント）がそもそも1件も登録されていなかった**
+   - 本番移行チェックリストの「Webhookエンドポイントを登録」が実施されていなかったと見られる
+   - 対応: 新規にWebhookエンドポイントを作成
+     - URL: `https://copyzpsyagscqrvkrwjo.supabase.co/functions/v1/stripe-webhook`
+     - イベント: `checkout.session.completed` / `customer.subscription.created` / `customer.subscription.updated` / `customer.subscription.deleted`
+
+2. **`user_plans`テーブルに`stripe_customer_id`列が存在しなかった**
+   - `stripe-webhook`のコードは決済完了時に`stripe_customer_id`を書き込み、解約・プラン変更時はその列で
+     検索する前提だが、列自体が無いため更新が失敗していた。コードが`if (error) console.error(...)`で
+     処理を止めない作りだったため、**Stripeには200 OKが返るのに実際の更新は静かに失敗する**状態だった
+   - Taskra側の実装を流用した際、Flowra側のテーブル作成でこの列を作り忘れたのが原因と見られる
+   - 対応: `ALTER TABLE user_plans ADD COLUMN IF NOT EXISTS stripe_customer_id text;`
+
+3. **SupabaseのJWT検証（Verify JWT）がデフォルトで有効になっていた**
+   - StripeはSupabase独自の認証トークンを知らないため、`stripe-webhook`のコードが実行される前に
+     Supabaseのゲートウェイ自体に401（`UNAUTHORIZED_NO_AUTH_HEADER`）で弾かれていた
+   - 対応: Edge Functions → `stripe-webhook` → Settings → 「Verify JWT with legacy secret」をOFFに変更
+
+4. **`STRIPE_WEBHOOK_SECRET`が新しいエンドポイントの署名シークレットと一致していなかった**
+   - 上記1〜3を直した後も400エラー（`No signatures found matching the expected signature`）が発生
+   - 対応: Webhookエンドポイントの「署名シークレット」（`whsec_...`）を再コピーし、Supabase Secretsの
+     `STRIPE_WEBHOOK_SECRET`を上書き→`stripe-webhook`を再デプロイ
+
+最終的に「再送する」で`customer.subscription.deleted`イベントが「送信済み（回復済み）」となり、
+`kyoka.endo1006@gmail.com`の`user_plans`が`plan=free`・`stripe_customer_id`に実際のIDが入った状態に
+正しく更新されたことを確認して解決。残っていた約25件の失敗イベントはStripeが自動で再送するため、
+追加対応は不要と判断。
 
 ---
 
