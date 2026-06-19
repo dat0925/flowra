@@ -30,15 +30,28 @@ Deno.serve(async (req) => {
 
   const sb = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+  // email → user_id を引く（listUsers はデフォルト50件/ページのため必ずページ送りする）
+  // ユーザーが50人を超えると先頭ページしか見ず照合に失敗し得るため全件走査する
+  async function findUserIdByEmail(email: string): Promise<string | null> {
+    const target = email.trim().toLowerCase();
+    for (let page = 1; page <= 20; page++) {
+      const { data, error } = await sb.auth.admin.listUsers({ page, perPage: 200 });
+      if (error) { console.error('listUsers error:', error.message); return null; }
+      const users = data?.users ?? [];
+      const found = users.find((u) => (u.email ?? '').toLowerCase() === target);
+      if (found) return found.id;
+      if (users.length < 200) break; // 最終ページ
+    }
+    return null;
+  }
+
   // user_id を解決するヘルパー
   // client_reference_id にSupabase user_idが埋め込まれている前提
   // なければ email → auth.users から user_id を引く
   async function resolveUserId(userId: string | null, email: string | null): Promise<string | null> {
     if (userId) return userId;
     if (!email) return null;
-    const { data } = await sb.auth.admin.listUsers();
-    const found = data?.users?.find((u) => u.email === email);
-    return found?.id ?? null;
+    return await findUserIdByEmail(email);
   }
 
   try {
@@ -53,15 +66,35 @@ Deno.serve(async (req) => {
         const refUserId = session.client_reference_id || null;
         const email = session.customer_details?.email ?? session.customer_email ?? null;
 
+        // ログイン中ユーザー(client_reference_id)と決済者(email)の食い違いを可視化する
+        // 例:「梗華のIDでリンクを開いたが、支払いは別人のカード/メール」
+        // 挙動は変えず(ref優先のまま)、ログだけ残して後から追えるようにする
+        if (refUserId && email) {
+          const emailUserId = await findUserIdByEmail(email);
+          if (emailUserId && emailUserId !== refUserId) {
+            console.warn(
+              `client_reference_id mismatch (checkout): ref=${refUserId} payerEmail=${email} emailUser=${emailUserId} session=${session.id} -> using ref`
+            );
+          }
+        }
+
         const userId = await resolveUserId(refUserId, email);
-        if (!userId) { console.error('user_id not found', session.id); break; }
+        if (!userId) {
+          // 静かにbreakせず必ず記録する（決済成功なのにuser_plans未更新を検知可能にする）
+          console.error(
+            `user_id NOT FOUND (checkout): session=${session.id} ref=${refUserId} email=${email} customer=${customerId} -> plan NOT updated`
+          );
+          break;
+        }
 
         const lineItems = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 });
         const priceId   = lineItems.data[0]?.price?.id ?? '';
         const plan      = PRICE_PLAN[priceId] ?? 'premium';
 
+        // 有料プランは無期限（解約は subscription.deleted が担当）。
+        // 過去の手動付与で残った expires_at を必ずクリアする（残っているとpremiumでもfree扱いになる）
         const { error } = await sb.from('user_plans').upsert(
-          { user_id: userId, plan, stripe_customer_id: customerId, updated_at: new Date().toISOString() },
+          { user_id: userId, plan, stripe_customer_id: customerId, expires_at: null, updated_at: new Date().toISOString() },
           { onConflict: 'user_id' }
         );
         if (error) console.error('upsert error (checkout):', error.message);
@@ -83,10 +116,15 @@ Deno.serve(async (req) => {
         const refUserId = (customer.metadata?.supabase_uid) || null;
 
         const userId = await resolveUserId(refUserId, email);
-        if (!userId) { console.error('user_id not found for customer', customerId); break; }
+        if (!userId) {
+          console.error(
+            `user_id NOT FOUND (sub created): customer=${customerId} uid=${refUserId} email=${email} -> plan NOT updated`
+          );
+          break;
+        }
 
         const { error } = await sb.from('user_plans').upsert(
-          { user_id: userId, plan, stripe_customer_id: customerId, updated_at: new Date().toISOString() },
+          { user_id: userId, plan, stripe_customer_id: customerId, expires_at: null, updated_at: new Date().toISOString() },
           { onConflict: 'user_id' }
         );
         if (error) console.error('upsert error (sub created):', error.message);
@@ -98,11 +136,17 @@ Deno.serve(async (req) => {
       case 'customer.subscription.deleted': {
         const sub        = event.data.object as Stripe.Subscription;
         const customerId = sub.customer as string;
-        const { error } = await sb.from('user_plans')
+        const { data, error } = await sb.from('user_plans')
           .update({ plan: 'free', updated_at: new Date().toISOString() })
-          .eq('stripe_customer_id', customerId);
+          .eq('stripe_customer_id', customerId)
+          .select();
         if (error) console.error('update error (sub deleted):', error.message);
-        else console.log('Downgraded to free: customer', customerId);
+        else if (!data || data.length === 0) {
+          // どの行にも当たらなかった = stripe_customer_id の紐付けズレの疑い。空振りを検知できるようにする
+          console.warn(`sub deleted but no user_plans row matched: customer=${customerId}`);
+        } else {
+          console.log('Downgraded to free: customer', customerId, `(${data.length} row)`);
+        }
         break;
       }
 
