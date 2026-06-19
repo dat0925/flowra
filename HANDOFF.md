@@ -1,6 +1,6 @@
 # Flowra 引き継ぎドキュメント
 
-最終更新: 2026-06-18
+最終更新: 2026-06-19
 
 ---
 
@@ -71,6 +71,64 @@ Flowraの話だと判断した。
 `kyoka.endo1006@gmail.com`の`user_plans`が`plan=free`・`stripe_customer_id`に実際のIDが入った状態に
 正しく更新されたことを確認して解決。残っていた約25件の失敗イベントはStripeが自動で再送するため、
 追加対応は不要と判断。
+
+### ⚠️ インシデント: 決済済みなのに設定画面がFree表示 → データ復旧＋Webhook強化（2026-06-19）
+
+**事象**: `kyoka.endo1006@gmail.com`（梗華さん・パートナー兼テスター）がPremiumを決済済みなのに、
+アプリの設定画面がFreeのままだった。
+
+**調査の流れ（再現性のため記録）**:
+1. `user_plans`を`auth.users`とJOINして梗華さんの行を確認 → **No rows**（彼女のプラン行が存在しない）
+2. `auth.users`単体では`kyoka.endo1006@gmail.com`（id: `cbae1645-afd5-4a7b-82fa-f96e48653857`）は実在・メール完全一致
+3. `user_plans`全行を確認 → 彼女のuser_idの行は無く、`cus_UjHLQd14dBkMQZ`は**管理者**（`mstd0520@gmail.com` / `6fa4c2af…`）の行に紐付いていた
+4. `auth.users`は全4人 → emailフォールバックの「listUsers先頭50件問題」は否定
+5. Stripe本番モードを確認:
+   - `cus_UjHLQd14dBkMQZ` は**管理者本人**の顧客（6/19にテスト決済したもの）。梗華さんのではない
+   - Stripe顧客検索で`kyoka.endo1006@gmail.com`が**複数ヒット**（同一メールで顧客が乱立）
+   - 「アクティブ」フィルタのサブスク一覧で有効サブスクは**2件のみ**: 管理者（`cus_UjHLQd14dBkMQZ`・6/19）と
+     梗華さん（`cus_UgiTBsh99FQVm7`・6/12開始・MRR¥398）
+   - 梗華さんの有効サブスクは`cus_UgiTBsh99FQVm7`の**1件だけ**（二重課金なし）
+
+**根本原因**: 梗華さんのサブスクは**6/12作成**だが、本番Webhookエンドポイントは**6/18まで未登録**だった
+（上記「本番Webhookエンドポイントが未登録だった」インシデント参照）。つまり彼女の
+`checkout.session.completed`は配信先が無く取りこぼされ、`user_plans`に行が作られなかった。
+コードのバグではなく**Webhook登録前の欠落**。
+
+**データ復旧手順（実施済み）**:
+```sql
+-- 梗華さんの行を作成（正しい有効サブスクの cus_ を使用）
+insert into user_plans (user_id, plan, stripe_customer_id, expires_at, updated_at)
+values ('cbae1645-afd5-4a7b-82fa-f96e48653857', 'premium', 'cus_UgiTBsh99FQVm7', null, now())
+on conflict (user_id) do update
+set plan='premium', stripe_customer_id=excluded.stripe_customer_id, expires_at=null, updated_at=now();
+```
+- 管理者はテスト決済を**解約**。解約Webhookで管理者行が`plan=free`に落ちたため、`admin`へ是正:
+```sql
+update user_plans set plan='admin', stripe_customer_id=null, expires_at=null, updated_at=now()
+where user_id='6fa4c2af-ea85-4207-aacc-538f6b481d66';
+```
+
+**この件で得た構造的な注意点**:
+- **Payment Linkは決済のたびに新規Stripe顧客を作る** → 同一メールで顧客が乱立する。テストを繰り返すと顕著。
+  「どれが本物か」の判断は**有効（active）サブスクの数・有無**だけで行えばよい（空の顧客は無視）。
+- 顧客の表示名とメールがちぐはぐになることがある（例: カード名義「MASAMUNE ENDO」＋メール`kyoka…`）。
+  名前ではなく**メール＋有効サブスク**で判断する。
+- `cus_` を `user_plans` に手動で入れる際は、**同じ`stripe_customer_id`が他の行に重複していないか**必ず確認。
+  重複すると`subscription.deleted`/`updated`の`.eq('stripe_customer_id', …)`が複数行に当たって事故る。
+
+**Webhook強化（`stripe-webhook/index.ts`・2026-06-19デプロイ済み）**:
+- `premium`化の両upsert（checkout / subscription.created）に **`expires_at: null` を明示追加**。
+  過去の手動付与で`expires_at`が過去日で残っていると、`getUserPlan`が「期限切れ→free」と誤判定する
+  潜在バグを根絶（有料サブスクは無期限・解約は`subscription.deleted`が担当）。
+- `user_id`解決失敗時に**静かにbreakせず、session/email/customerを含む詳細をconsole.errorに記録**。
+  「決済成功なのに`user_plans`未更新」を後から追えるようにした。
+- `client_reference_id`（ログイン中ユーザー）と決済者emailが**食い違う場合にconsole.warn**で可視化
+  （挙動はref優先のまま変更なし）。
+- emailフォールバックの`listUsers`を**ページ送り対応**（perPage:200で全件走査・将来50人超でも照合可能）。
+- `subscription.deleted`を`.select()`付きにし、**どの行にも当たらなかった空振りをconsole.warnで検知**。
+
+**教訓**: `user_plans`は`plan`だけでなく`expires_at`も効く。`expires_at`が過去だと
+premiumでもアプリ上freeになる。Webhookで有料化するときは`expires_at`を必ずnullにする。
 
 ---
 
