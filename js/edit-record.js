@@ -192,11 +192,16 @@ export async function openEditRecord(tx, onSave) {
             </div>
           </div>
           <div id="calc-expr" class="amount-card-sub"></div>
+          <!-- ⚠️ 電卓キーパッドは add-record.js にも同じ実装がある。片方を変更したら必ず両方を同期すること（過去に小数点ボタンが片側だけに入って消えたインシデントあり）-->
           <div style="display:flex;gap:6px;margin-top:12px;">
             <button id="calc-ac-btn"
               style="flex:1;padding:7px 0;border-radius:8px;border:none;
               background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.35);
               font-size:13px;font-weight:600;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">AC</button>
+            <button id="calc-dot-btn"
+              style="flex:1;padding:7px 0;border-radius:8px;border:none;
+              background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);
+              font-size:18px;font-weight:500;cursor:pointer;font-family:'Noto Sans JP',sans-serif;">．</button>
             ${['+','−','×','÷'].map(op => `
               <button class="calc-op-btn" data-op="${op}"
                 style="flex:1;padding:7px 0;border-radius:8px;border:none;
@@ -369,14 +374,23 @@ export async function openEditRecord(tx, onSave) {
     }
 
     function displayAmount(raw) {
-      const n = parseInt(String(raw).replace(/,/g,''), 10);
-      if (!isNaN(n) && n >= 0) {
-        amountInput.textContent = n === 0 ? '0' : n.toLocaleString('ja-JP');
-        state.amount = String(n);
-        adjustFontSize(String(n).length || 1);
+      const s = String(raw).replace(/,/g, '');
+      const hasDecimal = s.includes('.');
+      if (hasDecimal) {
+        // 小数点あり → そのまま表示（計算途中）
+        amountInput.textContent = s;
+        state.amount = s;
+        adjustFontSize(s.replace('.','').length);
       } else {
-        amountInput.textContent = '';
-        state.amount = '';
+        const n = parseInt(s, 10);
+        if (!isNaN(n) && n >= 0) {
+          amountInput.textContent = n === 0 ? '0' : n.toLocaleString('ja-JP');
+          state.amount = String(n);
+          adjustFontSize(String(n).length || 1);
+        } else {
+          amountInput.textContent = '';
+          state.amount = '';
+        }
       }
     }
 
@@ -392,19 +406,30 @@ export async function openEditRecord(tx, onSave) {
     adjustFontSize((state.amount || '').length);
 
     amountInput?.addEventListener('input', () => {
-      let raw = amountInput.textContent.replace(/,/g,'').replace(/[^0-9]/g,'');
+      // 小数点を許可（計算途中で使用、保存時にparseIntで整数化される）
+      let raw = amountInput.textContent.replace(/,/g,'').replace(/[^0-9.]/g,'');
+      // 小数点が複数ある場合は最初の1つだけ残す
+      const parts = raw.split('.');
+      if (parts.length > 2) raw = parts[0] + '.' + parts.slice(1).join('');
+
       if (waitingForNextInput) {
         waitingForNextInput = false;
         raw = raw.slice(-1);
         amountInput.textContent = raw;
       }
       state.amount = raw;
-      if (raw) {
-        amountInput.textContent = Number(raw).toLocaleString('ja-JP');
-        adjustFontSize(raw.length);
+      if (raw && raw !== '.') {
+        const hasDecimal = raw.includes('.');
+        if (hasDecimal) {
+          amountInput.textContent = raw;
+          adjustFontSize(raw.replace('.','').length);
+        } else {
+          amountInput.textContent = Number(raw).toLocaleString('ja-JP');
+          adjustFontSize(raw.length);
+        }
         moveCursorToEnd(amountInput);
-      } else {
-        amountInput.textContent = '';
+      } else if (!raw || raw === '.') {
+        if (raw !== '.') amountInput.textContent = '';
       }
     });
 
@@ -418,6 +443,19 @@ export async function openEditRecord(tx, onSave) {
       calcLeft = ''; calcOp = ''; waitingForNextInput = false;
       displayAmount(''); updateExpr();
       moveCursorToEnd(amountInput);
+    });
+
+    // 小数点ボタン
+    sheet.querySelector('#calc-dot-btn')?.addEventListener('mousedown', e => e.preventDefault());
+    sheet.querySelector('#calc-dot-btn')?.addEventListener('click', () => {
+      const cur = state.amount || '0';
+      // すでに小数点があれば追加しない
+      if (cur.includes('.')) return;
+      const newVal = cur + '.';
+      amountInput.textContent = newVal;
+      state.amount = newVal;
+      moveCursorToEnd(amountInput);
+      Sound.playTap();
     });
 
     sheet.querySelectorAll('.calc-op-btn').forEach(btn => {

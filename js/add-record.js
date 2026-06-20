@@ -182,6 +182,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
             </div>
           </div>
           <div id="calc-expr" class="amount-card-sub"></div>
+          <!-- ⚠️ 電卓キーパッドは edit-record.js にも同じ実装がある。片方を変更したら必ず両方を同期すること（過去に小数点ボタンが片側だけに入って消えたインシデントあり）-->
           <div style="display:flex;gap:6px;margin-top:12px;">
             <button id="calc-ac-btn"
               style="flex:1;padding:7px 0;border-radius:8px;border:none;
