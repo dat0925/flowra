@@ -239,6 +239,7 @@ export async function openEditRecord(tx, onSave) {
                 rows="1"
                 style="resize:none;overflow:hidden;line-height:1.5;padding-top:10px;padding-bottom:10px;"
               >${state.memo ? state.memo.replace(/</g,'&lt;').replace(/>/g,'&gt;') : ''}</textarea>
+              <div id="memo-links" style="display:none;flex-wrap:wrap;gap:6px;margin-top:8px;"></div>
             </div>
           </div>
 
@@ -500,9 +501,40 @@ export async function openEditRecord(tx, onSave) {
         el.style.height = el.scrollHeight + 'px';
       };
       autoResize(memoEl);
+
+      // メモ内のURLをタップ可能なリンクとして欄の下に表示する。
+      // textareaは編集領域なので中の文字を直接リンク化できない（タップでカーソルが入る）ため、
+      // URLを抽出して別途リンクチップを描画する方式にしている。
+      const linksEl = sheet.querySelector('#memo-links');
+      const renderMemoLinks = (text) => {
+        if (!linksEl) return;
+        linksEl.innerHTML = '';
+        const matches = (text || '').match(/https?:\/\/[^\s<>"'）)」』】、。]+/g) || [];
+        const seen = new Set();
+        matches.forEach(m => {
+          // 末尾に紛れ込みやすい記号を除去
+          const url = m.replace(/[.,;:)）」』】]+$/, '');
+          if (!url || seen.has(url)) return;
+          seen.add(url);
+          const a = document.createElement('a');
+          a.href = url;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          const shown = url.replace(/^https?:\/\//, '');
+          a.textContent = '🔗 ' + (shown.length > 36 ? shown.slice(0, 36) + '…' : shown);
+          a.style.cssText = 'display:inline-flex;align-items:center;max-width:100%;'
+            + 'font-size:12px;color:var(--sage);background:var(--sage-bg);'
+            + 'border:1px solid rgba(74,124,89,0.18);border-radius:8px;'
+            + 'padding:5px 10px;text-decoration:none;word-break:break-all;line-height:1.3;';
+          linksEl.appendChild(a);
+        });
+        linksEl.style.display = seen.size ? 'flex' : 'none';
+      };
+      renderMemoLinks(state.memo);
       memoEl.addEventListener('input', e => {
         state.memo = e.target.value;
         autoResize(e.target);
+        renderMemoLinks(e.target.value);
       });
     }
 
