@@ -86,6 +86,18 @@ export async function openEditRecord(tx, onSave) {
   }
   const isViewer = myRole === 'viewer';
 
+  // 取引が参照している口座がアーカイブ済み等でgetAccounts()に含まれない場合、
+  // 一覧（JOINされたtx.accountから名前を表示）と編集画面（getAccounts()のリストから探す）で
+  // 表示が食い違い、口座が割り当たっているのに「選択してください」と出てしまう。
+  // これを防ぐため、取引にJOINされている口座オブジェクトをリストに補完しておく。
+  const ensureAccount = (acc) => {
+    if (acc && acc.id && !accounts.some(a => a.id === acc.id)) {
+      accounts.push({ ...acc, is_archived: true });
+    }
+  };
+  ensureAccount(tx.account);
+  ensureAccount(tx.to_account);
+
   // sort_orderで並べて主タグが先頭になるようにする
   const txTags = (tx.tags || []).filter(t => t).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   let state = {

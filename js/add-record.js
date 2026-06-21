@@ -1299,6 +1299,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
   const defaultAccountId = accounts[0]?.id || '';
   let selectedAccountId = defaultAccountId;
   let receiptDate = date || new Date().toISOString().slice(0, 10);
+  let receiptStore = (store || '').trim();   // 店名は編集可能にする（保存時に各品目のメモへ反映）
 
   // budgetMap は上で取得済み
 
@@ -1379,10 +1380,10 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
       + '<button id="btn-receipt-cancel" style="width:30px;height:30px;border-radius:50%;background:var(--mist);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">'
       + '<svg viewBox="0 0 24 24" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
       + '</div>'
-      // 店名・日付
-      + '<div style="background:var(--stone);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">'
-      + '<div style="font-size:13px;font-weight:600;">' + (store || '店名不明') + '</div>'
-      + '<input type="date" id="receipt-date" value="' + receiptDate + '" style="font-size:12px;border:none;background:transparent;color:var(--sage-dk);font-weight:500;">'
+      // 店名（編集可）・日付
+      + '<div style="background:var(--stone);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;">'
+      + '<input type="text" id="receipt-store" value="' + receiptStore.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '" placeholder="店名（任意）" style="flex:1;min-width:0;font-size:13px;font-weight:600;border:none;background:transparent;color:var(--ink);">'
+      + '<input type="date" id="receipt-date" value="' + receiptDate + '" style="font-size:12px;border:none;background:transparent;color:var(--sage-dk);font-weight:500;flex-shrink:0;">'
       + '</div>'
       // 口座選択
       + '<div id="btn-receipt-acct" style="background:var(--stone);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;">'
@@ -1426,6 +1427,10 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
 
     document.getElementById('receipt-date')?.addEventListener('change', e => {
       receiptDate = e.target.value;
+    });
+
+    document.getElementById('receipt-store')?.addEventListener('input', e => {
+      receiptStore = e.target.value.trim();
     });
 
     document.getElementById('btn-receipt-acct')?.addEventListener('click', () => {
@@ -1477,7 +1482,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
             amount:     absAmount,
             date:       receiptDate,
             account_id: selectedAccountId,
-            memo:       store ? `${item.name}（${store}）` : item.name,
+            memo:       receiptStore ? `${item.name}（${receiptStore}）` : item.name,
           };
           const tagIds = [...item.tagIds];
           const tx = await DB.createTransaction(payload, tagIds);
