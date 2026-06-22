@@ -826,7 +826,7 @@ function showAccountPicker(accounts, currentId, callback) {
 
   const s = document.createElement('div');
   s.id = 'acct-picker-for-edit';
-  s.style.cssText = 'position:fixed;inset:0;z-index:700;background:rgba(28,43,34,0.45);display:flex;align-items:flex-end;justify-content:center;';
+  s.style.cssText = 'position:fixed;inset:0;z-index:1100;background:rgba(28,43,34,0.45);display:flex;align-items:flex-end;justify-content:center;';
 
   const itemsHTML = accounts.map(a => {
     const bg     = TYPE_BG[a.type]    || '#F0EDE8';
@@ -849,7 +849,7 @@ function showAccountPicker(accounts, currentId, callback) {
   }).join('');
 
   s.innerHTML = `
-    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;max-height:92vh;overflow-y:auto;padding-bottom:120px;-webkit-overflow-scrolling:touch;">
+    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;max-height:92vh;overflow-y:auto;padding-bottom:calc(120px + env(safe-area-inset-bottom));-webkit-overflow-scrolling:touch;">
       <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 0;"></div>
       <div style="padding:14px 18px 10px;font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">口座を選択</div>
       <div style="background:#fff;border-radius:14px;margin:0 14px;overflow:hidden;border:1px solid var(--border);">

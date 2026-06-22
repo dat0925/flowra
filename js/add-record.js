@@ -624,7 +624,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
     const sheet = document.createElement('div');
     sheet.id = sheetId;
     sheet.style.cssText = `
-      position:fixed;inset:0;z-index:700;
+      position:fixed;inset:0;z-index:1100;
       background:rgba(28,43,34,0.45);
       display:flex;align-items:flex-end;justify-content:center;
     `;
@@ -641,7 +641,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
             </button>
           </div>
         </div>
-        <div style="overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 14px 32px;flex:1;min-height:0;">
+        <div style="overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 14px calc(40px + env(safe-area-inset-bottom));flex:1;min-height:0;">
           <div style="background:#fff;border-radius:14px;overflow:hidden;border:1px solid var(--border);">
             ${itemsHTML}
           </div>
