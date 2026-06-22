@@ -210,6 +210,16 @@ async function renderContent(content, accounts, transactions, year, month, fromC
           <div class="s-accent-line"></div>
         </div>
       </div>
+      <div style="text-align:right;margin-top:6px;padding-right:2px;">
+        <span style="font-size:11px;color:var(--mid);">収支　</span>
+        ${hidden
+          ? '<span style="font-size:12px;color:var(--mid);letter-spacing:1px;">••••••</span>'
+          : (income - expense >= 0
+              ? '<span style="font-size:13px;font-weight:600;color:var(--sage);">+¥' + fmt(income - expense) + '</span>'
+              : '<span style="font-size:13px;font-weight:600;color:var(--red);">−¥' + fmt(expense - income) + '</span>'
+            )
+        }
+      </div>
     </div>`;
 
     // 予算進捗を取得して表示
