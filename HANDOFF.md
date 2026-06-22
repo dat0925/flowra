@@ -19,6 +19,22 @@ save-barの高さ＋セーフエリアを逃がせずスクロールしても隠
 - リスト下部paddingに`env(safe-area-inset-bottom)`を加味（add: `32px`→`calc(40px + safe-area)`、edit: `120px`→`calc(120px + safe-area)`）。
 - z-index序列の確認: トースト`9000` / スプラッシュ`9999`はピッカー`1100`より上に残るため競合なし。
 
+### ♻️ リファクタ: 口座選択ピッカーを共通モジュールに集約（2026-06-22）
+
+上記バグは「同じ口座ピッカーのコードが`add-record.js`と`edit-record.js`に重複しており、
+片方だけ直すと不整合になる」構造が遠因だったため、続けて共通化した。
+
+- 新規 `js/account-picker.js` を作成し、`showAccountPicker({ accounts, currentId, title, onSelect })`
+  をexport。両画面はこれをimportして呼ぶだけにした。
+- 重複していた`TYPE_PATH`/`TYPE_COLOR`/`TYPE_BG`と`fmt`は共通モジュール側に集約し、各ファイルから削除。
+  色定義は両者の**完全版（`savings`の色・背景を含む方）**に統一したため、add画面でも貯蓄系口座が
+  グレーではなく緑系で表示されるようになった（軽微なUI改善）。
+- 呼び出しは引数オブジェクト方式に変更。タイトルは単一/出元=「口座を選択」、移動先=「移動先の口座」。
+  edit画面の移動先も従来「口座を選択」だったのを「移動先の口座」に統一。
+- 差分: 2ファイルで +14 / −156行。今後ピッカーを直すときは`js/account-picker.js`の1箇所だけでよい。
+- 注意: `account-picker.js`は`type="module"`のimportで自動取得される（index.htmlへの`<script>`追加は不要）。
+
+
 ## ✅ Stripe 本番移行（2026-06-18 完了）
 
 2026-06-18にユーザー確認のもと本番移行完了。当初このチェックリストは「LPのPayment Linkがまだサンドボックス」という前提で書かれていたが、確認した時点で`lp/index.html`のリンク（`https://buy.stripe.com/00w00i1Rx4Lwbmy2c3fQI02`）に`test_`プレフィックスが付いていない（本番形式）ことに気づき、本人に確認したところ「ストライプは本番決済移行完了」と回答を得た。下記は完了済みの手順として記録として残す。
