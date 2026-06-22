@@ -12,6 +12,7 @@ import {
 } from './cache.js';
 import { openEditRecord } from './edit-record.js';
 import { supabase }     from './config.js';
+import { loadProjections } from './projection.js';
 
 const PAGE_SIZE = 50;
 
@@ -437,6 +438,33 @@ async function renderContent(content, accounts, transactions, year, month, fromC
   });
 
   if (_hasMore) setupInfiniteScroll(year, month);
+
+  // 総残高を「現在（未来分を除外）」に補正し、差があれば月末予定を表示
+  patchTotalProjection(accounts, hidden);
+}
+
+// 総残高（#s-total-amount）を現在残高に補正し、月末予定のサブ行を差し込む。
+// 即時描画を妨げないよう非同期パッチ。残高非表示中は何もしない。
+async function patchTotalProjection(accounts, hidden) {
+  if (hidden) return;
+  let proj;
+  try { proj = await loadProjections(accounts); } catch { proj = null; }
+  if (!proj) return;
+
+  const amtEl = document.getElementById('s-total-amount');
+  if (!amtEl) return; // 既に別の月へ再描画された
+  const tc = proj.totalCurrent;
+  amtEl.innerHTML = tc < 0
+    ? '<span class="s-currency" style="color:rgba(255,255,255,0.5)">−¥</span><span class="s-number">' + fmt(Math.abs(tc)) + '</span>'
+    : '<span class="s-currency">¥</span><span class="s-number">' + fmt(tc) + '</span>';
+
+  if (proj.totalHasFuture) {
+    const subEl = document.querySelector('#s-card-total .s-sub');
+    if (subEl) {
+      const sign = proj.totalProjected < 0 ? '−¥' : '¥';
+      subEl.innerHTML = `全口座合計　·　月末予定 <span style="font-weight:600;">${sign}${fmt(Math.abs(proj.totalProjected))}</span>`;
+    }
+  }
 }
 
 // バックグラウンド差分同期

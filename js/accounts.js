@@ -5,6 +5,12 @@
 import { DB }        from './db.js';
 import { fmt, showToast, openModal, closeModal } from './app.js';
 import { getCachedAccounts, putAccounts, removeAccount } from './cache.js';
+import { loadProjections } from './projection.js';
+
+// 直近に計算した projection（口座編集モーダルが現在残高/未来分を参照する）
+let _proj = null;
+// 符号付き¥表記
+const yenSigned = (n) => (n < 0 ? '−¥' : '¥') + fmt(Math.abs(n));
 
 const ACCT_TYPES = [
   { value: 'cash',   label: '現金' },
@@ -82,7 +88,9 @@ export async function renderAccounts() {
   try {
     const accounts = await DB.getAccounts();
     await putAccounts(accounts);
-    renderAccountsContent(content, accounts);
+    // 未来取引を加味した現在残高/月末予定を計算（失敗時は null → 従来表示）
+    _proj = await loadProjections(accounts);
+    renderAccountsContent(content, accounts, _proj);
   } catch (e) {
     if (cachedAccounts.length === 0) {
       content.innerHTML = `<div class="empty-state"><div class="empty-state-title">エラー: ${e.message}</div></div>`;
@@ -91,14 +99,18 @@ export async function renderAccounts() {
   }
 }
 
-async function renderAccountsContent(content, accounts) {
-    const total = accounts.reduce((s, a) => s + a.balance, 0);
-    const totalPositive = accounts.reduce((s, a) => s + (a.balance > 0 ? a.balance : 0), 0);
+async function renderAccountsContent(content, accounts, proj = null) {
+    // 表示用の「現在残高」（未来分を除外）。proj が無ければ従来どおり balance。
+    const balOf = (a) => proj?.byId.get(a.id)?.current ?? a.balance;
+    const total = accounts.reduce((s, a) => s + balOf(a), 0);
+    const totalPositive = accounts.reduce((s, a) => s + (balOf(a) > 0 ? balOf(a) : 0), 0);
 
     const itemsHTML = accounts.map((a, i) => {
-      const isNeg = a.balance < 0;
+      const bal = balOf(a);
+      const p   = proj?.byId.get(a.id);
+      const isNeg = bal < 0;
       // マイナス残高（クレカ等）はバー非表示
-      const pct = (!isNeg && totalPositive > 0) ? Math.min(100, a.balance / totalPositive * 100) : 0;
+      const pct = (!isNeg && totalPositive > 0) ? Math.min(100, bal / totalPositive * 100) : 0;
       const barColor = isNeg ? '#B83232' : (a.color && a.color.trim() ? a.color : '#4A7C59');
       const barHTML = pct > 0.4 ? `
         <div style="display:flex;align-items:center;gap:6px;margin-top:4px;margin-bottom:2px;">
@@ -107,6 +119,12 @@ async function renderAccountsContent(content, accounts) {
           </div>
           <span style="font-size:10px;font-weight:600;color:${isNeg?'var(--red)':'var(--mid)'};min-width:28px;text-align:right;">${pct.toFixed(0)}%</span>
         </div>` : `<div style="height:9px;"></div>`;
+
+      // 未来取引がある口座だけ「月末予定」を表示
+      const eomHTML = (p && p.hasFuture) ? `
+        <div style="text-align:right;font-size:11px;color:var(--mid);margin-top:1px;">
+          月末予定 <span style="font-weight:600;color:${p.projected<0?'var(--red)':'var(--ink)'};">${yenSigned(p.projected)}</span>
+        </div>` : '';
 
       return `
       <div class="acct-item has-bar" data-id="${a.id}" data-idx="${i}">
@@ -125,7 +143,7 @@ async function renderAccountsContent(content, accounts) {
           </div>
           <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
             <div class="acct-balance" style="color:${isNeg?'var(--red)':'var(--ink)'}">
-              ${isNeg ? '<span class="acct-balance-cur">−¥</span>' : '<span class="acct-balance-cur">¥</span>'}${fmt(Math.abs(a.balance))}
+              ${isNeg ? '<span class="acct-balance-cur">−¥</span>' : '<span class="acct-balance-cur">¥</span>'}${fmt(Math.abs(bal))}
             </div>
             <button class="btn-acct-edit" data-id="${a.id}"
               style="width:32px;height:32px;border-radius:9px;border:1px solid var(--border);background:var(--warm);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--mid);flex-shrink:0;">
@@ -136,6 +154,7 @@ async function renderAccountsContent(content, accounts) {
             </button>
           </div>
         </div>
+        ${eomHTML}
         ${barHTML}
       </div>`}).join('');
 
@@ -147,6 +166,11 @@ async function renderAccountsContent(content, accounts) {
           <div class="acct-total-label">合計残高</div>
           <div class="acct-total-amount"><span style="font-size:11px;font-weight:300;color:var(--mid);margin-right:1px;">¥</span>${fmt(total)}</div>
         </div>
+        ${(proj && proj.totalHasFuture) ? `
+        <div class="acct-total" style="border-top:none;padding-top:0;margin-top:-6px;">
+          <div class="acct-total-label" style="color:var(--mid);">月末予定</div>
+          <div class="acct-total-amount" style="font-size:15px;color:var(--mid);">${yenSigned(proj.totalProjected)}</div>
+        </div>` : ''}
       </div>
 
       <div class="panel">
@@ -414,6 +438,11 @@ function initDragSort(listEl, accounts, onReorder) {
 function openEditModal(acct) {
   const currentColor = acct.color || TYPE_DEFAULT_COLOR[acct.type] || 'stone';
 
+  // acct.balance は未来込みの running total。手動調整は「今日時点の残高」を扱うため、
+  // 未来分(futureSum)を差し引いた現在残高をプリフィルし、保存時に足し戻す。
+  const futureSum  = _proj?.byId.get(acct.id) ? (acct.balance - _proj.byId.get(acct.id).current) : 0;
+  const acctCurrent = acct.balance - futureSum; // = 今日時点の残高
+
   const html = `
     <div style="padding:0 16px 24px;">
       <div class="modal-handle" style="margin:0 auto 16px;"></div>
@@ -456,8 +485,8 @@ function openEditModal(acct) {
           <div style="display:flex;align-items:center;justify-content:space-between;
             background:var(--mist);border-radius:10px;padding:10px 14px;margin-bottom:8px;">
             <span style="font-size:12px;color:var(--mid);">現在の残高</span>
-            <span style="font-size:16px;font-weight:600;color:${acct.balance<0?'var(--red)':'var(--ink)'};">
-              ${acct.balance<0?'−':''}¥${fmt(Math.abs(acct.balance))}
+            <span style="font-size:16px;font-weight:600;color:${acctCurrent<0?'var(--red)':'var(--ink)'};">
+              ${acctCurrent<0?'−':''}¥${fmt(Math.abs(acctCurrent))}
             </span>
           </div>
           <!-- 新しい残高入力 -->
@@ -468,7 +497,7 @@ function openEditModal(acct) {
                 display:${acct.type==='credit'?'block':'none'};">−</span>
               <span style="font-size:18px;font-weight:500;color:var(--mid);">¥</span>
               <input class="text-input" id="edit-acct-balance" type="number" inputmode="numeric"
-                value="${Math.abs(acct.balance)}"
+                value="${Math.abs(acctCurrent)}"
                 style="flex:1;font-size:20px;font-weight:700;border:none;background:none;
                   color:var(--ink);padding:0;outline:none;">
             </div>
@@ -609,7 +638,7 @@ function openEditModal(acct) {
     const type    = document.getElementById('edit-acct-type')?.value || acct.type;
     const rawNew  = parseInt(e.target.value || '0', 10);
     const newBal  = type === 'credit' ? -Math.abs(rawNew) : rawNew;
-    const diff    = newBal - acct.balance;
+    const diff    = newBal - acctCurrent;
     const diffEl  = document.getElementById('edit-balance-diff');
     if (diffEl) {
       if (diff === 0) {
@@ -657,7 +686,9 @@ function openEditModal(acct) {
     const name    = document.getElementById('edit-acct-name').value.trim();
     const type    = document.getElementById('edit-acct-type').value;
     const rawBalance = parseInt(document.getElementById('edit-acct-balance').value || '0', 10);
-    const balance = type === 'credit' ? -Math.abs(rawBalance) : rawBalance;
+    const currentInput = type === 'credit' ? -Math.abs(rawBalance) : rawBalance;
+    // 入力は「今日時点の残高」。DBには未来込みの running total を保存するため足し戻す。
+    const balance = currentInput + futureSum;
     const notes   = (document.getElementById('edit-acct-notes')?.value || '').slice(0, 200);
     if (!name) { showToast('口座名を入力してください'); return; }
     try {
