@@ -313,19 +313,6 @@ export const DB = {
     return { income, expense, net: income - expense };
   },
 
-  // 未来日付の取引（date > dateStr）を軽量取得（残高の現在/月末予定の導出用）
-  // 必要カラムのみ。未来分は通常少数なのでページングなしで全件取得。
-  async getTransactionsAfter(dateStr) {
-    const teamId = await this.getTeamId();
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('type, amount, account_id, to_account_id, date')
-      .eq('team_id', teamId)
-      .gt('date', dateStr);
-    if (error) throw error;
-    return data || [];
-  },
-
   // ── 記録 CRUD ──────────────────────
 
   async createTransaction(payload, tagIds = []) {
