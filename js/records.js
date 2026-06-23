@@ -40,6 +40,7 @@ let _allTx         = [];   // 当月トランザクション
 let _searchResults = [];   // 全期間検索結果（タップ用）
 let _searchDebounce = null; // デバウンスタイマー
 let _searchGen     = 0;    // 競合防止カウンター（古い非同期結果を破棄）
+let _budgetTagIds  = new Set(); // 主タグ判定用（budgetsテーブルのtag_id群）
 
 export async function renderRecords({ focusSearch = false } = {}) {
   const content = document.getElementById('page-content');
@@ -61,11 +62,13 @@ export async function renderRecords({ focusSearch = false } = {}) {
 
   // ── STEP 2: バックグラウンドで最新取得 ──
   try {
-    const [summary, result, accounts] = await Promise.all([
+    const [summary, result, accounts, budgetTagIds] = await Promise.all([
       DB.getMonthlySummary(year, month),
       DB.getTransactions({ year, month, pageSize: 500 }),
       DB.getAccounts(),
+      DB.getBudgetTagIds(),
     ]);
+    _budgetTagIds = budgetTagIds;
 
     // キャッシュ更新
     await upsertTransactions(result.data);
@@ -381,15 +384,27 @@ async function renderList() {
           const acctName = tx.type==='transfer'
             ? `${tx.account?.name||''} → ${tx.to_account?.name||''}`
             : tx.account?.name || '';
-          const validTags = (tx.tags || []).filter(t => t);
+          // 主タグ（budgets に登録済み）を先頭に、サブタグを後ろに並べる
+          const allTags   = (tx.tags || []).filter(t => t);
+          const sortedTags = [
+            ...allTags.filter(t => _budgetTagIds.has(t.id)),   // 主タグ
+            ...allTags.filter(t => !_budgetTagIds.has(t.id)),  // サブタグ
+          ];
+          // 一覧には「主タグ1つ＋サブタグ1つ」まで表示
+          const dispTags  = sortedTags.slice(0, 2);
+          const tagBadges = dispTags.map((t, i) =>
+            i === 0
+              ? `<span class="tx-tag tx-tag-primary">${t.name}</span>`
+              : `<span class="tx-tag tx-tag-sub">${t.name}</span>`
+          ).join('');
           return `
             <div class="tx-item" data-tx-id="${tx.id}" style="cursor:pointer;">
               ${txIconSVG(tx.type)}
               <div class="tx-body">
                 <div class="tx-name">${tx.memo || '（メモなし）'}</div>
                 <div class="tx-meta">
-                  ${validTags.length > 0
-                    ? `<span class="tx-tag tx-tag-primary">${validTags[0].name}</span><span class="tx-acct" style="color:var(--mid-lt);">${acctName}</span>`
+                  ${dispTags.length > 0
+                    ? `${tagBadges}<span class="tx-acct" style="color:var(--mid-lt);">${acctName}</span>`
                     : `<span class="tx-acct">${acctName}</span>`
                   }
                   ${tx.is_unsettled ? '<span class="unsettled-dot"></span><span style="font-size:11px;color:var(--gold);font-weight:500;">未精算</span>' : ''}
@@ -436,10 +451,20 @@ export function patchAddRecord(tx) {
     ? `${tx.account?.name || tx._acctName || ''} → ${tx.to_account?.name || ''}`
     : tx.account?.name || tx._acctName || '';
 
-  // タグ表示（renderListと同じロジック）
-  const validTags = (tx.tags || []).filter(t => t);
-  const metaHTML = validTags.length > 0
-    ? `<span class="tx-tag tx-tag-primary">${validTags[0].name}</span><span class="tx-acct" style="color:var(--mid-lt);">${acctName}</span>`
+  // タグ表示（renderListと同じロジック）主タグ先頭ソート + 最大2件
+  const allPatchTags   = (tx.tags || []).filter(t => t);
+  const sortedPatchTags = [
+    ...allPatchTags.filter(t => _budgetTagIds.has(t.id)),
+    ...allPatchTags.filter(t => !_budgetTagIds.has(t.id)),
+  ];
+  const dispPatchTags = sortedPatchTags.slice(0, 2);
+  const patchTagBadges = dispPatchTags.map((t, i) =>
+    i === 0
+      ? `<span class="tx-tag tx-tag-primary">${t.name}</span>`
+      : `<span class="tx-tag tx-tag-sub">${t.name}</span>`
+  ).join('');
+  const metaHTML = dispPatchTags.length > 0
+    ? `${patchTagBadges}<span class="tx-acct" style="color:var(--mid-lt);">${acctName}</span>`
     : `<span class="tx-acct">${acctName}</span>`;
 
   const newRow = document.createElement('div');
