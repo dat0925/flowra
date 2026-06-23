@@ -455,40 +455,65 @@ function openBudgetMonthSheet(tag, defaultBudget) {
   Sound.playOpen();
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  // 翌月 + 当月 + 過去5ヶ月
+
+  // 先月(−1) 〜 3ヶ月先(+3) の5行。予算設定は未来志向なので過去は先月のみ。
   const months = [];
-  for (let i = 1; i >= -5; i--) {
+  for (let i = 3; i >= -1; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() + i, 1);
-    months.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`);
+    months.push({
+      key:    `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`,
+      offset: i,
+    });
   }
+
+  // サブラベル
+  const subLabel = { 3:'3ヶ月後', 2:'再来月', 1:'来月', 0:'今月', '-1':'先月' };
 
   const defaultAmt = defaultBudget ? Number(defaultBudget.amount).toLocaleString('ja-JP') : null;
 
   const sheet = document.createElement('div');
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:700;background:rgba(28,43,34,0.45);display:flex;align-items:flex-end;justify-content:center;';
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:1100;background:rgba(28,43,34,0.45);display:flex;align-items:flex-end;justify-content:center;';
   sheet.innerHTML = `
-    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:0 16px 36px;max-height:80vh;overflow-y:auto;">
+    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;
+      padding:0 16px calc(36px + env(safe-area-inset-bottom));max-height:85vh;overflow-y:auto;">
       <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 16px;"></div>
       <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;margin-bottom:4px;">月別予算 — ${tag.name}</div>
       <div style="font-size:12px;color:var(--mid);margin-bottom:4px;line-height:1.6;">
-        特定の月だけ予算を変えたいときに入力します。<br>空欄の月はデフォルト予算（${defaultAmt ? '¥' + defaultAmt : '未設定'}）が使われます。
+        特定の月だけ予算を変えたいときに入力します。<br>
+        空欄の月はデフォルト予算（${defaultAmt ? '¥' + defaultAmt : '未設定'}）が使われます。
       </div>
       <div style="font-size:11px;color:var(--mid-lt);background:var(--sage-bg);border-radius:8px;padding:8px 10px;margin-bottom:14px;">
-        例）旅行の月だけ食費を多めに設定、ボーナス月に娯楽費を増やすなど
+        例）旅行月だけ食費を多めに設定、ボーナス月に娯楽費を増やすなど
       </div>
-      <div class="form-section" style="margin-bottom:14px;">
-        ${months.map(m => {
-          const isCurrentMonth = m === currentMonthKey;
-          const label = m.slice(0,4) + '年' + parseInt(m.slice(5)) + '月' + (isCurrentMonth ? ' <span style="font-size:10px;color:var(--sage);background:var(--sage-bg);padding:1px 6px;border-radius:4px;margin-left:6px;">今月</span>' : '');
+      <div class="form-section" style="margin-bottom:14px;overflow:hidden;border-radius:14px;">
+        ${months.map(({ key: m, offset: i }) => {
+          const isPast    = i < 0;
+          const isCurrent = m === currentMonthKey;
+          const yearLabel = m.slice(0,4) + '年' + parseInt(m.slice(5)) + '月';
+          const sub       = subLabel[String(i)];
+          const rowBg     = isPast ? 'background:var(--mist);' : '';
           return `
-          <label style="display:flex;align-items:center;justify-content:space-between;
-            padding:13px 16px;cursor:pointer;border-bottom:1px solid var(--border);">
-            <span style="font-size:14px;">${label}</span>
+          <label data-month-row="${m}"
+            style="display:flex;align-items:center;justify-content:space-between;
+            padding:12px 16px;cursor:pointer;border-bottom:1px solid var(--border);${rowBg}">
+            <div>
+              <div style="display:flex;align-items:center;gap:6px;">
+                <span style="font-size:14px;${isPast?'color:var(--mid);':''}">${yearLabel}</span>
+                ${isCurrent ? '<span style="font-size:10px;color:var(--sage);background:var(--sage-bg);padding:1px 6px;border-radius:4px;">今月</span>' : ''}
+                ${!isCurrent ? `<span style="font-size:10px;color:${isPast?'var(--mid-lt)':'var(--sage-lt)'};font-weight:500;">${sub}</span>` : ''}
+              </div>
+              <div class="custom-badge" hidden
+                style="font-size:10px;color:var(--sage-dk);background:var(--sage-bg);
+                padding:0px 5px;border-radius:4px;margin-top:3px;display:inline-block;font-weight:600;">
+                カスタム設定中
+              </div>
+            </div>
             <div style="display:flex;align-items:center;gap:6px;">
               <span style="font-size:13px;color:var(--mid);">¥</span>
               <input type="text" inputmode="numeric" class="text-input month-budget-input"
-                data-month="${m}" placeholder="${defaultAmt ? defaultAmt : '−'}"
-                style="width:110px;text-align:right;font-size:15px;padding:4px 8px;border-radius:8px;">
+                data-month="${m}" placeholder="${defaultAmt ?? '−'}"
+                style="width:110px;text-align:right;font-size:15px;padding:4px 8px;border-radius:8px;
+                color:var(--mid);font-weight:400;">
             </div>
           </label>`;
         }).join('')}
@@ -506,24 +531,48 @@ function openBudgetMonthSheet(tag, defaultBudget) {
 
   document.body.appendChild(sheet);
 
-  // 既存の月別予算を取得してinputに反映
-  months.forEach(async m => {
+  // カスタム値を適用し、設定済み行をビジュアルで明示する
+  function applyCustomValue(m, amount) {
+    const input = sheet.querySelector(`input[data-month="${m}"]`);
+    const row   = sheet.querySelector(`label[data-month-row="${m}"]`);
+    if (!input || !row) return;
+    input.value       = Number(amount).toLocaleString('ja-JP');
+    input.style.color = 'var(--ink)';
+    input.style.fontWeight = '600';
+    const badge = row.querySelector('.custom-badge');
+    if (badge) { badge.hidden = false; badge.style.display = 'inline-block'; }
+  }
+
+  // 既存の月別予算を取得して反映
+  months.forEach(async ({ key: m }) => {
     try {
       const map = await DB.getBudgets(m);
       const b   = map[tag.id];
-      if (b && b.month === m) {
-        const input = sheet.querySelector('input[data-month="' + m + '"]');
-        if (input) input.value = Number(b.amount).toLocaleString('ja-JP');
-      }
+      if (b && b.month === m && Number(b.amount) > 0) applyCustomValue(m, b.amount);
     } catch(_) {}
   });
 
-  // 月別入力欄のコンマ整形
+  // 入力欄のコンマ整形 & カスタムバッジの動的制御
   sheet.querySelectorAll('.month-budget-input').forEach(input => {
-    input.addEventListener('focus', () => { input.value = input.value.replace(/,/g, ''); });
+    input.addEventListener('focus', () => {
+      input.value = input.value.replace(/,/g, '');
+    });
     input.addEventListener('blur', () => {
       const n = parseInt(input.value.replace(/,/g, '') || '0', 10);
-      input.value = n > 0 ? n.toLocaleString() : '';
+      const m = input.dataset.month;
+      const row = sheet.querySelector(`label[data-month-row="${m}"]`);
+      const badge = row?.querySelector('.custom-badge');
+      if (n > 0) {
+        input.value = n.toLocaleString();
+        input.style.color = 'var(--ink)';
+        input.style.fontWeight = '600';
+        if (badge) { badge.hidden = false; badge.style.display = 'inline-block'; }
+      } else {
+        input.value = '';
+        input.style.color = 'var(--mid)';
+        input.style.fontWeight = '400';
+        if (badge) { badge.hidden = true; }
+      }
     });
   });
 
