@@ -855,35 +855,37 @@
     /* ── FAQ ── */
     .faq-section { padding: 100px 24px; background: var(--stone); }
     .faq-inner   { max-width: 720px; margin: 0 auto; }
-    .faq-list    { margin-top: 48px; display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
-    .faq-item summary {
-      list-style: none; cursor: pointer;
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      padding: 20px 24px;
-      font-size: 14px; font-weight: 600; color: var(--ink);
-      background: var(--white);
-      border-bottom: 1px solid var(--border);
-      user-select: none;
+    .faq-list    { margin-top: 48px; display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: 20px; overflow: hidden; background: var(--white); }
+    .faq-item    { border-bottom: 1px solid var(--border); }
+    .faq-item:last-child { border-bottom: none; }
+    .faq-q {
+      padding: 20px 24px 6px;
+      font-size: 14px; font-weight: 600; color: var(--sage);
+      display: flex; align-items: flex-start; gap: 10px;
     }
-    .faq-item:last-child summary { border-bottom: none; }
-    .faq-item[open] summary { color: var(--sage); border-bottom: 1px solid var(--border); }
-    .faq-item summary::-webkit-details-marker { display: none; }
-    .faq-item summary::after {
-      content: '+'; flex-shrink: 0;
-      width: 24px; height: 24px; border-radius: 50%;
-      background: var(--mist); color: var(--sage);
-      font-size: 16px; font-weight: 400; line-height: 1;
-      display: flex; align-items: center; justify-content: center;
-      transition: transform 0.2s;
-    }
-    .faq-item[open] summary::after { content: '−'; }
-    .faq-answer {
-      padding: 16px 24px 20px;
+    .faq-q::before { content: 'Q'; flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%; background: var(--sage); color: #fff; font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 1px; }
+    .faq-a {
+      padding: 6px 24px 20px 56px;
       font-size: 13px; color: var(--mid); line-height: 1.9;
-      background: var(--warm);
-      border-bottom: 1px solid var(--border);
     }
-    .faq-item:last-child .faq-answer { border-bottom: none; }
+    /* ── WHY ── */
+    .why-section { padding: 100px 24px; background: var(--white); }
+    .why-inner   { max-width: 720px; margin: 0 auto; }
+    .why-grid    { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 48px; }
+    @media(max-width: 640px){ .why-grid { grid-template-columns: 1fr; } }
+    .why-card    { background: var(--stone); border: 1px solid var(--border); border-radius: 18px; padding: 24px 20px; }
+    .why-card-icon { font-size: 22px; margin-bottom: 10px; }
+    .why-card-title { font-size: 14px; font-weight: 700; color: var(--ink); margin-bottom: 8px; }
+    .why-card-desc  { font-size: 12px; color: var(--mid); line-height: 1.8; }
+    /* ── SECURITY ── */
+    .security-section { padding: 80px 24px; background: var(--sage-bg); }
+    .security-inner   { max-width: 720px; margin: 0 auto; }
+    .security-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 40px; }
+    @media(max-width: 640px){ .security-grid { grid-template-columns: 1fr 1fr; } }
+    .security-card { background: var(--white); border-radius: 14px; padding: 18px 16px; text-align: center; border: 1px solid var(--border); }
+    .security-icon { font-size: 20px; margin-bottom: 8px; }
+    .security-label { font-size: 11px; font-weight: 700; color: var(--sage); margin-bottom: 4px; }
+    .security-desc  { font-size: 11px; color: var(--mid); line-height: 1.6; }
 
   </style>
 </head>
@@ -1323,6 +1325,81 @@
   </section>
 
 
+
+  <!-- WHY FLOWRA -->
+  <section class="why-section" id="why">
+    <div class="why-inner">
+      <span class="section-label">なぜFlowraか</span>
+      <h2 class="section-title">Flowraが選ばれる<br>4つの理由</h2>
+      <p class="section-desc">夫婦の家計管理を毎日続けるために、本当に必要なものだけを設計しました。</p>
+
+      <div class="why-grid">
+        <div class="why-card">
+          <div class="why-card-icon">📵</div>
+          <div class="why-card-title">広告なし・トラッキングなし</div>
+          <div class="why-card-desc">Flowraは広告を一切表示しません。家計データを第三者の広告配信に利用することもなく、プライバシーを最優先した設計です。収益はPremiumプランのサブスクリプションのみで成立しています。</div>
+        </div>
+        <div class="why-card">
+          <div class="why-card-icon">🔒</div>
+          <div class="why-card-title">銀行情報を渡さない安心感</div>
+          <div class="why-card-desc">銀行自動連携型アプリでは、金融機関のID・パスワードを預ける必要があります。Flowraは銀行連携を行わず、レシート読み取りと手動入力のみ。大切な金融情報を渡す必要がありません。</div>
+        </div>
+        <div class="why-card">
+          <div class="why-card-icon">👫</div>
+          <div class="why-card-title">カップル・夫婦に特化した設計</div>
+          <div class="why-card-desc">家計をふたりで管理することを前提に設計しています。招待だけで即座に共有でき、どちらが記録してもリアルタイムで反映。「誰がどこで使ったか」ではなく「ふたりで何を使ったか」を一緒に見られます。</div>
+        </div>
+        <div class="why-card">
+          <div class="why-card-icon">🌱</div>
+          <div class="why-card-title">実際の家計課題から生まれたアプリ</div>
+          <div class="why-card-desc">Flowraは開発者自身とパートナーが日々の家計管理で感じた「続けやすさ」「共有のしやすさ」への課題を解決するために開発されました。ユーザーの声を直接フィードバックできる体制で、リアルなニーズに基づいた機能改善を続けています。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECURITY -->
+  <section class="security-section">
+    <div class="security-inner">
+      <span class="section-label">セキュリティ＆プライバシー</span>
+      <h2 class="section-title" style="text-align:center;">安心して使える<br>セキュリティ設計</h2>
+      <p class="section-desc" style="text-align:center;">大切な家計データを守るため、業界標準のセキュリティ技術を採用しています。</p>
+
+      <div class="security-grid">
+        <div class="security-card">
+          <div class="security-icon">🔐</div>
+          <div class="security-label">行レベルセキュリティ</div>
+          <div class="security-desc">SupabaseのRLS（Row Level Security）により、各ユーザーは自分のデータのみにアクセス可能。他ユーザーのデータへのアクセスはデータベースレベルで完全に遮断されています。</div>
+        </div>
+        <div class="security-card">
+          <div class="security-icon">🌐</div>
+          <div class="security-label">TLS暗号化通信</div>
+          <div class="security-desc">すべての通信はHTTPS/TLSで暗号化されています。アプリとサーバー間のデータ送受信が第三者に傍受されることはありません。</div>
+        </div>
+        <div class="security-card">
+          <div class="security-icon">🔑</div>
+          <div class="security-label">Google OAuth 2.0</div>
+          <div class="security-desc">ログイン認証はGoogleアカウントのOAuth2.0のみ。Flowraがパスワードを保存・管理することはなく、不正アクセスのリスクを最小化しています。</div>
+        </div>
+        <div class="security-card">
+          <div class="security-icon">💳</div>
+          <div class="security-label">Stripe決済</div>
+          <div class="security-desc">課金処理はStripe（PCI DSS準拠）が担当。クレジットカード番号などの金融情報はFlowraのサーバーに一切保存されません。</div>
+        </div>
+        <div class="security-card">
+          <div class="security-icon">📵</div>
+          <div class="security-label">広告・トラッキングなし</div>
+          <div class="security-desc">家計データを広告目的で利用することはありません。外部の広告ネットワークへのデータ提供も行っておらず、利用状況の追跡は最小限です。</div>
+        </div>
+        <div class="security-card">
+          <div class="security-icon">🗂️</div>
+          <div class="security-label">PostgreSQLデータ管理</div>
+          <div class="security-desc">データはSupabase（PostgreSQL）で安全に管理。定期バックアップが行われており、データの永続性も確保されています。</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <!-- FAQ -->
   <section class="faq-section" id="faq">
     <div class="faq-inner">
@@ -1331,54 +1408,54 @@
       <p class="section-desc">Flowraについてよく寄せられる質問をまとめました。</p>
 
       <div class="faq-list">
-        <details class="faq-item">
-          <summary>AI家計管理アプリとは何ですか？</summary>
-          <div class="faq-answer">人工知能を活用して支出の記録・分類・分析を自動化する家計管理ツールです。FlowraはAIがレシートを自動読み取りし、品目ごとに分類したうえで、毎月の傾向をもとに節約アドバイスを提供します。</div>
-        </details>
-        <details class="faq-item">
-          <summary>レシート読み取りの精度はどのくらいですか？</summary>
-          <div class="faq-answer">Gemini AIを使用したOCR技術を採用しており、スーパーやドラッグストアのレシートで高い読み取り精度を実現しています。品目名・金額・消費税率（8%/10%）を自動抽出します。読み取り後に確認・修正が可能なので、万が一誤りがあっても安心です。</div>
-        </details>
-        <details class="faq-item">
-          <summary>家計管理アプリの選び方を教えてください</summary>
-          <div class="faq-answer">①操作の手軽さ（レシート読み取りの自動化など）、②パートナーとの共有機能、③予算管理機能、④セキュリティの信頼性、⑤コストパフォーマンスを確認しましょう。Flowraは記録・共有・AI分析をひとつのアプリで提供し、Freeプランは永久無料で始められます。</div>
-        </details>
-        <details class="faq-item">
-          <summary>パートナーと家計を共有する方法は？</summary>
-          <div class="faq-answer">招待リンクをパートナーに送るだけで家計の共有が始まります。どちらが記録してもリアルタイムで反映されるため、夫婦・カップルのお金の管理に最適です。共有のための追加費用はなく、Freeプランから利用できます。</div>
-        </details>
-        <details class="faq-item">
-          <summary>無料でどこまで使えますか？</summary>
-          <div class="faq-answer">収支の記録・編集、パートナーとの共有、複数口座管理、タグ別予算管理、全期間検索がすべて永久無料です。AIアドバイス（月5回）とレシート読み取り（月10回）も無料枠でご利用いただけます。クレジットカード登録不要で今すぐ始められます。</div>
-        </details>
-        <details class="faq-item">
-          <summary>銀行口座との自動連携はできますか？</summary>
-          <div class="faq-answer">現在、銀行口座の自動連携には対応していません。レシート撮影による自動読み取りと手動入力を組み合わせた、シンプルで使いやすい設計です。複数の銀行口座・クレジットカード・電子マネーを手動でまとめて管理できます。</div>
-        </details>
-        <details class="faq-item">
-          <summary>データのセキュリティは安全ですか？</summary>
-          <div class="faq-answer">データベースにSupabase（PostgreSQL）を使用し、行レベルセキュリティ（RLS）で各ユーザーのデータを厳密に分離・保護しています。通信はすべてHTTPS/TLS暗号化済みです。認証はGoogleアカウントのOAuth2.0を採用しており、パスワードの保存・管理は一切行いません。</div>
-        </details>
-        <details class="faq-item">
-          <summary>iPhoneとAndroidの両方で使えますか？</summary>
-          <div class="faq-answer">はい、FlowraはPWA（プログレッシブウェブアプリ）対応のWebアプリです。iPhoneのSafari・AndroidのChromeどちらでも動作し、ホーム画面に追加するとネイティブアプリと同じように使えます。App StoreやGoogle Playからのインストールは不要です。</div>
-        </details>
-        <details class="faq-item">
-          <summary>固定費の自動判別とはどういう機能ですか？</summary>
-          <div class="faq-answer">住宅ローン・家賃・保険料など毎月ほぼ固定の支出を自動識別し、AIが節約アドバイスを生成する際に除外します。削減できない費用を除いた、実際に節約できる支出のみを対象に具体的な提案を行います。</div>
-        </details>
-        <details class="faq-item">
-          <summary>複数口座やクレジットカードをまとめて管理できますか？</summary>
-          <div class="faq-answer">はい、銀行口座・クレジットカード・電子マネー・現金など複数の口座をまとめて管理できます。口座間の振替も記録でき、全口座の合計残高が一目でわかります。Premiumプランでは口座数・タグ数が無制限です。</div>
-        </details>
-        <details class="faq-item">
-          <summary>Premiumプランはいつでもキャンセルできますか？</summary>
-          <div class="faq-answer">はい、いつでもキャンセル可能です。Stripeのカスタマーポータルからご自身で解約手続きができます。解約後は次の請求日までPremium機能をそのままご利用いただけます。</div>
-        </details>
-        <details class="faq-item">
-          <summary>家族・夫婦でお金の話をしやすくするコツは？</summary>
-          <div class="faq-answer">Flowraの家計共有機能を使うと、お互いの記録がリアルタイムで見えるため自然とお金の話題が生まれやすくなります。AIアドバイスで「今月の食費はどう？」など客観的なデータをもとに話し合えるので感情的になりにくく、夫婦間のお金のコミュニケーションを改善できます。</div>
-        </details>
+        <div class="faq-item">
+          <div class="faq-q">AI家計管理アプリとは何ですか？</div>
+          <div class="faq-a">人工知能を活用して支出の記録・分類・分析を自動化する家計管理ツールです。FlowraはAIがレシートを自動読み取りし、品目ごとに分類したうえで、毎月の傾向をもとに節約アドバイスを提供します。従来の手入力家計簿と異なり、レシートを撮影するだけで記録が完了するため、継続的な家計管理が実現しやすくなります。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">レシート読み取り（OCR）の精度はどのくらいですか？</div>
+          <div class="faq-a">FlowraはGoogleのGemini AIを活用したOCR（光学文字認識）技術を採用しており、スーパー・ドラッグストア・コンビニなど一般的なレシートで高い読み取り精度を実現しています。品目名・金額・消費税率（8%軽減税率・10%標準税率）を自動で抽出・分類します。読み取り後に内容を確認・修正できるため、万が一誤りがあっても安心です。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">家計管理アプリの選び方を教えてください</div>
+          <div class="faq-a">家計管理アプリを選ぶ際は、①操作の手軽さ（レシート自動読み取りなど）、②パートナーとのリアルタイム共有機能、③予算管理・集計機能、④セキュリティの信頼性、⑤コストパフォーマンスを確認しましょう。銀行自動連携型は便利ですが、設定が複雑でプライバシーへの不安も生じやすいです。Flowraは手動記録とAIを組み合わせたシンプルな設計で、Freeプランは永久無料です。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">パートナーと家計を共有する方法は？</div>
+          <div class="faq-a">Flowraのトップ画面からパートナーへの招待リンクを発行し、LINEやメッセージで送るだけです。パートナーがFlowraにログインして招待を承認すると、同じ家計データをリアルタイムで共有できます。どちらが記録してもすぐに反映されるため、夫婦・カップルのお金の管理に最適です。共有機能の利用に追加費用はなく、Freeプランから使えます。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">無料でどこまで使えますか？</div>
+          <div class="faq-a">収支の記録・編集（件数無制限）、パートナーとのリアルタイム共有、複数口座・クレジットカード管理、タグ別予算管理と進捗バー表示、全期間の品目検索がすべて永久無料です。AIアドバイス（月5回）とレシート読み取り（月10回）も無料枠でご利用いただけます。クレジットカード登録は一切不要で、Googleアカウントがあれば今すぐ始められます。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">銀行口座との自動連携はできますか？</div>
+          <div class="faq-a">現在、銀行口座の自動連携（スクレイピング・API連携）には対応していません。Flowraはレシート撮影による自動読み取りと手動入力を組み合わせた、シンプルで使いやすい設計を採用しています。銀行連携がないことでプライバシーリスクを最小化し、複数の銀行口座・クレジットカード・電子マネー・現金を手動でまとめて管理できます。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">データのセキュリティは安全ですか？</div>
+          <div class="faq-a">FlowraはデータベースにSupabase（PostgreSQL）を使用し、行レベルセキュリティ（RLS）によって各ユーザーのデータを厳密に分離・保護しています。通信はすべてHTTPS/TLS暗号化済みです。ログイン認証にはGoogleアカウントのOAuth2.0のみを採用しており、Flowra側でパスワードを保存・管理することはありません。決済処理はStripeが担当し、カード番号などの金融情報はFlowraのサーバーには一切保存されません。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">iPhoneとAndroidの両方で使えますか？</div>
+          <div class="faq-a">はい、FlowraはPWA（プログレッシブウェブアプリ）対応のWebアプリです。iPhoneのSafari・AndroidのChromeのどちらでも動作し、ホーム画面に追加するとネイティブアプリと同じ使い心地で利用できます。App StoreやGoogle Playからのインストールは不要で、常に最新バージョンが自動適用されます。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">固定費の自動判別とはどういう機能ですか？</div>
+          <div class="faq-a">住宅ローン・家賃・保険料・通信費など毎月ほぼ同額で発生する支出を「固定費」として自動識別し、AIが節約アドバイスを生成する際にその金額を除外します。削減が難しい固定費を省いた上で、実際に節約できる変動費（食費・娯楽費など）のみを対象に具体的な提案を行うため、実用的なアドバイスが得られます。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">複数口座やクレジットカードをまとめて管理できますか？</div>
+          <div class="faq-a">はい、銀行口座・クレジットカード・電子マネー（Suica・PayPayなど）・現金・貯金口座など複数の資産をひとつのアプリで一元管理できます。口座間の振替も記録でき、全口座の合計残高がダッシュボードで一目でわかります。Premiumプランでは口座数・タグ数が無制限になります。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Premiumプランはいつでもキャンセルできますか？</div>
+          <div class="faq-a">はい、Premiumプランはいつでも自分でキャンセルできます。Stripeのカスタマーポータル（アプリ内の設定画面からアクセス可能）で解約手続きが完結します。解約後は次の請求日まで引き続きPremium機能をご利用いただけます。その後は自動的にFreeプランに移行します。</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">夫婦でお金の話をしやすくするコツは？</div>
+          <div class="faq-a">Flowraの家計共有機能を使うと、お互いの記録がリアルタイムで可視化されるため、自然とお金の話題が生まれやすくなります。「今月の食費どう？」とAIに聞いて客観的なデータをもとに話し合えるので、感情的な対立になりにくく、建設的な会話が生まれます。まずは招待リンクをパートナーに送って一緒に使い始めることが第一歩です。</div>
+        </div>
       </div>
     </div>
   </section>
