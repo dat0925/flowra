@@ -1,6 +1,50 @@
 # Flowra 引き継ぎドキュメント
 
-最終更新: 2026-06-23
+最終更新: 2026-06-24
+
+---
+
+## 🐛 バグ修正: PWA起動時にナビ下部に空白が生じる問題（2026-06-24）
+
+**事象**: iOS PWA（ホーム画面から起動）で、アプリ起動直後にボトムナビゲーションの
+下に黒い空白が現れる。画面を軽くスワイプすると正常な表示に戻る。
+
+**根本原因（`100dvh` の初期値ズレ）**:
+iOS SafariのPWAモードでは、`100dvh`（Dynamic Viewport Height）が
+起動後の最初の1フレームで「実際の表示領域より少し大きい値」を返すことがある。
+この差分が画面下に積み重なり黒い空白として見えていた。
+「スワイプで直る」のは、スクロールイベントで `window.innerHeight` が
+再計算されて正しい値に更新されるため。
+
+**副原因（旧SW残存）**:
+以前の改修でSWが書き換えられた際、`activate` に `clients.claim()` がなく
+旧SWがキャッシュを握り続けていた。これ単体では空白の直接原因ではないが
+古いファイルを配信し続けるリスクがあった。
+
+**修正**（`sw.js` / `css/style.css` / `js/app.js`）:
+1. `sw.js` の `activate` に `e.waitUntil(clients.claim())` を追加
+   → 新しいno-op SWが即座に全クライアントを掌握し旧SWを追い出す
+2. `js/app.js` に `_setAppH()` 関数を追加
+   ```javascript
+   function _setAppH() {
+     document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
+   }
+   _setAppH(); // 起動時に即セット
+   window.addEventListener('resize', _setAppH);
+   // visualViewport.resize でも更新（キーボード開閉対応）
+   ```
+3. `css/style.css` の `#app` / `#sidebar` / `#main` の height に
+   `var(--app-h, 100dvh)` を追加（`100dvh` の次行に記述）
+
+**なぜ他の修正では直らなかったか**:
+`position:fixed` への変更・`padding-bottom` 調整・キャッシュバスター追加は
+すべて症状への対処。`100dvh` という根本の数字がズレていたため、
+何をしても起動時の最初のフレームだけ空白が残り続けていた。
+
+**今後の注意**:
+- `sw.js` に `fetch` ハンドラ（キャッシュロジック）を追加する場合は
+  必ず `activate` に `clients.claim()` を含めること
+- viewport高さは `100dvh` だけに頼らず `--app-h` 変数経由で管理する設計を維持
 
 ---
 
