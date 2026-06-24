@@ -138,10 +138,19 @@ function showApp(user) {
   // 新規ユーザー向けデフォルトカテゴリタグを自動シード
   _seedDefaultTags();
 
-  // PWA: キーボード閉じた後のフッターズレを修正
+  // PWA: viewport高さをCSS変数に設定（iOS PWA起動直後の空白問題対策）
+  function _setAppH() {
+    // window.innerHeight は dvh より正確に「今見えている領域の高さ」を返す
+    document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
+  }
+  _setAppH();
+  window.addEventListener('resize', _setAppH);
+
+  // キーボード開閉時も更新（visualViewportはキーボード含む変化をより細かく検知）
   if (window.visualViewport) {
     let _kbOpen = false;
     window.visualViewport.addEventListener('resize', () => {
+      _setAppH();
       const ratio = window.visualViewport.height / window.screen.height;
       const nowOpen = ratio < 0.75;
       if (_kbOpen && !nowOpen) {

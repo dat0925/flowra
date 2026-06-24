@@ -178,6 +178,7 @@ svg {
   display: flex;
   height: 100vh;
   height: 100dvh;
+  height: var(--app-h, 100dvh);
   overflow: hidden;
 }
 
@@ -191,6 +192,7 @@ svg {
   padding: 0 0 20px;
   height: 100vh;
   height: 100dvh;
+  height: var(--app-h, 100dvh);
   overflow-y: auto;
 }
 
@@ -1048,7 +1050,7 @@ body.page-records #mobile-month-label {
   #mobile-header { display: block; }
   #bottom-nav    { display: flex; }
   #app           { flex-direction: column; }
-  #main          { height: 100dvh; }
+  #main          { height: 100dvh; height: var(--app-h, 100dvh); }
   #page-content  { padding: 14px 14px calc(var(--nav-h) + 20px + env(safe-area-inset-bottom)); }
 
   /* モバイルではrecords-stickyのネガティブマージンをpage-contentのpadding(14px)に合わせる */
