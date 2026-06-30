@@ -9,7 +9,7 @@ import { checkAndShowOnboarding } from './onboarding.js';
 import { renderAccounts }     from './accounts.js';
 import { renderSettings }     from './settings.js';
 import { fmt, showToast, openModal, closeModal } from './utils.js';
-import { renderRecords }     from './records.js';
+import { renderRecords, isSearchActive } from './records.js';
 import { clearAll }          from './cache.js';
 import { DB }                from './db.js';
 import { Announcements }     from './announcements.js';
@@ -521,6 +521,9 @@ function initPullToRefresh() {
 
   target.addEventListener('touchstart', e => {
     if (target.scrollTop === 0) {
+      // 記録一覧で検索中はプルトゥリフレッシュを無効化する
+      // （検索結果スクロール中の誤操作でRouter.navigateが走り検索がクリアされるのを防ぐ）
+      if (Router.currentPage === 'records' && isSearchActive()) return;
       startY = e.touches[0].clientY;
       pulling = true;
     }
