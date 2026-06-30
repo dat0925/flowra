@@ -1,6 +1,37 @@
 # Flowra 引き継ぎドキュメント
 
-最終更新: 2026-06-24
+最終更新: 2026-06-30
+
+---
+
+## 🐛 バグ修正: 記録一覧で検索中にプルトゥリフレッシュが誤発動し検索結果が消える（2026-06-30）
+
+**事象**: PWA（ホーム画面起動）で記録一覧を検索した状態でリストをスクロールしようとすると、
+画面上部から下スワイプ時に発動する自前のプルトゥリフレッシュ（`app.js` `initPullToRefresh`）が
+誤って作動し、`Router.navigate('records')` が呼ばれて `renderRecords()` が再実行され、
+検索クエリ・検索結果が全てクリアされてしまう。ブラウザタブでは再現せずPWAのみで顕在化していた。
+
+**原因**: `initPullToRefresh` は `#page-content` の `scrollTop === 0` の状態から下スワイプで
+80px以上引っ張ると無条件で現在ページを再描画する作りだった。記録一覧画面では
+`renderRecords()` が呼ばれるたびに `currentFilter`/`searchQuery`/`_searchResults` を
+リセットする設計（`renderShell`が検索ボックスごとDOMを作り直す）のため、検索中に
+この処理が走ると検索状態がまるごと消える。
+
+**修正（`js/app.js` / `js/records.js`）**:
+1. `js/records.js` に `isSearchActive()` をexport追加（`searchQuery.trim()` の有無を返す）。
+2. `js/app.js` の `initPullToRefresh` の `touchstart` ハンドラで、`Router.currentPage === 'records'`
+   かつ `isSearchActive()` がtrueの場合は `pulling` を立てずに即returnするよう変更。
+   検索中でなければ従来通りプルトゥリフレッシュは有効（当月データの再同期用途は維持）。
+
+**あえてCSSの `overscroll-behavior` 側で直さなかった理由**:
+本ドキュメント「PWA対応メモ」の「やってはいけないこと」に `overscroll-behavior: none` →
+フッターがずれた、という既知の失敗例があるため、レイアウトに影響しないJS側のガード
+（発動条件の絞り込み）のみで対応した。
+
+**今後の注意**:
+- 記録一覧の検索結果を保持したまま画面を更新したいケースが今後出てきた場合は、
+  `renderRecords()` を全面再描画ではなく「データ再取得＋`renderList()`のみ再実行」に
+  分離するリファクタを検討すること（現状は最小差分での対症療法）。
 
 ---
 
