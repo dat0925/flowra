@@ -42,6 +42,11 @@ let _searchDebounce = null; // デバウンスタイマー
 let _searchGen     = 0;    // 競合防止カウンター（古い非同期結果を破棄）
 let _budgetTagIds  = new Set(); // 主タグ判定用（budgetsテーブルのtag_id群）
 
+// 検索中かどうか（PWAのプルトゥリフレッシュが検索結果を消さないようにするための判定用）
+export function isSearchActive() {
+  return !!searchQuery.trim();
+}
+
 export async function renderRecords({ focusSearch = false } = {}) {
   const content = document.getElementById('page-content');
   const { year, month } = MonthState;
