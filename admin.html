@@ -403,13 +403,13 @@
               </tr>
             </thead>
             <tbody>
-              <tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 6px 4px 0;">Claude Sonnet 4.6</td><td style="text-align:right;padding:4px 6px;">$3 / $15</td><td style="text-align:right;padding:4px 0 4px 6px;">約¥2.5</td></tr>
-              <tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 6px 4px 0;">Claude Haiku 4.5</td><td style="text-align:right;padding:4px 6px;">$1 / $5</td><td style="text-align:right;padding:4px 0 4px 6px;">約¥0.85</td></tr>
-              <tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 6px 4px 0;">Gemini 2.5 Pro</td><td style="text-align:right;padding:4px 6px;">$1.25 / $10</td><td style="text-align:right;padding:4px 0 4px 6px;">約¥1.6</td></tr>
-              <tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 6px 4px 0;">Gemini 2.5 Flash（現行）</td><td style="text-align:right;padding:4px 6px;">$0.30 / $2.50</td><td style="text-align:right;padding:4px 0 4px 6px;">約¥0.40</td></tr>
-              <tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 6px 4px 0;">Gemini 2.5 Flash Lite</td><td style="text-align:right;padding:4px 6px;">$0.10 / $0.40</td><td style="text-align:right;padding:4px 0 4px 6px;">約¥0.07</td></tr>
-              <tr style="border-bottom:1px solid var(--border);"><td style="padding:4px 6px 4px 0;">GPT-4o</td><td style="text-align:right;padding:4px 6px;">$2.5 / $10</td><td style="text-align:right;padding:4px 0 4px 6px;">約¥1.8</td></tr>
-              <tr><td style="padding:4px 6px 4px 0;">GPT-4o mini</td><td style="text-align:right;padding:4px 6px;">$0.15 / $0.60</td><td style="text-align:right;padding:4px 0 4px 6px;">約¥0.11</td></tr>
+              <tr data-model="anthropic/claude-sonnet-4-6" style="border-bottom:1px solid var(--border);"><td class="ocr-cost-name" style="padding:4px 6px 4px 0;">Claude Sonnet 4.6</td><td style="text-align:right;padding:4px 6px;">$3 / $15</td><td style="text-align:right;padding:4px 0 4px 6px;">約¥2.5</td></tr>
+              <tr data-model="anthropic/claude-haiku-4-5-20251001" style="border-bottom:1px solid var(--border);"><td class="ocr-cost-name" style="padding:4px 6px 4px 0;">Claude Haiku 4.5</td><td style="text-align:right;padding:4px 6px;">$1 / $5</td><td style="text-align:right;padding:4px 0 4px 6px;">約¥0.85</td></tr>
+              <tr data-model="google/gemini-2.5-pro" style="border-bottom:1px solid var(--border);"><td class="ocr-cost-name" style="padding:4px 6px 4px 0;">Gemini 2.5 Pro</td><td style="text-align:right;padding:4px 6px;">$1.25 / $10</td><td style="text-align:right;padding:4px 0 4px 6px;">約¥1.6</td></tr>
+              <tr data-model="google/gemini-2.5-flash" style="border-bottom:1px solid var(--border);"><td class="ocr-cost-name" style="padding:4px 6px 4px 0;">Gemini 2.5 Flash</td><td style="text-align:right;padding:4px 6px;">$0.30 / $2.50</td><td style="text-align:right;padding:4px 0 4px 6px;">約¥0.40</td></tr>
+              <tr data-model="google/gemini-2.5-flash-lite" style="border-bottom:1px solid var(--border);"><td class="ocr-cost-name" style="padding:4px 6px 4px 0;">Gemini 2.5 Flash Lite</td><td style="text-align:right;padding:4px 6px;">$0.10 / $0.40</td><td style="text-align:right;padding:4px 0 4px 6px;">約¥0.07</td></tr>
+              <tr data-model="openai/gpt-4o" style="border-bottom:1px solid var(--border);"><td class="ocr-cost-name" style="padding:4px 6px 4px 0;">GPT-4o</td><td style="text-align:right;padding:4px 6px;">$2.5 / $10</td><td style="text-align:right;padding:4px 0 4px 6px;">約¥1.8</td></tr>
+              <tr data-model="openai/gpt-4o-mini"><td class="ocr-cost-name" style="padding:4px 6px 4px 0;">GPT-4o mini</td><td style="text-align:right;padding:4px 6px;">$0.15 / $0.60</td><td style="text-align:right;padding:4px 0 4px 6px;">約¥0.11</td></tr>
             </tbody>
           </table>
           <div style="font-size:10.5px;color:var(--mid-lt);margin-top:8px;line-height:1.5;">
@@ -757,6 +757,24 @@
   });
 
   // ── OCRモデル設定 ──
+  // コスト表内で「現在のモデル」の行に背景色と（現在）ラベルを付ける
+  function highlightCurrentModelRow(current) {
+    document.querySelectorAll('#ocr-settings-section table tbody tr').forEach(tr => {
+      const nameCell = tr.querySelector('.ocr-cost-name');
+      if (!nameCell) return;
+      // 前回付けた（現在）ラベルを除去してから判定し直す
+      nameCell.textContent = nameCell.textContent.replace(/\s*（現在）\s*$/, '');
+      if (tr.dataset.model === current) {
+        tr.style.background = 'var(--sage-bg, #EEF5F1)';
+        nameCell.textContent += '（現在）';
+        nameCell.style.fontWeight = '700';
+      } else {
+        tr.style.background = '';
+        nameCell.style.fontWeight = '';
+      }
+    });
+  }
+
   async function loadOcrModel() {
     try {
       const { data, error } = await supabase.rpc('get_app_setting', { p_key: 'receipt_ocr_model' });
@@ -766,6 +784,7 @@
       if ([...sel.options].some(o => o.value === current)) {
         sel.value = current;
       }
+      highlightCurrentModelRow(current);
     } catch(e) {
       document.getElementById('current-model-display').textContent = '取得に失敗しました';
     }
@@ -783,6 +802,7 @@
       toast('❌ エラー: ' + error.message);
     } else {
       document.getElementById('current-model-display').textContent = model;
+      highlightCurrentModelRow(model);
       toast('✓ モデルを ' + model + ' に変更しました');
     }
   });
