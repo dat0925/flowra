@@ -57,7 +57,7 @@ async function callAnthropic(model: string, image: string, mediaType: string, pr
   try {
     const message = await anthropic.messages.create({
       model,
-      max_tokens: 2048,
+      max_tokens: 8192,
       messages: [{
         role: 'user',
         content: [
@@ -88,7 +88,7 @@ async function callGoogle(model: string, image: string, mediaType: string, promp
         ]
       }],
       generationConfig: {
-        maxOutputTokens: 2048,
+        maxOutputTokens: 8192,
         thinkingConfig: { thinkingBudget: 0 },
       }
     })
@@ -116,7 +116,7 @@ async function callOpenAI(model: string, image: string, mediaType: string, promp
     },
     body: JSON.stringify({
       model,
-      max_tokens: 2048,
+      max_tokens: 8192,
       messages: [{
         role: 'user',
         content: [
@@ -137,7 +137,48 @@ async function callOpenAI(model: string, image: string, mediaType: string, promp
   return data.choices?.[0]?.message?.content || '';
 }
 
-Deno.serve(async (req) => {
+// トークン上限で途中切断されたJSONから、"items"配列内で完全にパースできる
+// 要素だけを取り出して復元する。末尾の壊れた1件は捨てる（欠損は許容し、全滅は避ける）。
+function repairTruncatedJson(text: string): { store: string; date: string; items: { name: string; amount: number; taxRate?: number; tag?: string; subTags?: string[] }[] } | null {
+  const storeMatch = text.match(/"store"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  const dateMatch = text.match(/"date"\s*:\s*"((?:[^"\\]|\\.)*)"/);
+  const itemsStart = text.indexOf('"items"');
+  if (itemsStart === -1) return null;
+  const arrStart = text.indexOf('[', itemsStart);
+  if (arrStart === -1) return null;
+
+  const items: { name: string; amount: number; taxRate?: number; tag?: string; subTags?: string[] }[] = [];
+  let i = arrStart + 1;
+  while (i < text.length) {
+    const objStart = text.indexOf('{', i);
+    if (objStart === -1) break;
+    // 対応する閉じ } を、文字列内の { } を無視しつつ探す
+    let depth = 0, inStr = false, esc = false, objEnd = -1;
+    for (let j = objStart; j < text.length; j++) {
+      const c = text[j];
+      if (inStr) {
+        if (esc) esc = false;
+        else if (c === '\\') esc = true;
+        else if (c === '"') inStr = false;
+        continue;
+      }
+      if (c === '"') { inStr = true; continue; }
+      if (c === '{') depth++;
+      else if (c === '}') { depth--; if (depth === 0) { objEnd = j; break; } }
+    }
+    if (objEnd === -1) break; // ここで途切れている＝未完成な最後の1件、捨てて終了
+    try {
+      const obj = JSON.parse(text.slice(objStart, objEnd + 1));
+      if (obj && typeof obj.name === 'string' && typeof obj.amount === 'number') items.push(obj);
+    } catch { /* この要素は壊れているのでスキップ */ }
+    i = objEnd + 1;
+  }
+
+  if (items.length === 0) return null;
+  return { store: storeMatch?.[1] || '', date: dateMatch?.[1] || '', items };
+}
+
+
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
@@ -249,7 +290,13 @@ Deno.serve(async (req) => {
       const cleaned = rawText.replace(/```json|```/g, '').trim();
       parsed = JSON.parse(cleaned);
     } catch {
-      return json({ error: 'OCR解析に失敗しました', raw: rawText }, 500);
+      // 出力トークン上限などでJSONが途中で切れた場合、末尾の未完成な要素を
+      // 切り捨てて配列を閉じ、そこまで読み取れた品目だけでも救出する。
+      const repaired = repairTruncatedJson(rawText.replace(/```json|```/g, '').trim());
+      if (!repaired) {
+        return json({ error: 'OCR解析に失敗しました', raw: rawText }, 500);
+      }
+      parsed = repaired;
     }
 
     await sb.rpc('increment_receipt_usage', {
