@@ -1109,7 +1109,7 @@ function autoAssignTags(itemName, tags, budgetMap) {
 
 // ── レシート確認画面 ──────────────────────────────────────
 async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
-  const { store, date, items, totalMismatch, printedTotal, calculatedTotal } = result;
+  const { store, date, items, totalMismatch, printedSubtotal, calculatedSubtotal } = result;
   const { showToast } = await import('./utils.js');
   const { upsertTransactions } = await import('./cache.js');
 
@@ -1296,8 +1296,8 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
       ? '<div style="background:#FDF2E9;border:1.5px solid #E0A458;border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;gap:8px;align-items:flex-start;">'
         + '<div style="font-size:16px;line-height:1;flex-shrink:0;">⚠️</div>'
         + '<div style="font-size:12px;color:#7A5217;line-height:1.5;">'
-        + '<div style="font-weight:700;margin-bottom:2px;">読み取り金額がレシートの合計と一致しません</div>'
-        + '<div>レシート印字の合計 ¥' + printedTotal.toLocaleString() + ' に対し、読み取れた品目の合計は ¥' + calculatedTotal.toLocaleString() + '。品目名や金額が誤って読み取られている可能性があるので、保存前に実物のレシートと見比べてください。</div>'
+        + '<div style="font-weight:700;margin-bottom:2px;">読み取り金額がレシートの小計と一致しません</div>'
+        + '<div>レシート印字の小計 ¥' + printedSubtotal.toLocaleString() + ' に対し、読み取れた品目の合計は ¥' + calculatedSubtotal.toLocaleString() + '。品目名や金額が誤って読み取られている可能性があるので、保存前に実物のレシートと見比べてください。</div>'
         + '</div></div>'
       : '';
 

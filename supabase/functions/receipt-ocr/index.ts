@@ -27,7 +27,7 @@ function buildPromptText(tagListText: string): string {
 {
   "store": "店名（不明なら空文字）",
   "date": "YYYY-MM-DD形式の日付（不明なら空文字）",
-  "total": レシートに印字されている合計金額（税込・支払総額。「合計」「お会計」等の行の数値。不明なら0）,
+  "subtotal": レシートに印字されている「小計」の数値（消費税を含む前の、品目金額の合計。「小計」という行の数値をそのまま転記。小計の行が見当たらなければ0。「合計」行と混同しないこと）,
   "items": [
     { "name": "品目名", "amount": 金額の数値（税込・値引き後）, "taxRate": 8または10, "tag": "メインカテゴリ名または空文字", "subTags": ["サブカテゴリ名"] }
   ]
@@ -39,10 +39,10 @@ function buildPromptText(tagListText: string): string {
 - 「一般的なスーパーの買い物ならありそうな商品」を文脈から推測して補完することは絶対に禁止（例：キャベツが読み取れたからといって肉・魚・調味料などを憶測で追加しない）
 - 「2コ X 単105」「3コ X 単169」のような行は、直前の品目の数量・単価の内訳を示す注記であり、独立した品目ではない。この注記行の単価や数量を新しい品目名・金額として抽出してはならない
 - 迷ったら「出力しない」を選ぶこと。品目数が実際より少なくなる方が、存在しない品目を混入させるより遥かに良い
-- 「合計金額の辻褄を合わせるために品目名や金額を調整する」ことも絶対禁止。totalとitemsはそれぞれ画像から独立に、見えたものだけを別々に転記すること（一致させようと逆算・創作しない）
+- 「合計金額の辻褄を合わせるために品目名や金額を調整する」ことも絶対禁止。subtotalとitemsはそれぞれ画像から独立に、見えたものだけを別々に転記すること（一致させようと逆算・創作しない）
 
 ルール：
-- 小計・合計・消費税・お釣りの行はitems配列に含めない（合計はtotalフィールドへ）
+- 小計・合計・消費税・お釣りの行はitems配列に含めない（小計の数値はsubtotalフィールドへ）
 - ポイント値引き・割引行はamountをマイナス数値で含める（例: { "name": "ポイント値引き", "amount": -50, "taxRate": 10, "tag": "", "subTags": [] }）
 - 金額は数値のみ（¥や円は含めない）
 - 読み取れない品目はスキップ
@@ -60,7 +60,7 @@ function buildPromptText(tagListText: string): string {
 - 「食費」はデフォルトで選ばず、品目の性質をよく考えて分類すること${tagListText}
 
 【出力前の最終確認】
-JSONを出力する前に、items配列の各要素について「この品目名は画像内の対応する行に実際に印字されているか」を1件ずつ再確認し、確信が持てない品目は削除してから出力すること。totalは品目の合計と一致していなくても構わない（一致させるための操作は禁止、見たままを転記する）。`;
+JSONを出力する前に、items配列の各要素について「この品目名は画像内の対応する行に実際に印字されているか」を1件ずつ再確認し、確信が持てない品目は削除してから出力すること。subtotalは品目の合計と一致していなくても構わない（一致させるための操作は禁止、見たままを転記する）。`;
 }
 
 async function callAnthropic(model: string, image: string, mediaType: string, promptText: string): Promise<string> {
@@ -298,7 +298,7 @@ Deno.serve(async (req) => {
       return json({ error: `未対応のプロバイダー: ${provider}` }, 400);
     }
 
-    let parsed: { store: string; date: string; total?: number; items: { name: string; amount: number; taxRate?: number; tag?: string; subTags?: string[] }[] };
+    let parsed: { store: string; date: string; subtotal?: number; items: { name: string; amount: number; taxRate?: number; tag?: string; subTags?: string[] }[] };
     try {
       const cleaned = rawText.replace(/```json|```/g, '').trim();
       parsed = JSON.parse(cleaned);
@@ -330,20 +330,22 @@ Deno.serve(async (req) => {
           .filter((id): id is string => !!id),
       }));
 
-    // ── 検算：印字されている合計とAIが読み取った品目の合計を突き合わせる ──
+    // ── 検算：印字されている小計とAIが読み取った品目の合計を突き合わせる ──
     // ハルシネーションで品目名・金額ごと辻褄合わせされていた場合、件数や個別の値だけでは
-    // 検知できないため、レシートに実際に印字されている合計（totalフィールド）という
+    // 検知できないため、レシートに実際に印字されている小計（subtotalフィールド）という
     // 独立した数値との整合性チェックを最後の砦として設ける。
-    const printedTotal = typeof parsed.total === 'number' ? parsed.total : 0;
-    const calculatedTotal = cleanItems.reduce((s, i) => s + i.amount, 0);
-    const totalMismatch = printedTotal > 0 && Math.abs(printedTotal - calculatedTotal) > 1;
+    // ※品目金額は税抜き表示（小計と対応）で読み取る想定のため、比較対象は「合計」ではなく「小計」にする
+    //   （合計は税込のため、税抜きの品目合計とは常に数%ズレて誤検知になってしまう）
+    const printedSubtotal = typeof parsed.subtotal === 'number' ? parsed.subtotal : 0;
+    const calculatedSubtotal = cleanItems.reduce((s, i) => s + i.amount, 0);
+    const totalMismatch = printedSubtotal > 0 && Math.abs(printedSubtotal - calculatedSubtotal) > 1;
 
     return json({
       store: parsed.store || '',
       date: parsed.date || '',
       items: cleanItems,
-      printedTotal,
-      calculatedTotal,
+      printedSubtotal,
+      calculatedSubtotal,
       totalMismatch,
       count: currentCount + 1,
       limit,
