@@ -310,6 +310,17 @@ Deno.serve(async (req) => {
       return json({ error: `未対応のプロバイダー: ${provider}` }, 400);
     }
 
+    // AI呼び出し自体が成功した時点で回数を消費する（この後のJSONパースが
+    // 失敗しても課金は既に発生しているため）。こうすることで「解析に失敗した
+    // 試行はノーカウント」による無制限リトライ＝実質青天井コストを防ぐ。
+    // 逆に、APIキー不正・レート制限等でAI呼び出し自体が例外を投げた場合は
+    // 課金が発生していないので、その場合は消費しない（呼び出し前でreturnする）。
+    await sb.rpc('increment_receipt_usage', {
+      p_user_id: user.id,
+      p_month_key: monthKey,
+    });
+    const newCount = currentCount + 1;
+
     let parsed: { store: string; date: string; subtotal?: number; items: { name: string; amount: number; taxRate?: number; tag?: string; subTags?: string[]; uncertain?: boolean }[] };
     let truncated = false;
     try {
@@ -320,16 +331,18 @@ Deno.serve(async (req) => {
       // 切り捨てて配列を閉じ、そこまで読み取れた品目だけでも救出する。
       const repaired = repairTruncatedJson(rawText.replace(/```json|```/g, '').trim());
       if (!repaired) {
-        return json({ error: 'OCR解析に失敗しました', raw: rawText }, 500);
+        return json({
+          error: 'レシートの解析に失敗しました。品目数が多いレシートは読み取れない場合があるので、半分など分けて撮影し直してください。',
+          note: `この試行も利用回数としてカウントされています（残り${Math.max(limit - newCount, 0)}回/月）`,
+          count: newCount,
+          limit,
+          isPremium,
+          raw: rawText,
+        }, 500);
       }
       parsed = repaired;
       truncated = true; // 品目が丸ごと欠落している可能性があるため、利用者に知らせる
     }
-
-    await sb.rpc('increment_receipt_usage', {
-      p_user_id: user.id,
-      p_month_key: monthKey,
-    });
 
     const cleanItems = (parsed.items || [])
       .filter(i => i.name && i.amount !== undefined)
@@ -363,7 +376,7 @@ Deno.serve(async (req) => {
       calculatedSubtotal,
       totalMismatch,
       truncated,
-      count: currentCount + 1,
+      count: newCount,
       limit,
       isPremium,
       usedModel: modelString,

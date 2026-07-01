@@ -879,7 +879,9 @@ async function showSuggest(onSave, onReady, accounts, tags) {
           : 'レシート読み取りは月' + err.limit + '回まで（Premiumで月200回）';
         showToast(msg);
       } else {
-        showToast('読み取りエラー: ' + (err.message || '不明'));
+        // 解析失敗時は利用回数を消費している旨（残り回数）もあわせて伝える
+        const noteText = err.note ? '\n' + err.note : '';
+        showToast('読み取りエラー: ' + (err.message || '不明') + noteText);
       }
       document.getElementById('scan-overlay')?.remove();
       if (btn) { btn.style.opacity = '1'; btn.style.pointerEvents = ''; }
