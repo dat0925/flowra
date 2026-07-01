@@ -1167,7 +1167,9 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
     return {
       ...item,
       baseAmount: item.amount,  // 元の税抜き金額を保持
-      checked: item.amount > 0, // マイナス（値引き）はデフォルトOFF
+      // マイナス（値引き）、および読み取りに自信がない品目（uncertain）はデフォルトOFF
+      // → 利用者が中身を確認・修正してから明示的にチェックを入れる運用にする
+      checked: item.amount > 0 && !item.uncertain,
       tagIds,
       // AIが返した税率（8 or 10）。なければ後でタグから判定
       taxRate: item.taxRate || null,
@@ -1229,6 +1231,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
     const acctName = (id) => accounts.find(a => a.id === id)?.name || '選択';
     const checkedItems = itemStates.filter(i => i.checked);
     const total = checkedItems.reduce((s, i) => s + i.amount, 0);
+    const uncertainCount = itemStates.filter(i => i.uncertain).length;
 
     const itemRows = itemStates.map((item, idx) => {
       // 設定済み主タグ名を取得
@@ -1267,6 +1270,11 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
           + taxBadge
         : '<span style="font-size:10px;color:var(--mid-lt);">タグ未設定</span>' + taxBadge;
 
+      // 読み取り自信度が低い品目には「要確認」バッジを表示（AIが自己申告した不確実性）
+      const uncertainBadge = item.uncertain
+        ? '<span style="font-size:9px;font-weight:700;color:#B8560A;background:#FDF2E9;border:1.5px solid #E0A458;padding:0px 5px;border-radius:6px;">⚠ 要確認</span>'
+        : '';
+
       // チェックボックス：左44px幅のタップゾーン＋視認性改善
       const checkBox = item.checked
         ? '<div data-item-check="' + idx + '" style="width:44px;height:44px;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin:-6px 0;cursor:pointer;">'
@@ -1277,12 +1285,14 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
           + '<div style="width:22px;height:22px;border-radius:6px;background:#fff;border:2px solid #9aaa9a;"></div>'
           + '</div>';
 
-      return '<div data-item-row="' + idx + '" style="padding:11px 0;border-bottom:1px solid var(--mist);display:flex;align-items:center;gap:10px;cursor:pointer;">'
+      const rowBg = item.uncertain ? 'background:#FFFBF6;margin:0 -8px;padding-left:8px;padding-right:8px;border-radius:8px;' : '';
+
+      return '<div data-item-row="' + idx + '" style="padding:11px 0;border-bottom:1px solid var(--mist);display:flex;align-items:center;gap:10px;cursor:pointer;' + rowBg + '">'
         + checkBox
         // 品目情報（中央）
         + '<div style="flex:1;min-width:0;opacity:' + nameOpacity + ';">'
         + '<div style="font-size:13px;font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + item.name + '</div>'
-        + '<div style="display:flex;gap:4px;flex-wrap:nowrap;margin-top:3px;overflow:hidden;">' + tagBadges + '</div>'
+        + '<div style="display:flex;gap:4px;flex-wrap:nowrap;margin-top:3px;overflow:hidden;">' + uncertainBadge + tagBadges + '</div>'
         + '</div>'
         // 金額・矢印（右）
         + '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0;opacity:' + nameOpacity + ';">'
@@ -1301,6 +1311,17 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
         + '</div></div>'
       : '';
 
+    // uncertain件数のサマリー。totalMismatchが出ていない場合でも、個別品目の
+    // 読み取り自信度が低いものがあれば気づけるようにする（要確認の品目はデフォルト未チェック）
+    const uncertainBanner = uncertainCount > 0
+      ? '<div style="background:#FFFBF6;border:1.5px solid #E8C9A0;border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;gap:8px;align-items:flex-start;">'
+        + '<div style="font-size:16px;line-height:1;flex-shrink:0;">⚠</div>'
+        + '<div style="font-size:12px;color:#8A5A1E;line-height:1.5;">'
+        + '<div style="font-weight:700;margin-bottom:2px;">読み取りに自信が持てない品目が' + uncertainCount + '件あります</div>'
+        + '<div>「⚠ 要確認」タグの品目は文字が不鮮明だった可能性があります。デフォルトでチェックを外してあるので、実物と見比べて内容を修正してからチェックを入れてください。</div>'
+        + '</div></div>'
+      : '';
+
     const html = '<div style="padding:0 14px 80px;">'
       + '<div class="modal-handle" style="margin:0 auto 14px;"></div>'
       + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
@@ -1309,6 +1330,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
       + '<svg viewBox="0 0 24 24" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
       + '</div>'
       + mismatchBanner
+      + uncertainBanner
       // 店名（編集可）・日付
       + '<div style="background:var(--stone);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;">'
       + '<input type="text" id="receipt-store" value="' + receiptStore.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '" placeholder="店名（任意）" style="flex:1;min-width:0;font-size:13px;font-weight:600;border:none;background:transparent;color:var(--ink);">'

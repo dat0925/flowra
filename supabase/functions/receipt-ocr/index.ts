@@ -29,23 +29,29 @@ function buildPromptText(tagListText: string): string {
   "date": "YYYY-MM-DD形式の日付（不明なら空文字）",
   "subtotal": レシートに印字されている「小計」の数値（消費税を含む前の、品目金額の合計。「小計」という行の数値をそのまま転記。小計の行が見当たらなければ0。「合計」行と混同しないこと）,
   "items": [
-    { "name": "品目名", "amount": 金額の数値（税込・値引き後）, "taxRate": 8または10, "tag": "メインカテゴリ名または空文字", "subTags": ["サブカテゴリ名"] }
+    { "name": "品目名", "amount": 金額の数値（税込・値引き後）, "taxRate": 8または10, "tag": "メインカテゴリ名または空文字", "subTags": ["サブカテゴリ名"], "uncertain": true または false }
   ]
 }
 
 【最重要・絶対厳守】実在しない品目を絶対に作らないこと：
 - 出力する品目は、画像内に実際に印字されている「品目名の行」に1対1で対応するものだけにすること
-- 文字が不鮮明・かすれ・判読不能な行は、内容を推測して埋めるのではなく、その行ごとスキップすること
 - 「一般的なスーパーの買い物ならありそうな商品」を文脈から推測して補完することは絶対に禁止（例：キャベツが読み取れたからといって肉・魚・調味料などを憶測で追加しない）
 - 「2コ X 単105」「3コ X 単169」のような行は、直前の品目の数量・単価の内訳を示す注記であり、独立した品目ではない。この注記行の単価や数量を新しい品目名・金額として抽出してはならない
-- 迷ったら「出力しない」を選ぶこと。品目数が実際より少なくなる方が、存在しない品目を混入させるより遥かに良い
 - 「合計金額の辻褄を合わせるために品目名や金額を調整する」ことも絶対禁止。subtotalとitemsはそれぞれ画像から独立に、見えたものだけを別々に転記すること（一致させようと逆算・創作しない）
+
+【uncertainフィールドの使い方（重要）】
+行の存在自体は分かるが、文字が不鮮明・かすれ・部分的に隠れている等の理由で品目名または金額の読み取りに自信が持てない場合：
+- その行を丸ごとスキップするのではなく、実際に読み取れた文字だけをそのまま出力し、"uncertain": true を付けること
+- 品目名の一部の文字が読めない場合、読めた部分だけを出力し（無理に一般的な単語で補完しない）、uncertain: trueにする
+- 金額の数字が一部読めない場合、読めた桁だけで構成される概算ではなく、最も自信のある読み取り値を入れた上でuncertain: trueにする。数字が1桁も読めない場合はamountを0にする
+- 完全に自信がある場合のみ uncertain: false
+- 行の存在すら判別できない（完全に何も見えない）場合のみ、その行はitems配列に含めない
+- 目的：AIが「それらしい嘘」で埋めるのではなく「どこまで読めて、どこから自信がないか」を利用者に正直に伝えること。利用者が手動で修正するので、無理に完璧な値を作る必要はない
 
 ルール：
 - 小計・合計・消費税・お釣りの行はitems配列に含めない（小計の数値はsubtotalフィールドへ）
-- ポイント値引き・割引行はamountをマイナス数値で含める（例: { "name": "ポイント値引き", "amount": -50, "taxRate": 10, "tag": "", "subTags": [] }）
+- ポイント値引き・割引行はamountをマイナス数値で含める（例: { "name": "ポイント値引き", "amount": -50, "taxRate": 10, "tag": "", "subTags": [], "uncertain": false }）
 - 金額は数値のみ（¥や円は含めない）
-- 読み取れない品目はスキップ
 - 品目名は略さずレシートに印字された名前をそのまま使う
 - taxRateは日本の消費税法に基づき判定する：
   ・飲食料品（食材・調味料・飲み物・お菓子・アイスなど）→ 8
@@ -60,7 +66,7 @@ function buildPromptText(tagListText: string): string {
 - 「食費」はデフォルトで選ばず、品目の性質をよく考えて分類すること${tagListText}
 
 【出力前の最終確認】
-JSONを出力する前に、items配列の各要素について「この品目名は画像内の対応する行に実際に印字されているか」を1件ずつ再確認し、確信が持てない品目は削除してから出力すること。subtotalは品目の合計と一致していなくても構わない（一致させるための操作は禁止、見たままを転記する）。`;
+JSONを出力する前に、items配列の各要素について「この品目名・金額は画像内の対応する行から実際に読み取れるか、それとも一般的な推測が混じっていないか」を1件ずつ再確認すること。少しでも推測が混じっているならuncertain: trueにする（falseにできるのは画像から明確に読み取れた場合だけ）。subtotalは品目の合計と一致していなくても構わない（一致させるための操作は禁止、見たままを転記する）。`;
 }
 
 async function callAnthropic(model: string, image: string, mediaType: string, promptText: string): Promise<string> {
@@ -151,7 +157,7 @@ async function callOpenAI(model: string, image: string, mediaType: string, promp
 
 // トークン上限で途中切断されたJSONから、"items"配列内で完全にパースできる
 // 要素だけを取り出して復元する。末尾の壊れた1件は捨てる（欠損は許容し、全滅は避ける）。
-function repairTruncatedJson(text: string): { store: string; date: string; items: { name: string; amount: number; taxRate?: number; tag?: string; subTags?: string[] }[] } | null {
+function repairTruncatedJson(text: string): { store: string; date: string; items: { name: string; amount: number; taxRate?: number; tag?: string; subTags?: string[]; uncertain?: boolean }[] } | null {
   const storeMatch = text.match(/"store"\s*:\s*"((?:[^"\\]|\\.)*)"/);
   const dateMatch = text.match(/"date"\s*:\s*"((?:[^"\\]|\\.)*)"/);
   const itemsStart = text.indexOf('"items"');
@@ -159,7 +165,7 @@ function repairTruncatedJson(text: string): { store: string; date: string; items
   const arrStart = text.indexOf('[', itemsStart);
   if (arrStart === -1) return null;
 
-  const items: { name: string; amount: number; taxRate?: number; tag?: string; subTags?: string[] }[] = [];
+  const items: { name: string; amount: number; taxRate?: number; tag?: string; subTags?: string[]; uncertain?: boolean }[] = [];
   let i = arrStart + 1;
   while (i < text.length) {
     const objStart = text.indexOf('{', i);
@@ -298,7 +304,7 @@ Deno.serve(async (req) => {
       return json({ error: `未対応のプロバイダー: ${provider}` }, 400);
     }
 
-    let parsed: { store: string; date: string; subtotal?: number; items: { name: string; amount: number; taxRate?: number; tag?: string; subTags?: string[] }[] };
+    let parsed: { store: string; date: string; subtotal?: number; items: { name: string; amount: number; taxRate?: number; tag?: string; subTags?: string[]; uncertain?: boolean }[] };
     try {
       const cleaned = rawText.replace(/```json|```/g, '').trim();
       parsed = JSON.parse(cleaned);
@@ -328,6 +334,7 @@ Deno.serve(async (req) => {
         subTagIds: (i.subTags || [])
           .map((name: string) => tagNameToId.get(name))
           .filter((id): id is string => !!id),
+        uncertain: !!i.uncertain,
       }));
 
     // ── 検算：印字されている小計とAIが読み取った品目の合計を突き合わせる ──
