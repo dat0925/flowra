@@ -75,7 +75,7 @@ async function callAnthropic(model: string, image: string, mediaType: string, pr
   try {
     const message = await anthropic.messages.create({
       model,
-      max_tokens: 8192,
+      max_tokens: 2048,
       messages: [{
         role: 'user',
         content: [
@@ -100,7 +100,7 @@ async function callGoogle(model: string, image: string, mediaType: string, promp
   // Proのみ最小の有効値（128トークン）を設定し、その分だけ出力上限にも余裕を持たせる。
   const isPro = /-pro\b/.test(model);
   const thinkingBudget = isPro ? 128 : 0;
-  const maxOutputTokens = isPro ? 8192 + thinkingBudget : 8192;
+  const maxOutputTokens = isPro ? 2048 + thinkingBudget : 2048;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -140,7 +140,7 @@ async function callOpenAI(model: string, image: string, mediaType: string, promp
     },
     body: JSON.stringify({
       model,
-      max_tokens: 8192,
+      max_tokens: 2048,
       messages: [{
         role: 'user',
         content: [
@@ -311,6 +311,7 @@ Deno.serve(async (req) => {
     }
 
     let parsed: { store: string; date: string; subtotal?: number; items: { name: string; amount: number; taxRate?: number; tag?: string; subTags?: string[]; uncertain?: boolean }[] };
+    let truncated = false;
     try {
       const cleaned = rawText.replace(/```json|```/g, '').trim();
       parsed = JSON.parse(cleaned);
@@ -322,6 +323,7 @@ Deno.serve(async (req) => {
         return json({ error: 'OCR解析に失敗しました', raw: rawText }, 500);
       }
       parsed = repaired;
+      truncated = true; // 品目が丸ごと欠落している可能性があるため、利用者に知らせる
     }
 
     await sb.rpc('increment_receipt_usage', {
@@ -360,6 +362,7 @@ Deno.serve(async (req) => {
       printedSubtotal,
       calculatedSubtotal,
       totalMismatch,
+      truncated,
       count: currentCount + 1,
       limit,
       isPremium,

@@ -866,6 +866,11 @@ async function showSuggest(onSave, onReady, accounts, tags) {
 
       const result = await DB.scanReceipt(base64, file.type || 'image/jpeg');
       scanOverlay.remove();
+      if (result.truncated) {
+        // 出力トークン上限でJSONが途中で切れ、読み取れた分だけを救出した状態。
+        // 品目が欠落している可能性が高いため、レシートを分割して読み取るよう案内する。
+        showToast('⚠️ 品目が多く、一部を読み取れませんでした。レシートを半分など分けて撮影し直すことをおすすめします');
+      }
       showReceiptConfirm(result, onSave, onReady, accounts, tags);
     } catch (err) {
       if (err.error === 'LIMIT_REACHED') {
@@ -1109,7 +1114,7 @@ function autoAssignTags(itemName, tags, budgetMap) {
 
 // ── レシート確認画面 ──────────────────────────────────────
 async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
-  const { store, date, items, totalMismatch, printedSubtotal, calculatedSubtotal } = result;
+  const { store, date, items, totalMismatch, printedSubtotal, calculatedSubtotal, truncated } = result;
   const { showToast } = await import('./utils.js');
   const { upsertTransactions } = await import('./cache.js');
 
@@ -1302,6 +1307,16 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
         + '</div>';
     }).join('');
 
+    // 出力トークン上限でJSONが途中で切れ、末尾の品目が救出しきれず欠落している可能性がある場合の警告
+    const truncatedBanner = truncated
+      ? '<div style="background:#FDEBEB;border:1.5px solid #E08A8A;border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;gap:8px;align-items:flex-start;">'
+        + '<div style="font-size:16px;line-height:1;flex-shrink:0;">✂️</div>'
+        + '<div style="font-size:12px;color:#8A2E2E;line-height:1.5;">'
+        + '<div style="font-weight:700;margin-bottom:2px;">品目が多く、途中までしか読み取れませんでした</div>'
+        + '<div>下に表示されている品目より後の分がレシートに残っている可能性があります。レシートを半分など分けて撮影し直すことをおすすめします。</div>'
+        + '</div></div>'
+      : '';
+
     const mismatchBanner = totalMismatch
       ? '<div style="background:#FDF2E9;border:1.5px solid #E0A458;border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;gap:8px;align-items:flex-start;">'
         + '<div style="font-size:16px;line-height:1;flex-shrink:0;">⚠️</div>'
@@ -1329,6 +1344,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
       + '<button id="btn-receipt-cancel" style="width:30px;height:30px;border-radius:50%;background:var(--mist);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">'
       + '<svg viewBox="0 0 24 24" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
       + '</div>'
+      + truncatedBanner
       + mismatchBanner
       + uncertainBanner
       // 店名（編集可）・日付
