@@ -32,6 +32,13 @@ function buildPromptText(tagListText: string): string {
   ]
 }
 
+【最重要・絶対厳守】実在しない品目を絶対に作らないこと：
+- 出力する品目は、画像内に実際に印字されている「品目名の行」に1対1で対応するものだけにすること
+- 文字が不鮮明・かすれ・判読不能な行は、内容を推測して埋めるのではなく、その行ごとスキップすること
+- 「一般的なスーパーの買い物ならありそうな商品」を文脈から推測して補完することは絶対に禁止（例：キャベツが読み取れたからといって肉・魚・調味料などを憶測で追加しない）
+- 「2コ X 単105」「3コ X 単169」のような行は、直前の品目の数量・単価の内訳を示す注記であり、独立した品目ではない。この注記行の単価や数量を新しい品目名・金額として抽出してはならない
+- 迷ったら「出力しない」を選ぶこと。品目数が実際より少なくなる方が、存在しない品目を混入させるより遥かに良い
+
 ルール：
 - 小計・合計・消費税・お釣りの行は含めない
 - ポイント値引き・割引行はamountをマイナス数値で含める（例: { "name": "ポイント値引き", "amount": -50, "taxRate": 10, "tag": "", "subTags": [] }）
@@ -48,7 +55,10 @@ function buildPromptText(tagListText: string): string {
 - お菓子・スナック・アイス・ジュース・コーヒー・酒類など「必需品ではない嗜好品」→「嗜好品」
 - 食材・調味料・米・乾物・冷凍食品など「料理に使う食品」→「食費」
 - シャンプー・洗剤・ティッシュ・トイレットペーパーなど「生活用品」→「日用品」
-- 「食費」はデフォルトで選ばず、品目の性質をよく考えて分類すること${tagListText}`;
+- 「食費」はデフォルトで選ばず、品目の性質をよく考えて分類すること${tagListText}
+
+【出力前の最終確認】
+JSONを出力する前に、items配列の各要素について「この品目名は画像内の対応する行に実際に印字されているか」を1件ずつ再確認し、確信が持てない品目は削除してから出力すること。`;
 }
 
 async function callAnthropic(model: string, image: string, mediaType: string, promptText: string): Promise<string> {
@@ -179,6 +189,7 @@ function repairTruncatedJson(text: string): { store: string; date: string; items
 }
 
 
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
