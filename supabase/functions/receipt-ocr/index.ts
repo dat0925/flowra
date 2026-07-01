@@ -95,6 +95,12 @@ async function callAnthropic(model: string, image: string, mediaType: string, pr
 
 async function callGoogle(model: string, image: string, mediaType: string, promptText: string): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_API_KEY}`;
+  // Gemini 2.5 Pro はthinkingを完全に無効化できず、thinkingBudget:0を送るとAPIが
+  // 400エラーで即座に拒否する（Flash/Flash-Liteは0が有効なのでこれまで問題なかった）。
+  // Proのみ最小の有効値（128トークン）を設定し、その分だけ出力上限にも余裕を持たせる。
+  const isPro = /-pro\b/.test(model);
+  const thinkingBudget = isPro ? 128 : 0;
+  const maxOutputTokens = isPro ? 8192 + thinkingBudget : 8192;
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -106,15 +112,15 @@ async function callGoogle(model: string, image: string, mediaType: string, promp
         ]
       }],
       generationConfig: {
-        maxOutputTokens: 8192,
-        thinkingConfig: { thinkingBudget: 0 },
+        maxOutputTokens,
+        thinkingConfig: { thinkingBudget },
       }
     })
   });
   const data = await res.json();
   if (data.error) {
     const code = data.error.code;
-    if (code === 400 && data.error.status === 'INVALID_ARGUMENT') throw new Error('Google APIキーが無効です。キーを確認してください。');
+    if (code === 400 && /API key not valid/i.test(data.error.message || '')) throw new Error('Google APIキーが無効です。キーを確認してください。');
     if (code === 403) throw new Error('Google APIキーに権限がありません。Generative Language APIが有効か確認してください。');
     if (code === 429) throw new Error('Google APIの利用制限に達しました。しばらく待ってから再試行してください。');
     throw new Error(`Gemini error: ${data.error.message}`);
