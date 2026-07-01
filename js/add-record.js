@@ -1109,7 +1109,7 @@ function autoAssignTags(itemName, tags, budgetMap) {
 
 // ── レシート確認画面 ──────────────────────────────────────
 async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
-  const { store, date, items } = result;
+  const { store, date, items, totalMismatch, printedTotal, calculatedTotal } = result;
   const { showToast } = await import('./utils.js');
   const { upsertTransactions } = await import('./cache.js');
 
@@ -1292,6 +1292,15 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
         + '</div>';
     }).join('');
 
+    const mismatchBanner = totalMismatch
+      ? '<div style="background:#FDF2E9;border:1.5px solid #E0A458;border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;gap:8px;align-items:flex-start;">'
+        + '<div style="font-size:16px;line-height:1;flex-shrink:0;">⚠️</div>'
+        + '<div style="font-size:12px;color:#7A5217;line-height:1.5;">'
+        + '<div style="font-weight:700;margin-bottom:2px;">読み取り金額がレシートの合計と一致しません</div>'
+        + '<div>レシート印字の合計 ¥' + printedTotal.toLocaleString() + ' に対し、読み取れた品目の合計は ¥' + calculatedTotal.toLocaleString() + '。品目名や金額が誤って読み取られている可能性があるので、保存前に実物のレシートと見比べてください。</div>'
+        + '</div></div>'
+      : '';
+
     const html = '<div style="padding:0 14px 80px;">'
       + '<div class="modal-handle" style="margin:0 auto 14px;"></div>'
       + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
@@ -1299,6 +1308,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
       + '<button id="btn-receipt-cancel" style="width:30px;height:30px;border-radius:50%;background:var(--mist);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">'
       + '<svg viewBox="0 0 24 24" width="14" height="14"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>'
       + '</div>'
+      + mismatchBanner
       // 店名（編集可）・日付
       + '<div style="background:var(--stone);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;">'
       + '<input type="text" id="receipt-store" value="' + receiptStore.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '" placeholder="店名（任意）" style="flex:1;min-width:0;font-size:13px;font-weight:600;border:none;background:transparent;color:var(--ink);">'
