@@ -4,9 +4,10 @@
 // ─────────────────────────────────────
 import { DB }         from './db.js';
 import { MonthState } from './router.js';
-import { fmt }        from './utils.js';
+import { fmt, showToast } from './utils.js';
 import { getCachedTransactions, upsertTransactions, putAccounts } from './cache.js';
 import { openEditRecord } from './edit-record.js';
+import { showAccountPicker } from './account-picker.js';
 
 const TX_ICON = {
   income:   { bg: '#EEF5F1', stroke: '#4A7C59', path: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>' },
@@ -42,6 +43,10 @@ let _searchDebounce = null; // デバウンスタイマー
 let _searchGen     = 0;    // 競合防止カウンター（古い非同期結果を破棄）
 let _budgetTagIds  = new Set(); // 主タグ判定用（budgetsテーブルのtag_id群）
 
+// ── 一括編集（複数選択）状態 ──
+let selectionMode  = false;
+let selectedIds    = new Set();
+
 // 検索中かどうか（PWAのプルトゥリフレッシュが検索結果を消さないようにするための判定用）
 export function isSearchActive() {
   return !!searchQuery.trim();
@@ -55,6 +60,7 @@ export async function renderRecords({ focusSearch = false } = {}) {
   searchQuery    = '';
   _searchResults = [];
   _searchGen++;          // 月切替時に進行中の検索を無効化
+  exitSelectionMode();   // 月切替時は選択状態を破棄
 
   // ── STEP 1: キャッシュから即表示 ──
   const cachedTxs = await getCachedTransactions({ year, month });
@@ -168,6 +174,14 @@ function renderShell(transactions, year, month, focusSearch = false) {
             </svg>
             集計
           </button>
+          <button id="btn-select-mode"
+            style="flex-shrink:0;padding:6px 12px;border-radius:10px;border:1.5px solid var(--border);
+              background:#fff;color:var(--mid);font-size:11px;font-weight:700;
+              cursor:pointer;display:flex;align-items:center;gap:4px;white-space:nowrap;">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 11 12 14 20 6"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/>
+            </svg>
+            選択
           </button>
         </div>
       </div>
@@ -200,6 +214,13 @@ function renderShell(transactions, year, month, focusSearch = false) {
   listElDelegate?.addEventListener('click', e => {
     const item = e.target.closest('.tx-item[data-tx-id]');
     if (!item) return;
+
+    // 選択モード中はタップでチェックのON/OFFのみ行う（編集画面は開かない）
+    if (selectionMode) {
+      toggleSelection(item.dataset.txId);
+      return;
+    }
+
     // 検索中は_searchResults、当月表示は_allTxから探す
     const pool = searchQuery.trim() ? _searchResults : _allTx;
     const tx = pool.find(t => t.id === item.dataset.txId);
@@ -255,6 +276,19 @@ function renderShell(transactions, year, month, focusSearch = false) {
   document.getElementById('btn-summary-sheet')?.addEventListener('click', () => {
     import('./summary-sheet.js').then(({ openSummarySheet }) => openSummarySheet());
   });
+
+  document.getElementById('btn-select-mode')?.addEventListener('click', () => {
+    if (selectionMode) {
+      exitSelectionMode();
+    } else {
+      selectionMode = true;
+      selectedIds.clear();
+    }
+    renderList();
+    updateSelectModeButton();
+    renderBulkActionBar();
+  });
+  updateSelectModeButton();
 
   // focusSearchフラグ：描画直後にキーボードを出す
   if (focusSearch && searchInput) {
@@ -402,8 +436,18 @@ async function renderList() {
               ? `<span class="tx-tag tx-tag-primary">${t.name}</span>`
               : `<span class="tx-tag tx-tag-sub">${t.name}</span>`
           ).join('');
+          const isSelected = selectedIds.has(tx.id);
+          const checkboxHTML = selectionMode ? `
+              <div class="tx-select-check ${isSelected ? 'checked' : ''}"
+                style="width:20px;height:20px;border-radius:6px;flex-shrink:0;display:flex;
+                align-items:center;justify-content:center;transition:background 0.12s,border-color 0.12s;
+                border:1.5px solid ${isSelected ? 'var(--sage-dk)' : 'var(--border)'};
+                background:${isSelected ? 'var(--sage-dk)' : '#fff'};">
+                ${isSelected ? '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' : ''}
+              </div>` : '';
           return `
-            <div class="tx-item" data-tx-id="${tx.id}" style="cursor:pointer;">
+            <div class="tx-item" data-tx-id="${tx.id}" style="cursor:pointer;${isSelected ? 'background:var(--sage-bg);' : ''}">
+              ${checkboxHTML}
               ${txIconSVG(tx.type)}
               <div class="tx-body">
                 <div class="tx-name">${tx.memo || '（メモなし）'}</div>
@@ -426,6 +470,192 @@ async function renderList() {
     </div>`;
 
   // クリックはrenderShellのイベントデリゲーションで処理
+}
+
+// ── 一括編集（複数選択）関連 ──────────────────────
+
+function toggleSelection(id) {
+  if (selectedIds.has(id)) selectedIds.delete(id);
+  else selectedIds.add(id);
+  renderList();
+  renderBulkActionBar();
+}
+
+function exitSelectionMode() {
+  selectionMode = false;
+  selectedIds.clear();
+  document.getElementById('bulk-action-bar')?.remove();
+  updateSelectModeButton();
+}
+
+function updateSelectModeButton() {
+  const btn = document.getElementById('btn-select-mode');
+  if (!btn) return;
+  if (selectionMode) {
+    btn.style.background = 'var(--sage-dk)';
+    btn.style.borderColor = 'var(--sage-dk)';
+    btn.style.color = '#fff';
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+      </svg>
+      やめる`;
+  } else {
+    btn.style.background = '#fff';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--mid)';
+    btn.innerHTML = `
+      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 11 12 14 20 6"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/>
+      </svg>
+      選択`;
+  }
+}
+
+// 現在表示中（フィルター後）の一覧を全て選択/解除トグル
+function selectAllVisible() {
+  const pool = searchQuery.trim() ? _searchResults : _allTx;
+  const visible = pool.filter(tx => currentFilter === 'all' || tx.type === currentFilter);
+  const allSelected = visible.length > 0 && visible.every(tx => selectedIds.has(tx.id));
+  if (allSelected) {
+    visible.forEach(tx => selectedIds.delete(tx.id));
+  } else {
+    visible.forEach(tx => selectedIds.add(tx.id));
+  }
+  renderList();
+  renderBulkActionBar();
+}
+
+// 選択中の記録本体（口座変更等の判定に使う）
+function getSelectedTx() {
+  const pool = searchQuery.trim() ? _searchResults : _allTx;
+  return pool.filter(tx => selectedIds.has(tx.id));
+}
+
+function renderBulkActionBar() {
+  let bar = document.getElementById('bulk-action-bar');
+  const count = selectedIds.size;
+
+  if (!selectionMode) {
+    bar?.remove();
+    return;
+  }
+
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'bulk-action-bar';
+    bar.style.cssText = `
+      position:fixed;left:0;right:0;bottom:0;z-index:1000;
+      background:var(--stone);border-top:1px solid var(--border);
+      padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+      display:flex;flex-direction:column;gap:8px;`;
+    document.body.appendChild(bar);
+  }
+
+  bar.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <button id="bulk-cancel" style="background:none;border:none;padding:4px;color:var(--mid);
+        font-size:13px;font-weight:500;cursor:pointer;">キャンセル</button>
+      <div style="font-size:13px;font-weight:600;color:var(--ink);">${count}件選択中</div>
+      <button id="bulk-select-all" style="background:none;border:none;padding:4px;color:var(--sage-dk);
+        font-size:13px;font-weight:600;cursor:pointer;">全選択</button>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button id="bulk-change-account" ${count === 0 ? 'disabled' : ''}
+        style="flex:1;padding:12px;border-radius:12px;border:1.5px solid var(--sage);
+        background:${count === 0 ? 'var(--mist)' : 'var(--sage-bg)'};color:${count === 0 ? 'var(--mid-lt)' : 'var(--sage-dk)'};
+        font-family:'Noto Sans JP',sans-serif;font-size:13.5px;font-weight:600;
+        cursor:${count === 0 ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:center;gap:6px;">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8l9-6 9 6v14H3z"/><path d="M9 22V12h6v10"/></svg>
+        口座を変更
+      </button>
+      <button id="bulk-delete" ${count === 0 ? 'disabled' : ''}
+        style="flex:0 0 auto;min-width:88px;padding:12px;border-radius:12px;border:1.5px solid var(--red);
+        background:${count === 0 ? 'var(--mist)' : 'var(--red-bg)'};color:${count === 0 ? 'var(--mid-lt)' : 'var(--red)'};
+        font-family:'Noto Sans JP',sans-serif;font-size:13.5px;font-weight:600;
+        cursor:${count === 0 ? 'default' : 'pointer'};">
+        削除
+      </button>
+    </div>`;
+
+  bar.querySelector('#bulk-cancel')?.addEventListener('click', () => {
+    exitSelectionMode();
+    renderList();
+  });
+  bar.querySelector('#bulk-select-all')?.addEventListener('click', selectAllVisible);
+  bar.querySelector('#bulk-change-account')?.addEventListener('click', onBulkChangeAccount);
+  bar.querySelector('#bulk-delete')?.addEventListener('click', onBulkDelete);
+}
+
+async function onBulkChangeAccount() {
+  if (selectedIds.size === 0) return;
+  const selectedTx = getSelectedTx();
+  const transferCount = selectedTx.filter(tx => tx.type === 'transfer').length;
+  const eligible = selectedTx.filter(tx => tx.type !== 'transfer');
+
+  if (eligible.length === 0) {
+    showToast('振替のみが選択されています。口座の一括変更は収入・支出のみ対応しています');
+    return;
+  }
+
+  let accounts;
+  try {
+    accounts = await DB.getAccounts();
+  } catch (e) {
+    showToast('口座の取得に失敗しました: ' + e.message);
+    return;
+  }
+
+  const title = transferCount > 0
+    ? `口座を選択（${eligible.length}件・振替${transferCount}件は対象外）`
+    : `口座を選択（${eligible.length}件）`;
+
+  showAccountPicker({
+    accounts,
+    title,
+    onSelect: async (accountId) => {
+      try {
+        await DB.bulkUpdateTransactionAccount(eligible.map(tx => tx.id), accountId);
+        showToast(`${eligible.length}件の口座を変更しました`);
+        exitSelectionMode();
+        await refreshAfterBulkChange();
+      } catch (e) {
+        showToast('変更に失敗しました: ' + e.message);
+      }
+    },
+  });
+}
+
+async function onBulkDelete() {
+  if (selectedIds.size === 0) return;
+  const count = selectedIds.size;
+  if (!confirm(`選択中の${count}件を削除します。\nこの操作は取り消せません。よろしいですか？`)) return;
+
+  try {
+    await DB.bulkDeleteTransactions([...selectedIds]);
+    showToast(`${count}件を削除しました`);
+    exitSelectionMode();
+    await refreshAfterBulkChange();
+  } catch (e) {
+    showToast('削除に失敗しました: ' + e.message);
+  }
+}
+
+// 一括操作後の再読み込み（当月キャッシュ・全期間検索の両方に対応）
+async function refreshAfterBulkChange() {
+  if (searchQuery.trim()) {
+    await renderList();
+    return;
+  }
+  try {
+    const { year, month } = MonthState;
+    const result = await DB.getTransactions({ year, month, pageSize: 500 });
+    _allTx = result.data;
+    await upsertTransactions(result.data);
+  } catch (e) {
+    // 取得失敗時もローカル状態からは除去済みなので致命的ではない
+  }
+  renderList();
 }
 
 // 保存後に_allTxに追加してリストを差し込む（再描画なし）

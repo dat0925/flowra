@@ -359,6 +359,41 @@ export const DB = {
     if (error) throw error;
   },
 
+  // ── 一括編集（記録一覧の複数選択から呼ばれる） ──────────
+  //
+  // 対象は income/expense のみ（振替は account_id/to_account_id の
+  // どちらを差し替えるか一意に決まらないため、呼び出し側で除外すること）
+
+  async bulkUpdateTransactionAccount(ids, accountId) {
+    if (!ids || ids.length === 0) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from('transactions')
+      .update({ account_id: accountId, updated_by: user.id })
+      .in('id', ids)
+      .select('id');
+    if (error) throw error;
+    // RLSの「静かな失敗」対策：更新できた件数が要求件数と一致するか確認
+    if (!data || data.length !== ids.length) {
+      throw new Error(`更新が一部拒否されました（${data ? data.length : 0}/${ids.length}件）`);
+    }
+    return data;
+  },
+
+  async bulkDeleteTransactions(ids) {
+    if (!ids || ids.length === 0) return;
+    const { data, error } = await supabase
+      .from('transactions')
+      .delete()
+      .in('id', ids)
+      .select('id');
+    if (error) throw error;
+    if (!data || data.length !== ids.length) {
+      throw new Error(`削除が一部拒否されました（${data ? data.length : 0}/${ids.length}件）`);
+    }
+    return data;
+  },
+
   // ── インポート（バッチ処理）─────────────────────
   //
   // ポイント：
