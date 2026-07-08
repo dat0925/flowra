@@ -394,6 +394,28 @@ export const DB = {
     return data;
   },
 
+  // 選択した記録のタグを、指定した1件のタグに一括で置き換える
+  // （既存のタグは全て外し、指定タグのみを主タグとして付け直す）
+  async bulkUpdateTransactionTags(ids, tagId) {
+    if (!ids || ids.length === 0) return;
+    const { error: delErr } = await supabase
+      .from('transaction_tags')
+      .delete()
+      .in('transaction_id', ids);
+    if (delErr) throw delErr;
+
+    const rows = ids.map(transaction_id => ({ transaction_id, tag_id: tagId }));
+    const { data, error } = await supabase
+      .from('transaction_tags')
+      .insert(rows)
+      .select('transaction_id');
+    if (error) throw error;
+    if (!data || data.length !== ids.length) {
+      throw new Error(`タグの更新が一部拒否されました（${data ? data.length : 0}/${ids.length}件）`);
+    }
+    return data;
+  },
+
   // ── インポート（バッチ処理）─────────────────────
   //
   // ポイント：

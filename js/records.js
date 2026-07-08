@@ -34,6 +34,62 @@ function tagsHTML(tags) {
   return tags.map(t => `<span class="tx-tag tx-tag-muted">${t.name}</span>`).join('');
 }
 
+const TAG_PICKER_SHEET_ID = 'bulk-tag-picker-sheet';
+
+// カテゴリ（タグ）一括変更用のボトムシート。account-picker.jsの構造を踏襲。
+// 選択した1件のタグに、対象記録のタグを丸ごと置き換える（主タグのみ・サブタグ選択は非対応）。
+function showTagPicker({ tags = [], budgetTagIds = new Set(), title = 'カテゴリを選択', onSelect } = {}) {
+  document.getElementById(TAG_PICKER_SHEET_ID)?.remove();
+
+  const itemsHTML = tags.map(t => {
+    const isPrimary = budgetTagIds.has(t.id);
+    return `
+      <div class="bulk-tag-picker-item" data-id="${t.id}"
+        style="display:flex;align-items:center;gap:13px;padding:13px 18px;cursor:pointer;
+        border-bottom:1px solid var(--border);transition:background 0.12s;background:#fff;">
+        <div style="width:14px;height:14px;border-radius:50%;background:${t.color || '#7A9485'};flex-shrink:0;"></div>
+        <div style="flex:1;min-width:0;font-size:14px;font-weight:500;color:var(--ink);">${t.name}</div>
+        ${isPrimary ? '<span class="tx-tag tx-tag-primary" style="flex-shrink:0;">主</span>' : ''}
+      </div>`;
+  }).join('');
+
+  const sheet = document.createElement('div');
+  sheet.id = TAG_PICKER_SHEET_ID;
+  sheet.style.cssText = 'position:fixed;inset:0;z-index:1100;background:rgba(28,43,34,0.45);display:flex;align-items:flex-end;justify-content:center;';
+  sheet.innerHTML = `
+    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;
+      display:flex;flex-direction:column;max-height:85vh;">
+      <div style="flex-shrink:0;">
+        <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 0;"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;">
+          <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">${title}</div>
+          <button class="bulk-tag-picker-close" style="width:28px;height:28px;border-radius:50%;background:var(--mist);border:none;
+            display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">
+            <svg viewBox="0 0 24 24" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+      <div style="overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 14px calc(40px + env(safe-area-inset-bottom));flex:1;min-height:0;">
+        <div style="background:#fff;border-radius:14px;overflow:hidden;border:1px solid var(--border);">
+          ${itemsHTML}
+        </div>
+      </div>
+    </div>`;
+
+  const close = () => sheet.remove();
+
+  document.body.appendChild(sheet);
+  sheet.querySelector('.bulk-tag-picker-close')?.addEventListener('click', close);
+  sheet.addEventListener('click', e => { if (e.target === sheet) close(); });
+  sheet.querySelectorAll('.bulk-tag-picker-item').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.dataset.id;
+      close();
+      onSelect?.(id);
+    });
+  });
+}
+
 // ── 状態（画面遷移後もリセット）──
 let currentFilter  = 'all';
 let searchQuery    = '';
@@ -477,6 +533,7 @@ async function renderList() {
 function toggleSelection(id) {
   if (selectedIds.has(id)) selectedIds.delete(id);
   else selectedIds.add(id);
+  resetDeleteConfirm();
   renderList();
   renderBulkActionBar();
 }
@@ -484,6 +541,7 @@ function toggleSelection(id) {
 function exitSelectionMode() {
   selectionMode = false;
   selectedIds.clear();
+  resetDeleteConfirm();
   document.getElementById('bulk-action-bar')?.remove();
   updateSelectModeButton();
 }
@@ -522,6 +580,7 @@ function selectAllVisible() {
   } else {
     visible.forEach(tx => selectedIds.add(tx.id));
   }
+  resetDeleteConfirm();
   renderList();
   renderBulkActionBar();
 }
@@ -552,6 +611,8 @@ function renderBulkActionBar() {
     document.body.appendChild(bar);
   }
 
+  const deleteLabel = deleteConfirmPending ? '本当に削除しますか？ もう一度タップ' : '選択した記録を削除';
+
   bar.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;">
       <button id="bulk-cancel" style="background:none;border:none;padding:4px;color:var(--mid);
@@ -564,19 +625,28 @@ function renderBulkActionBar() {
       <button id="bulk-change-account" ${count === 0 ? 'disabled' : ''}
         style="flex:1;padding:12px;border-radius:12px;border:1.5px solid var(--sage);
         background:${count === 0 ? 'var(--mist)' : 'var(--sage-bg)'};color:${count === 0 ? 'var(--mid-lt)' : 'var(--sage-dk)'};
-        font-family:'Noto Sans JP',sans-serif;font-size:13.5px;font-weight:600;
-        cursor:${count === 0 ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:center;gap:6px;">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8l9-6 9 6v14H3z"/><path d="M9 22V12h6v10"/></svg>
+        font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:600;
+        cursor:${count === 0 ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:center;gap:5px;">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8l9-6 9 6v14H3z"/><path d="M9 22V12h6v10"/></svg>
         口座を変更
       </button>
-      <button id="bulk-delete" ${count === 0 ? 'disabled' : ''}
-        style="flex:0 0 auto;min-width:88px;padding:12px;border-radius:12px;border:1.5px solid var(--red);
-        background:${count === 0 ? 'var(--mist)' : 'var(--red-bg)'};color:${count === 0 ? 'var(--mid-lt)' : 'var(--red)'};
-        font-family:'Noto Sans JP',sans-serif;font-size:13.5px;font-weight:600;
-        cursor:${count === 0 ? 'default' : 'pointer'};">
-        削除
+      <button id="bulk-change-tag" ${count === 0 ? 'disabled' : ''}
+        style="flex:1;padding:12px;border-radius:12px;border:1.5px solid var(--gold);
+        background:${count === 0 ? 'var(--mist)' : 'var(--gold-bg)'};color:${count === 0 ? 'var(--mid-lt)' : 'var(--gold)'};
+        font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:600;
+        cursor:${count === 0 ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:center;gap:5px;">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.5 3H4a1 1 0 0 0-1 1v5.5a2 2 0 0 0 .58 1.42l9.59 9.59a2 2 0 0 0 2.83 0l5.59-5.59a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+        カテゴリを変更
       </button>
-    </div>`;
+    </div>
+    <button id="bulk-delete" ${count === 0 ? 'disabled' : ''}
+      style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--red);
+      background:${count === 0 ? 'var(--mist)' : (deleteConfirmPending ? 'var(--red)' : 'var(--red-bg)')};
+      color:${count === 0 ? 'var(--mid-lt)' : (deleteConfirmPending ? '#fff' : 'var(--red)')};
+      font-family:'Noto Sans JP',sans-serif;font-size:13.5px;font-weight:600;
+      cursor:${count === 0 ? 'default' : 'pointer'};">
+      ${deleteLabel}
+    </button>`;
 
   bar.querySelector('#bulk-cancel')?.addEventListener('click', () => {
     exitSelectionMode();
@@ -584,7 +654,8 @@ function renderBulkActionBar() {
   });
   bar.querySelector('#bulk-select-all')?.addEventListener('click', selectAllVisible);
   bar.querySelector('#bulk-change-account')?.addEventListener('click', onBulkChangeAccount);
-  bar.querySelector('#bulk-delete')?.addEventListener('click', onBulkDelete);
+  bar.querySelector('#bulk-change-tag')?.addEventListener('click', onBulkChangeTag);
+  bar.querySelector('#bulk-delete')?.addEventListener('click', onBulkDeleteClick);
 }
 
 async function onBulkChangeAccount() {
@@ -626,10 +697,70 @@ async function onBulkChangeAccount() {
   });
 }
 
+async function onBulkChangeTag() {
+  if (selectedIds.size === 0) return;
+  const ids = [...selectedIds];
+
+  let tags;
+  try {
+    tags = await DB.getTags();
+  } catch (e) {
+    showToast('タグの取得に失敗しました: ' + e.message);
+    return;
+  }
+
+  if (!tags || tags.length === 0) {
+    showToast('タグが登録されていません');
+    return;
+  }
+
+  showTagPicker({
+    tags,
+    budgetTagIds: _budgetTagIds,
+    title: `カテゴリを選択（${ids.length}件）`,
+    onSelect: async (tagId) => {
+      try {
+        await DB.bulkUpdateTransactionTags(ids, tagId);
+        showToast(`${ids.length}件のカテゴリを変更しました`);
+        exitSelectionMode();
+        await refreshAfterBulkChange();
+      } catch (e) {
+        showToast('変更に失敗しました: ' + e.message);
+      }
+    },
+  });
+}
+
+// 削除の2ステップ確認（1回目でボタンを赤く、2回目で実行。3秒で元に戻す）
+let deleteConfirmPending = false;
+let deleteConfirmTimer   = null;
+
+function resetDeleteConfirm() {
+  deleteConfirmPending = false;
+  clearTimeout(deleteConfirmTimer);
+  deleteConfirmTimer = null;
+}
+
+function onBulkDeleteClick() {
+  if (selectedIds.size === 0) return;
+
+  if (!deleteConfirmPending) {
+    deleteConfirmPending = true;
+    renderBulkActionBar();
+    deleteConfirmTimer = setTimeout(() => {
+      deleteConfirmPending = false;
+      renderBulkActionBar();
+    }, 3000);
+    return;
+  }
+
+  resetDeleteConfirm();
+  onBulkDelete();
+}
+
 async function onBulkDelete() {
   if (selectedIds.size === 0) return;
   const count = selectedIds.size;
-  if (!confirm(`選択中の${count}件を削除します。\nこの操作は取り消せません。よろしいですか？`)) return;
 
   try {
     await DB.bulkDeleteTransactions([...selectedIds]);
