@@ -611,7 +611,7 @@ function renderBulkActionBar() {
     document.body.appendChild(bar);
   }
 
-  const deleteLabel = deleteConfirmPending ? '本当に削除しますか？ もう一度タップ' : '選択した記録を削除';
+  const deleteLabel = deleteConfirmPending ? 'もう一度タップ' : '一括削除';
 
   bar.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -621,32 +621,33 @@ function renderBulkActionBar() {
       <button id="bulk-select-all" style="background:none;border:none;padding:4px;color:var(--sage-dk);
         font-size:13px;font-weight:600;cursor:pointer;">全選択</button>
     </div>
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:6px;">
       <button id="bulk-change-account" ${count === 0 ? 'disabled' : ''}
-        style="flex:1;padding:12px;border-radius:12px;border:1.5px solid var(--sage);
+        style="flex:1;min-width:0;padding:10px 4px;border-radius:12px;border:1.5px solid var(--sage);
         background:${count === 0 ? 'var(--mist)' : 'var(--sage-bg)'};color:${count === 0 ? 'var(--mid-lt)' : 'var(--sage-dk)'};
-        font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:600;
-        cursor:${count === 0 ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:center;gap:5px;">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8l9-6 9 6v14H3z"/><path d="M9 22V12h6v10"/></svg>
+        font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:600;white-space:nowrap;
+        cursor:${count === 0 ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:center;gap:4px;">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 22V8l9-6 9 6v14H3z"/><path d="M9 22V12h6v10"/></svg>
         口座を変更
       </button>
       <button id="bulk-change-tag" ${count === 0 ? 'disabled' : ''}
-        style="flex:1;padding:12px;border-radius:12px;border:1.5px solid var(--gold);
+        style="flex:1;min-width:0;padding:10px 4px;border-radius:12px;border:1.5px solid var(--gold);
         background:${count === 0 ? 'var(--mist)' : 'var(--gold-bg)'};color:${count === 0 ? 'var(--mid-lt)' : 'var(--gold)'};
-        font-family:'Noto Sans JP',sans-serif;font-size:13px;font-weight:600;
-        cursor:${count === 0 ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:center;gap:5px;">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.5 3H4a1 1 0 0 0-1 1v5.5a2 2 0 0 0 .58 1.42l9.59 9.59a2 2 0 0 0 2.83 0l5.59-5.59a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
-        カテゴリを変更
+        font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:600;white-space:nowrap;
+        cursor:${count === 0 ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:center;gap:4px;">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.5 3H4a1 1 0 0 0-1 1v5.5a2 2 0 0 0 .58 1.42l9.59 9.59a2 2 0 0 0 2.83 0l5.59-5.59a2 2 0 0 0 0-2.83z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+        カテゴリ変更
       </button>
-    </div>
-    <button id="bulk-delete" ${count === 0 ? 'disabled' : ''}
-      style="width:100%;padding:12px;border-radius:12px;border:1.5px solid var(--red);
-      background:${count === 0 ? 'var(--mist)' : (deleteConfirmPending ? 'var(--red)' : 'var(--red-bg)')};
-      color:${count === 0 ? 'var(--mid-lt)' : (deleteConfirmPending ? '#fff' : 'var(--red)')};
-      font-family:'Noto Sans JP',sans-serif;font-size:13.5px;font-weight:600;
-      cursor:${count === 0 ? 'default' : 'pointer'};">
-      ${deleteLabel}
-    </button>`;
+      <button id="bulk-delete" ${count === 0 ? 'disabled' : ''}
+        style="flex:1;min-width:0;padding:10px 4px;border-radius:12px;border:1.5px solid var(--red);
+        background:${count === 0 ? 'var(--mist)' : (deleteConfirmPending ? 'var(--red)' : 'var(--red-bg)')};
+        color:${count === 0 ? 'var(--mid-lt)' : (deleteConfirmPending ? '#fff' : 'var(--red)')};
+        font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:600;white-space:nowrap;
+        cursor:${count === 0 ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:center;gap:4px;">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
+        ${deleteLabel}
+      </button>
+    </div>`;
 
   bar.querySelector('#bulk-cancel')?.addEventListener('click', () => {
     exitSelectionMode();
