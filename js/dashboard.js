@@ -7,7 +7,7 @@ import { MonthState } from './router.js';
 import { fmt }        from './app.js';
 import {
   getCachedAccounts, putAccounts,
-  getCachedTransactions, upsertTransactions,
+  getCachedTransactions, upsertTransactions, replaceMonthTransactions,
   getLastSync, setLastSync
 } from './cache.js';
 import { openEditRecord } from './edit-record.js';
@@ -462,8 +462,11 @@ async function syncInBackground(year, month, hadCache, cachedTxCount = 0) {
     ]);
 
     // IndexedDB に保存
+    // 当月分は「正解データ」で丸ごと置き換える（サーバー側で削除済みの取引が
+    // put だけでは消えずキャッシュに残り続け、収入・支出の合計が実際より
+    // 大きくなる「ゴースト」バグの原因になっていたため）
     await putAccounts(accounts);
-    await upsertTransactions(result.data);
+    await replaceMonthTransactions(year, month, result.data);
     await setLastSync(now);
 
     // キャッシュなし or 当月取引が空 or 過去月の場合は画面を更新
@@ -475,19 +478,25 @@ async function syncInBackground(year, month, hadCache, cachedTxCount = 0) {
       const content = document.getElementById('page-content');
       if (content) renderContent(content, accounts, result.data, year, month, false);
     } else {
-      // キャッシュありの場合：差分があれば静かに更新
+      // キャッシュありの場合：サマリー数字だけ静かに更新（スクロール位置を維持）
+      // 注意: 以前は DB.getDelta(lastSync) が空だった場合に更新自体をスキップして
+      // いたため、上で取得済みの「正解データ」(result.data) がキャッシュには
+      // 反映されているのに画面（STEP1で表示した古いキャッシュ由来の数字）だけが
+      // 更新されず、プルトゥリフレッシュ直後に古い金額が表示され続けるバグがあった。
+      // ここでは常に result.data（サーバーから取得した当月の正解データ）を
+      // そのまま使って表示中の数字を更新する。
+      const income  = result.data.filter(t=>t.type==='income' ).reduce((s,t)=>s+t.amount,0);
+      const expense = result.data.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+      const incomeEl  = document.querySelector('.income-card .s-number');
+      const expenseEl = document.querySelector('.expense-card .s-number');
+      if (incomeEl)  incomeEl.textContent  = fmt(income);
+      if (expenseEl) expenseEl.textContent = fmt(expense);
+
+      // 差分（他画面・他デバイスでの更新分）があれば当月以外のキャッシュにも反映しておく
       if (lastSync) {
         const delta = await DB.getDelta(lastSync);
         if (delta && delta.length > 0) {
           await upsertTransactions(delta);
-          // サマリー数字だけ静かに更新（スクロール位置を維持）
-          const fresh = await getCachedTransactions({ year, month });
-          const income  = fresh.filter(t=>t.type==='income' ).reduce((s,t)=>s+t.amount,0);
-          const expense = fresh.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-          const incomeEl  = document.querySelector('.income-card .s-number');
-          const expenseEl = document.querySelector('.expense-card .s-number');
-          if (incomeEl)  incomeEl.textContent  = fmt(income);
-          if (expenseEl) expenseEl.textContent = fmt(expense);
         }
       }
     }

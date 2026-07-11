@@ -5,7 +5,7 @@
 import { DB }         from './db.js';
 import { MonthState } from './router.js';
 import { fmt, showToast } from './utils.js';
-import { getCachedTransactions, upsertTransactions, putAccounts } from './cache.js';
+import { getCachedTransactions, upsertTransactions, replaceMonthTransactions, putAccounts } from './cache.js';
 import { openEditRecord } from './edit-record.js';
 import { showAccountPicker } from './account-picker.js';
 
@@ -137,8 +137,9 @@ export async function renderRecords({ focusSearch = false } = {}) {
     ]);
     _budgetTagIds = budgetTagIds;
 
-    // キャッシュ更新
-    await upsertTransactions(result.data);
+    // キャッシュ更新（当月分は正解データで丸ごと置き換え、削除済み取引の
+    // ゴースト残留によりダッシュボード側の合計とズレる問題を防ぐ）
+    await replaceMonthTransactions(year, month, result.data);
     await putAccounts(accounts);
 
     _allTx = result.data;
@@ -783,7 +784,7 @@ async function refreshAfterBulkChange() {
     const { year, month } = MonthState;
     const result = await DB.getTransactions({ year, month, pageSize: 500 });
     _allTx = result.data;
-    await upsertTransactions(result.data);
+    await replaceMonthTransactions(year, month, result.data);
   } catch (e) {
     // 取得失敗時もローカル状態からは除去済みなので致命的ではない
   }

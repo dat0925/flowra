@@ -142,11 +142,35 @@ export async function getCachedTransactions({ year, month } = {}) {
 }
 
 // 差分をマージ（upsert）
+// 注意: putのみ行うため、サーバー側で削除済みの行はこれだけでは
+// キャッシュから消えずに残り続ける（「ゴースト」化）。特定月の
+// 全件取得結果を保存する場合は replaceMonthTransactions を使うこと。
 export async function upsertTransactions(rows) {
   if (!rows || rows.length === 0) return;
   await openDB();
   const store = _db.transaction(STORES.transactions, 'readwrite').objectStore(STORES.transactions);
   await Promise.all(rows.map(r => promisify(store.put(r))));
+}
+
+// 指定月の「正解データ」で丸ごと置き換える（ゴースト残留防止）
+// サーバーから取得した当月の全件（rows）と、キャッシュ上の当月データを突き合わせ、
+// サーバー側にもう存在しないID（削除済み等）をキャッシュから物理削除してから rows を書き込む。
+// putAccounts が口座に対してやっている「clear→書き直し」と同じ思想を、月単位に絞って行う。
+export async function replaceMonthTransactions(year, month, rows) {
+  await openDB();
+  const from = `${year}-${String(month).padStart(2,'0')}-01`;
+  const to   = `${year}-${String(month).padStart(2,'0')}-${String(new Date(year, month, 0).getDate()).padStart(2,'0')}`;
+
+  const store = _db.transaction(STORES.transactions, 'readwrite').objectStore(STORES.transactions);
+  const all = await promisify(store.getAll());
+  const freshIds = new Set((rows || []).map(r => r.id));
+
+  const staleIds = all
+    .filter(t => t.date >= from && t.date <= to && !freshIds.has(t.id))
+    .map(t => t.id);
+
+  await Promise.all(staleIds.map(id => promisify(store.delete(id))));
+  await Promise.all((rows || []).map(r => promisify(store.put(r))));
 }
 
 // 削除フラグ付きでマーク（実データは残す）
