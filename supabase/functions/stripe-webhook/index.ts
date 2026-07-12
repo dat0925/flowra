@@ -132,13 +132,14 @@ Deno.serve(async (req) => {
         break;
       }
 
-      // 解約 → Freeに戻す
+      // 解約 → Freeに戻す（ただし管理者アカウント(plan='admin')は対象外）
       case 'customer.subscription.deleted': {
         const sub        = event.data.object as Stripe.Subscription;
         const customerId = sub.customer as string;
         const { data, error } = await sb.from('user_plans')
           .update({ plan: 'free', updated_at: new Date().toISOString() })
           .eq('stripe_customer_id', customerId)
+          .neq('plan', 'admin') // 管理者は課金状況に関わらずfreeへ降格させない
           .select();
         if (error) console.error('update error (sub deleted):', error.message);
         else if (!data || data.length === 0) {
@@ -162,7 +163,8 @@ Deno.serve(async (req) => {
 
         const { error } = await sb.from('user_plans')
           .update({ plan, updated_at: new Date().toISOString() })
-          .eq('stripe_customer_id', customerId);
+          .eq('stripe_customer_id', customerId)
+          .neq('plan', 'admin'); // 管理者プランはWebhookで上書きしない
         if (error) console.error('update error (sub updated):', error.message);
         else console.log('Plan changed: customer', customerId, '→', plan);
         break;
