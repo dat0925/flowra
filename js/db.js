@@ -877,25 +877,24 @@ export const DB = {
   async getUserPlanDetails() {
     const empty = { plan: 'free', expiresAt: null, cancelAtPeriodEnd: false };
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user || !user.email) return empty;
+    if (!user) return empty;
 
-    // 自分のプランを直接取得
-    // ※ user_plans テーブルに user_id 列は存在せず、RLSも email 一致で
-    //   絞り込む設計（"users read own plan" ポリシー）。以前は
-    //   user_id / expires_at で問い合わせていたが、実テーブルに存在しない
-    //   列だったため常にクエリが失敗し、実質 free 固定になっていたバグを修正。
+    // 自分のプランを直接取得（RLSで自分のデータのみ参照可: user_id一致）
     const { data: myData } = await supabase
       .from('user_plans')
-      .select('plan, plan_expires_at, cancel_at_period_end')
-      .eq('email', user.email)
+      .select('plan, expires_at, cancel_at_period_end')
+      .eq('user_id', user.id)
       .maybeSingle();
 
     const myPlan = myData?.plan || 'free';
-    const myExpired = myData?.plan_expires_at && new Date(myData.plan_expires_at) < new Date();
+    const myExpired = myData?.expires_at && new Date(myData.expires_at) < new Date();
     const effectivePlan = myExpired ? 'free' : myPlan;
     const details = {
       plan: effectivePlan,
-      expiresAt: myData?.plan_expires_at || null,
+      // 解約予約済み(cancel_at_period_end=true)のときだけ意味を持つ日付。
+      // 通常のpremium中はexpires_atがnull（無期限）なのでcancelAtPeriodEndと
+      // 併せて判定すること（settings.js側も同様）。
+      expiresAt: myData?.expires_at || null,
       cancelAtPeriodEnd: !!myData?.cancel_at_period_end,
     };
 
@@ -904,9 +903,6 @@ export const DB = {
 
     // 自分がfreeの場合、アクティブチームのオーナーのプランを確認
     // （オーナーがpremium/adminなら招待メンバーもそのプランを使える）
-    // ※ get_team_owner / get_user_plan_by_id はDB未実装のRPCで、この
-    //   フォールバックは現状常に失敗する（try/catchで握り潰されているだけ）。
-    //   チームでのプラン共有機能を使うならRPCの実装が別途必要。
     try {
       const teamId = await this.getTeamId();
       const ownTeamId = await this.getOwnTeamId();
