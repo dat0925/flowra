@@ -140,8 +140,12 @@ function showApp(user) {
 
   // PWA: viewport高さをCSS変数に設定（iOS PWA起動直後の空白問題対策）
   function _setAppH() {
-    // window.innerHeight は dvh より正確に「今見えている領域の高さ」を返す
-    document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
+    // iOS PWAではwindow.innerHeightがキーボード閉じ後もスワイプまで古い値を
+    // 返し続けることがあるため、より正確なvisualViewport.heightを優先する
+    const h = window.visualViewport
+      ? Math.round(window.visualViewport.height + window.visualViewport.offsetTop)
+      : window.innerHeight;
+    document.documentElement.style.setProperty('--app-h', h + 'px');
   }
   // iOS PWAはキーボード閉じ直後などにinnerHeightが古い値を返すことがあるため、
   // 少し遅らせて数回測り直す（正しい値に落ち着いたタイミングを拾う）
@@ -155,6 +159,10 @@ function showApp(user) {
   document.addEventListener('focusout', () => setTimeout(_setAppHRetry, 50));
   // バックグラウンド復帰時も念のため
   window.addEventListener('pageshow', _setAppHRetry);
+  // visualViewportのscroll（スワイプで直る現象＝このイベントで値が正常化する）でも再測定
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('scroll', _setAppH);
+  }
 
   // キーボード開閉時も更新（visualViewportはキーボード含む変化をより細かく検知）
   if (window.visualViewport) {
