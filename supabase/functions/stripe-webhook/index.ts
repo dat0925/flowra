@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
         const email = session.customer_details?.email ?? session.customer_email ?? null;
 
         // ログイン中ユーザー(client_reference_id)と決済者(email)の食い違いを可視化する
-        // 例:「梗華のIDでリンクを開いたが、支払いは別人のカード/メール」
+        // 例：「梗華のIDでリンクを開いたが、支払いは別人のカード/メール」
         // 挙動は変えず(ref優先のまま)、ログだけ残して後から追えるようにする
         if (refUserId && email) {
           const emailUserId = await findUserIdByEmail(email);
@@ -80,7 +80,6 @@ Deno.serve(async (req) => {
 
         const userId = await resolveUserId(refUserId, email);
         if (!userId) {
-          // 静かにbreakせず必ず記録する（決済成功なのにuser_plans未更新を検知可能にする）
           console.error(
             `user_id NOT FOUND (checkout): session=${session.id} ref=${refUserId} email=${email} customer=${customerId} -> plan NOT updated`
           );
@@ -91,10 +90,8 @@ Deno.serve(async (req) => {
         const priceId   = lineItems.data[0]?.price?.id ?? '';
         const plan      = PRICE_PLAN[priceId] ?? 'premium';
 
-        // 有料プランは無期限（解約は subscription.deleted が担当）。
-        // 過去の手動付与で残った expires_at を必ずクリアする（残っているとpremiumでもfree扱いになる）
         const { error } = await sb.from('user_plans').upsert(
-          { user_id: userId, plan, stripe_customer_id: customerId, expires_at: null, updated_at: new Date().toISOString() },
+          { user_id: userId, plan, stripe_customer_id: customerId, expires_at: null, cancel_at_period_end: false, updated_at: new Date().toISOString() },
           { onConflict: 'user_id' }
         );
         if (error) console.error('upsert error (checkout):', error.message);
@@ -124,7 +121,7 @@ Deno.serve(async (req) => {
         }
 
         const { error } = await sb.from('user_plans').upsert(
-          { user_id: userId, plan, stripe_customer_id: customerId, expires_at: null, updated_at: new Date().toISOString() },
+          { user_id: userId, plan, stripe_customer_id: customerId, expires_at: null, cancel_at_period_end: false, updated_at: new Date().toISOString() },
           { onConflict: 'user_id' }
         );
         if (error) console.error('upsert error (sub created):', error.message);
@@ -132,18 +129,17 @@ Deno.serve(async (req) => {
         break;
       }
 
-      // 解約 → Freeに戻す（ただし管理者アカウント(plan='admin')は対象外）
+      // 解約完了（期間終了到達）→ Freeに戻す（ただし管理者アカウント(plan='admin')は対象外）
       case 'customer.subscription.deleted': {
         const sub        = event.data.object as Stripe.Subscription;
         const customerId = sub.customer as string;
         const { data, error } = await sb.from('user_plans')
-          .update({ plan: 'free', updated_at: new Date().toISOString() })
+          .update({ plan: 'free', expires_at: null, cancel_at_period_end: false, updated_at: new Date().toISOString() })
           .eq('stripe_customer_id', customerId)
           .neq('plan', 'admin') // 管理者は課金状況に関わらずfreeへ降格させない
           .select();
         if (error) console.error('update error (sub deleted):', error.message);
         else if (!data || data.length === 0) {
-          // どの行にも当たらなかった = stripe_customer_id の紐付けズレの疑い。空振りを検知できるようにする
           console.warn(`sub deleted but no user_plans row matched: customer=${customerId}`);
         } else {
           console.log('Downgraded to free: customer', customerId, `(${data.length} row)`);
@@ -151,7 +147,10 @@ Deno.serve(async (req) => {
         break;
       }
 
-      // プラン変更
+      // プラン変更・解約予約/取り消し
+      // ※ cancel_at_period_end / cancel_at を expires_at に反映する処理がこれまで
+      //   存在せず、「解約したがいつ終了するか」をUIに一切出せなかった。今回追加。
+      // 管理者アカウント(plan='admin')はWebhookで上書きしない。
       case 'customer.subscription.updated': {
         const sub        = event.data.object as Stripe.Subscription;
         const customerId = sub.customer as string;
@@ -161,12 +160,17 @@ Deno.serve(async (req) => {
         const plan    = PRICE_PLAN[priceId];
         if (!plan) break;
 
+        const cancelAtPeriodEnd = sub.cancel_at_period_end ?? false;
+        const expiresAt = cancelAtPeriodEnd && sub.cancel_at
+          ? new Date(sub.cancel_at * 1000).toISOString()
+          : null;
+
         const { error } = await sb.from('user_plans')
-          .update({ plan, updated_at: new Date().toISOString() })
+          .update({ plan, expires_at: expiresAt, cancel_at_period_end: cancelAtPeriodEnd, updated_at: new Date().toISOString() })
           .eq('stripe_customer_id', customerId)
           .neq('plan', 'admin'); // 管理者プランはWebhookで上書きしない
         if (error) console.error('update error (sub updated):', error.message);
-        else console.log('Plan changed: customer', customerId, '→', plan);
+        else console.log('Plan changed: customer', customerId, '→', plan, 'expiresAt:', expiresAt, 'cancelAtPeriodEnd:', cancelAtPeriodEnd);
         break;
       }
     }
