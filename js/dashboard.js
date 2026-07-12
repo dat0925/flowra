@@ -655,10 +655,11 @@ function setupAiSummary(transactions, year, month) {
   async function callAI(question, data) {
     const plan = await DB.getUserPlan().catch(() => 'free');
     const isAdmin = plan === 'admin';
+    const isTester = plan === 'tester';
     const isPremium = plan === 'premium';
 
-    // 使用回数チェック（adminのみ完全無制限）
-    if (!isAdmin) {
+    // 使用回数チェック（admin・testerは完全無制限。testerは管理者権限は持たない）
+    if (!isAdmin && !isTester) {
       const usage = await DB.getAiUsageThisMonth().catch(() => 0);
       const limit = isPremium ? DB.PREMIUM_AI_LIMIT : DB.FREE_AI_LIMIT;
       if (usage >= limit) {
@@ -684,8 +685,8 @@ function setupAiSummary(transactions, year, month) {
     const json = await res.json();
     if (json.error) throw new Error(json.error);
 
-    // カウントアップ（admin以外）
-    if (!isAdmin) DB.incrementAiUsage().catch(() => {});
+    // カウントアップ（admin・tester以外）
+    if (!isAdmin && !isTester) DB.incrementAiUsage().catch(() => {});
 
     return json.answer;
   }
@@ -916,7 +917,7 @@ function setupAiSummary(transactions, year, month) {
         resetButtons();
         // 残り回数バッジを更新
         DB.getUserPlan().catch(() => 'free').then(async plan => {
-          if (plan === 'premium' || plan === 'admin') return;
+          if (plan === 'premium' || plan === 'admin' || plan === 'tester') return;
           const usage = await DB.getAiUsageThisMonth().catch(() => 0);
           const remaining = Math.max(0, DB.FREE_AI_LIMIT - usage);
           const badge = document.getElementById('ai-usage-badge');

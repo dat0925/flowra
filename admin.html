@@ -172,6 +172,7 @@
     .plan-free    { background: var(--stone); color: var(--mid); border: 1px solid var(--border); }
     .plan-premium { background: var(--sage-bg); color: var(--sage-dk); border: 1px solid var(--sage-lt); }
     .plan-admin   { background: var(--ink); color: #fff; }
+    .plan-tester  { background: #f0e6ff; color: #6b3fa0; border: 1px solid #d9c2f0; }
     .plan-expired { background: var(--red-bg); color: var(--red); border: 1px solid var(--red); }
 
     /* インラインプラン変更パネル */
@@ -664,7 +665,8 @@
           + '<div class="field"><label>プラン</label>'
           + '<select id="edit-plan-' + u.id + '">'
           + '<option value="free"' + (currentPlan === 'free' ? ' selected' : '') + '>Free（月5回）</option>'
-          + '<option value="premium"' + (currentPlan === 'premium' ? ' selected' : '') + '>Premium（無制限）</option>'
+          + '<option value="premium"' + (currentPlan === 'premium' ? ' selected' : '') + '>Premium（AI/レシート月200回、口座・タグ無制限）</option>'
+          + '<option value="tester"' + (currentPlan === 'tester' ? ' selected' : '') + '>Tester（AI/レシート無制限・テスト用）</option>'
           + '<option value="admin"' + (currentPlan === 'admin' ? ' selected' : '') + '>Admin（管理者）</option>'
           + '</select></div>'
           + '<div class="field"><label>有効期限（空欄で無期限）</label>'

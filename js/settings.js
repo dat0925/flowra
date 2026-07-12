@@ -1115,10 +1115,14 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
   const planBtnEl   = document.getElementById('btn-manage-plan');
   if (planBadgeEl) {
     const isAdmin   = userPlan === 'admin';
-    const isPremium = userPlan === 'premium' || isAdmin;
+    const isTester  = userPlan === 'tester';
+    // isPremium: プレミアム機能（AI/レシート上限緩和など）が使えるかどうかの判定に使う
+    const isPremium = userPlan === 'premium' || isAdmin || isTester;
+    // isBillable: Stripeの実サブスクを持ちうるプランかどうか（管理ボタンの動作分岐に使用）
+    const isBillable = userPlan === 'premium';
     const badgeColor = isPremium ? 'var(--sage)' : 'var(--mid-lt)';
     const badgeBg    = isPremium ? 'rgba(74,124,89,0.1)' : 'var(--stone)';
-    const badgeText  = isAdmin ? '✦ Admin' : isPremium ? '✦ Premium' : 'Free';
+    const badgeText  = isAdmin ? '✦ Admin' : isTester ? '✦ Tester' : isPremium ? '✦ Premium' : 'Free';
     // 追記前に必ずクリアしておく（何らかの理由で複数回呼ばれても多重表示にならないための保険）
     planBadgeEl.innerHTML = '';
     const span = document.createElement('span');
@@ -1137,10 +1141,15 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
     }
 
     if (planBtnEl) {
-      if (isPremium) {
+      if (isBillable) {
         planBtnEl.textContent = '管理';
         planBtnEl.style.cssText = 'font-size:12px;color:var(--sage-dk);cursor:pointer;padding:4px 10px;border:1px solid var(--sage-dk);border-radius:20px;';
         planBtnEl.dataset.mode = 'manage';
+      } else if (isPremium) {
+        // admin/testerは実際のStripeサブスクを持たないため、決済ポータルには誘導しない
+        planBtnEl.textContent = '';
+        planBtnEl.style.cssText = 'display:none;';
+        planBtnEl.dataset.mode = '';
       } else {
         planBtnEl.textContent = '✦ アップグレード';
         planBtnEl.style.cssText = 'font-size:12px;color:#fff;cursor:pointer;padding:4px 12px;border:none;border-radius:20px;background:var(--sage);font-weight:600;';

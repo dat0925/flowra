@@ -898,8 +898,8 @@ export const DB = {
       cancelAtPeriodEnd: !!myData?.cancel_at_period_end,
     };
 
-    // 自分がpremium/adminなら確定
-    if (effectivePlan === 'premium' || effectivePlan === 'admin') return details;
+    // 自分がpremium/admin/testerなら確定
+    if (effectivePlan === 'premium' || effectivePlan === 'admin' || effectivePlan === 'tester') return details;
 
     // 自分がfreeの場合、アクティブチームのオーナーのプランを確認
     // （オーナーがpremium/adminなら招待メンバーもそのプランを使える）
@@ -929,7 +929,7 @@ export const DB = {
   // Premiumプランかどうか（AI制限判定用）
   async isPremiumplan() {
     const plan = await this.getUserPlan();
-    return plan === 'premium' || plan === 'admin';
+    return plan === 'premium' || plan === 'admin' || plan === 'tester';
   },
 
   // レシートOCRの月次上限
