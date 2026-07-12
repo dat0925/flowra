@@ -120,11 +120,11 @@ export async function renderSettings() {
     const ownTeamId = ownEntry?.team_id;
     const ownTeam   = ownTeamId ? await DB.getTeamById(ownTeamId) : null;
     if (mySeq !== _settingsRenderSeq) return;
-    const userPlan  = await DB.getUserPlan();
+    const planDetails = await DB.getUserPlanDetails();
     if (mySeq !== _settingsRenderSeq) return;
 
     // メンバー情報なしで先に描画（画面揺れを防ぐためスペーサーを確保）
-    renderSettingsContent(content, user, ownTeam, ownTeamId, tags, [], [], userPlan, mySeq);
+    renderSettingsContent(content, user, ownTeam, ownTeamId, tags, [], [], planDetails, mySeq);
 
     // メンバー情報はバックグラウンドで取得して差し込む
     const ownMembers = ownTeamId
@@ -909,7 +909,8 @@ function setupSettingsDynamicEvents(content, user, ownTeam, ownTeamId, tags, own
   setupTagBudgetPageEvents(tags);
 }
 
-async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ownMembers = [], joinedTeams = [], userPlan = "free", renderSeq = null) {
+async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ownMembers = [], joinedTeams = [], planDetails = { plan: "free", expiresAt: null, cancelAtPeriodEnd: false }, renderSeq = null) {
+  const userPlan = planDetails.plan;
   content.innerHTML = `
     <!-- プロフィール -->
     <div class="panel" style="margin-bottom:16px;">
@@ -1124,6 +1125,16 @@ async function renderSettingsContent(content, user, ownTeam, ownTeamId, tags, ow
     span.style.cssText = 'font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;color:' + badgeColor + ';background:' + badgeBg;
     span.textContent = badgeText;
     planBadgeEl.appendChild(span);
+
+    // 解約予約済み（例: 8/12まで有効）の場合は期限を併記する
+    if (isPremium && planDetails.cancelAtPeriodEnd && planDetails.expiresAt) {
+      const expDate = new Date(planDetails.expiresAt);
+      const expText = (expDate.getMonth() + 1) + '/' + expDate.getDate() + ' に終了予定';
+      const expSpan = document.createElement('span');
+      expSpan.style.cssText = 'font-size:11px;color:var(--mid-lt);margin-left:6px;';
+      expSpan.textContent = expText;
+      planBadgeEl.appendChild(expSpan);
+    }
 
     if (planBtnEl) {
       if (isPremium) {
