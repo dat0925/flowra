@@ -283,9 +283,9 @@ export async function openEditRecord(tx, onSave) {
         ` : `
         <button id="btn-duplicate-record"
           style="width:100%;padding:12px;border-radius:14px;margin-top:8px;
-          border:1.5px solid var(--border);background:none;
-          color:var(--mid);font-family:'Noto Sans JP',sans-serif;
-          font-size:13.5px;font-weight:500;cursor:pointer;
+          border:1.5px solid var(--sage-lt);background:var(--sage-bg);
+          color:var(--sage-dk);font-family:'Noto Sans JP',sans-serif;
+          font-size:13.5px;font-weight:600;cursor:pointer;
           display:flex;align-items:center;justify-content:center;gap:6px;
           transition:all 0.15s;">
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
@@ -313,8 +313,8 @@ export async function openEditRecord(tx, onSave) {
           <div style="font-size:11px;color:var(--mid-lt);text-align:center;margin-bottom:12px;">危険な操作</div>
           <button id="btn-delete-record"
             style="width:100%;padding:12px;border-radius:14px;
-            border:1.5px solid var(--border);background:none;
-            color:var(--mid);font-family:'Noto Sans JP',sans-serif;
+            border:1.5px solid var(--red);background:none;
+            color:var(--red);font-family:'Noto Sans JP',sans-serif;
             font-size:13.5px;font-weight:500;cursor:pointer;
             transition:all 0.15s;">
             この記録を削除する
