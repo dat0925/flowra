@@ -4,6 +4,84 @@
 
 ---
 
+## 💳 プラン有効期限が不明瞭な問題の調査・修正一式（2026-07-12）
+
+**発端**: 設定画面で「Premium」バッジが出ているが、解約済みなのか・いつまで有効なのかが
+一切わからない。Amazon PrimeやNetflixのように期限を明示すべき、という指摘から着手。
+最終的にUI表示の問題だけでなく、**課金状態を管理する仕組み全体に複数のバグ**が見つかった。
+以下、発見した時系列順に記録する。
+
+### 1. `user_plans`テーブルに有効期限を保持する列がそもそも無かった
+
+`plan`（free/standard/premium）と`stripe_customer_id`はあったが、期限・解約予約フラグを
+持つ列が無く、Stripe側でいつ解約・失効するかをDBが一切知らない設計だった。
+
+**対応**: マイグレーションで2列追加。
+- `plan_expires_at` (timestamptz) — Stripeの`current_period_end`/`cancel_at`を入れる
+- `cancel_at_period_end` (boolean, default false)
+
+### 2. Stripe顧客が同一メールで8個も重複していた
+
+該当ユーザー（kyoka.endo1006@gmail.com）のStripe顧客を調べたところ、同じメールアドレスに
+対して**8個の別々のCustomerオブジェクト**が存在していた。DBの`stripe_customer_id`は
+6月に完全終了した古い契約（`cus_UWxhNnUR6j8SvG`）を指しており、実際に動いている
+¥398/月のFlowraプレミアム（8/12終了予定）は別のcustomer（`cus_UgiTBsh99FQVm7`）に
+紐づいていた。これがバッジと実態のズレの直接原因。
+
+**その場の対応**: 正しいcustomer_id・plan・plan_expires_at・cancel_at_period_endで
+該当行を手動UPDATE（応急処置。恒久対応は下記4）。
+
+**未解決**: なぜ顧客が重複作成され続けているのか（チェックアウトセッション作成時に
+既存customerを再利用せず、毎回新規作成している可能性が高い）は未特定。
+Flowraのチェックアウト画面がどこで作られているか（Stripe Payment Linkかフロントの
+コードか）が不明なまま。次に触る人は要調査。
+
+### 3. `supabase/functions/stripe-webhook`が新しい列を書いていなかった＆Flowraの価格IDを無視していた
+
+`PRICE_PLAN`という価格ID→プラン名のマッピングが、Taskra用の環境変数
+（`STRIPE_STANDARD_PRICE_ID`/`STRIPE_PREMIUM_PRICE_ID`）だけを見ており、Flowra専用の
+価格ID（`price_1Th0aqBNAV5e5rhcL7gXKM7d`, ¥398/月）が含まれていなかった。
+`customer.subscription.updated`と`invoice.payment_succeeded`のハンドラは
+`if (!plan) break;`でマッチしない価格IDのイベントを**サイレントに無視**する作りだった
+ため、Flowraの月次更新・解約予約イベントが来てもDBが一切更新されていなかった。
+
+**対応**: `PRICE_PLAN`にFlowraの価格IDを追記。あわせて各イベントハンドラで
+`plan_expires_at`・`cancel_at_period_end`もStripeの`sub.cancel_at`/
+`sub.cancel_at_period_end`から書き込むように修正し、version 35としてデプロイ済み。
+
+**注意**: 他アプリ（Tavera等）の価格IDが増えた場合も同様にサイレント無視される。
+根本的にはproduct/priceのメタデータで判定する方式への移行を検討したいが未着手。
+
+### 4. フロント（`js/db.js`の`getUserPlan()`）が存在しない列にクエリしていた
+
+決定的だったのがこれ。`getUserPlan()`は`user_plans`を`user_id`列で絞り込み、
+`expires_at`列をselectしていたが、**実テーブルにはどちらの列も存在しない**
+（実際は`email`列のみ、RLSも`email = auth.jwt()->>'email'`で絞り込む設計）。
+このためこの関数は本番で呼ばれるたびに静かにクエリが失敗し、実質常に`'free'`に
+フォールバックしていたと考えられる。
+
+さらに、free時のチーム経由プラン継承フォールバックが呼んでいるRPC
+`get_team_owner` / `get_user_plan_by_id`も**DBに未実装**（`pg_proc`に存在しない）。
+try/catchで握り潰されているため気づかれていなかった。
+
+**対応**: `git clone`してローカルで修正し、`fix/flowra-plan-expiry`ブランチとして
+push済み（PR未作成、mainは未変更）。
+- `getUserPlanDetails()`を新設し、`email`列で正しくクエリ、`plan_expires_at`・
+  `cancel_at_period_end`も返すようにした
+- `getUserPlan()`は互換性のため`getUserPlanDetails().plan`を返す薄いラッパーに変更
+  （`dashboard.js`等の既存呼び出し元は無改修で動く）
+- `js/settings.js`のプランバッジ横に、解約予約時は「M/D に終了予定」を表示する処理を追加
+- チーム継承RPC未実装の件はコメントで警告を残しただけで未実装のまま
+
+**次にやる人へ**:
+1. `fix/flowra-plan-expiry`ブランチをレビューしてPRマージ → デプロイ確認
+2. 該当ユーザーの画面で実際に「Premium（8/12に終了予定）」の表示になるか確認
+3. 上記2（顧客重複作成）の原因調査（チェックアウト作成箇所の特定）
+4. チームプラン継承機能を使うつもりがあるなら`get_team_owner`/`get_user_plan_by_id`
+   のRPCを実装するか、使わないなら該当コードごと削除するか判断する
+
+---
+
 ## 🩹 PWAボトムナビ下の空白（レコード追加/編集後に再発する件）の低リスク対策（2026-07-12）
 
 **症状**: 普段は問題ないが、レコード追加・編集（＝キーボード出現）後にボトムナビの下に空白が
