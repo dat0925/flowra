@@ -143,14 +143,24 @@ function showApp(user) {
     // window.innerHeight は dvh より正確に「今見えている領域の高さ」を返す
     document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
   }
+  // iOS PWAはキーボード閉じ直後などにinnerHeightが古い値を返すことがあるため、
+  // 少し遅らせて数回測り直す（正しい値に落ち着いたタイミングを拾う）
+  function _setAppHRetry() {
+    _setAppH();
+    [100, 300, 600].forEach(ms => setTimeout(_setAppH, ms));
+  }
   _setAppH();
-  window.addEventListener('resize', _setAppH);
+  window.addEventListener('resize', _setAppHRetry);
+  // 編集シートのinputからフォーカスが外れた時（＝キーボードが閉じる時）も測り直す
+  document.addEventListener('focusout', () => setTimeout(_setAppHRetry, 50));
+  // バックグラウンド復帰時も念のため
+  window.addEventListener('pageshow', _setAppHRetry);
 
   // キーボード開閉時も更新（visualViewportはキーボード含む変化をより細かく検知）
   if (window.visualViewport) {
     let _kbOpen = false;
     window.visualViewport.addEventListener('resize', () => {
-      _setAppH();
+      _setAppHRetry();
       const ratio = window.visualViewport.height / window.screen.height;
       const nowOpen = ratio < 0.75;
       if (_kbOpen && !nowOpen) {
