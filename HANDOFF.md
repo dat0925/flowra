@@ -4,6 +4,55 @@
 
 ---
 
+## 🚨【重要な訂正】上記「プラン有効期限」対応(2026-07-12)は途中まで別プロジェクトに対して作業していた
+
+**何が起きたか**: 下記の最初の対応（DB列追加・webhook修正・フロント修正・push）は、
+すべて **Taskraと共用のSupabaseプロジェクト(`sfhtvtcmgueystyuhzvd`)** に対して行っていた。
+実際に`js/config.js`が接続しているのは **Flowra専用のSupabaseプロジェクト
+(`copyzpsyagscqrvkrwjo`, リージョンap-southeast-1)** であり、別物。この勘違いに気づかず
+フロントの`getUserPlan()`を「`user_id`/`expires_at`という存在しない列を参照している」と
+誤診断し、実際には正しかった列名を`email`/`plan_expires_at`に書き換えて**逆に本番を壊し、
+デプロイ後にPremiumユーザーが全員Freeとして表示される状態になった**（ユーザーからの
+「別ブラウザでも直らない」という報告で発覚）。
+
+**気づいた経緯**: `js/config.js`の`SUPABASE_URL`を直接grepして初めて、2つの別プロジェクトが
+存在すること（`Supabase:list_projects`で確認: "Taskra"=`sfhtvtcmgueystyuhzvd`、
+"Flowra"=`copyzpsyagscqrvkrwjo`、Flowra側は2026-05-24作成）に気づいた。Taskra側の
+`user_plans`にたまたま同じメールアドレスの行が存在していた（2026-05-13作成、Flowraが
+専用プロジェクトに切り出される前の名残とみられる）ため、DBの中身を見ただけでは
+プロジェクトを取り違えていることに気づけなかった。**教訓: 複数のSupabase MCP接続先が
+ある場合、テーブルを触る前に必ず`list_projects`で対象プロジェクトを明示的に確認し、
+フロントの実際の接続先(`config.js`等)と突き合わせること。**
+
+**正しいプロジェクト(`copyzpsyagscqrvkrwjo`)での対応**:
+- `user_plans`は`user_id`/`plan`/`expires_at`/`stripe_customer_id`という列構成で、
+  元のフロントコード（`user_id`/`expires_at`で問い合わせる版）はそもそも正しかった
+- ただし`cancel_at_period_end`列は無く、`supabase/functions/stripe-webhook`
+  （こちらが本物。version 20時点）の`customer.subscription.updated`ハンドラは
+  `plan`列しか更新しておらず、解約予約(`cancel_at_period_end`/`cancel_at`)を
+  `expires_at`に反映する処理が**最初から存在しなかった**。これが「いつ終了するか
+  表示できない」の本当の根本原因
+- `cancel_at_period_end`列を追加し、`stripe-webhook`の`customer.subscription.updated`で
+  `expires_at`/`cancel_at_period_end`を書き込むよう修正、version 21としてデプロイ
+- 該当ユーザーの行を実際のStripeの値（`cancel_at`=2026-08-12）で手動補正
+- フロント`js/db.js`の`getUserPlanDetails()`を`user_id`/`expires_at`ベースの正しい
+  クエリに戻した上でcancel_at_period_end対応を追加、mainに直接push（commit `b0faf8a`）
+- `get_team_owner`/`get_user_plan_by_id`RPCは、こちらの正しいプロジェクトには
+  **実際に実装済み**だった（Taskra側で「未実装」と誤診断したのは誤り）
+
+**後始末が必要なもの（未対応）**:
+- Taskra側(`sfhtvtcmgueystyuhzvd`)の`stripe-webhook`に追加してしまった
+  Flowra用価格ID(`price_1Th0aqBNAV5e5rhcL7gXKM7d`)のマッピングエントリは、
+  Taskra側では発火しない死んだコードなので実害はないはずだが、紛らわしいので
+  次に触る人は削除を検討してよい
+- 同じくTaskra側`user_plans`に追加した`plan_expires_at`/`cancel_at_period_end`列も、
+  Taskra自体では使われていない可能性が高い（要確認）
+- 下記「プラン有効期限が不明瞭な問題の調査・修正一式」セクションの記述は、
+  上記の間違いを含んだ状態で書かれたものなので、**SupabaseプロジェクトIDの記述
+  （`sfhtvtcmgueystyuhzvd`という記載）は誤り**。読む際は本セクションを優先すること
+
+---
+
 ## 💳 プラン有効期限が不明瞭な問題の調査・修正一式（2026-07-12）
 
 **発端**: 設定画面で「Premium」バッジが出ているが、解約済みなのか・いつまで有効なのかが
