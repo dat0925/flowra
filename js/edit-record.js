@@ -311,14 +311,16 @@ export async function openEditRecord(tx, onSave) {
         <!-- 削除（十分な余白と分離） -->
         <div style="margin-top:48px;padding-top:20px;border-top:1px solid var(--border);">
           <div style="font-size:11px;color:var(--mid-lt);text-align:center;margin-bottom:12px;">危険な操作</div>
-          <button id="btn-delete-record"
-            style="width:100%;padding:12px;border-radius:14px;
-            border:1.5px solid var(--red);background:none;
-            color:var(--red);font-family:'Noto Sans JP',sans-serif;
-            font-size:13.5px;font-weight:500;cursor:pointer;
-            transition:all 0.15s;">
-            この記録を削除する
-          </button>
+          <div id="record-danger-zone">
+            <button id="btn-delete-record"
+              style="width:100%;padding:12px;border-radius:14px;
+              border:1.5px solid var(--red);background:none;
+              color:var(--red);font-family:'Noto Sans JP',sans-serif;
+              font-size:13.5px;font-weight:500;cursor:pointer;
+              transition:all 0.15s;">
+              この記録を削除する
+            </button>
+          </div>
         </div>
         `}
       </div>`;
@@ -756,32 +758,56 @@ export async function openEditRecord(tx, onSave) {
       }
     }
 
-    // 削除（2段階確認）
-    sheet.querySelector('#btn-delete-record')?.addEventListener('click', function() {
-      const btn = this;
-      if (btn.dataset.confirmed === 'true') return;
+    // 削除：確認ステップは同一ボタンを使い回さず、
+    // 「キャンセル / 本当に削除する」の2ボタンにDOMごと差し替える。
+    // (旧実装は同じボタンにリスナーを積み増す方式で、タイムアウト復帰後も
+    //  古いリスナーが残り続け、見た目が戻った後の“最初のタップ”のつもりが
+    //  実は削除確定として処理される事故があったため撤廃)
+    const recordDangerZone = sheet.querySelector('#record-danger-zone');
 
-      btn.textContent = '本当に削除しますか？もう一度タップで削除';
-      btn.style.borderColor = 'var(--red)';
-      btn.style.color = 'var(--red)';
-      btn.style.background = 'var(--red-bg)';
-      btn.dataset.confirmed = 'pending';
+    function renderRecordDeleteIdle() {
+      if (!recordDangerZone) return;
+      recordDangerZone.innerHTML = `
+        <button id="btn-delete-record"
+          style="width:100%;padding:12px;border-radius:14px;
+          border:1.5px solid var(--red);background:none;
+          color:var(--red);font-family:'Noto Sans JP',sans-serif;
+          font-size:13.5px;font-weight:500;cursor:pointer;
+          transition:all 0.15s;">
+          この記録を削除する
+        </button>`;
+      recordDangerZone.querySelector('#btn-delete-record')?.addEventListener('click', renderRecordDeleteConfirm, { once: true });
+    }
 
-      const timer = setTimeout(() => {
-        btn.textContent = 'この記録を削除する';
-        btn.style.borderColor = 'var(--border)';
-        btn.style.color = 'var(--mid)';
-        btn.style.background = 'none';
-        btn.dataset.confirmed = '';
-      }, 3000);
-
-      btn.addEventListener('click', async function handler() {
-        if (btn.dataset.confirmed !== 'pending') return;
-        btn.removeEventListener('click', handler);
-        clearTimeout(timer);
-        btn.dataset.confirmed = 'true';
-        btn.textContent = '削除中…';
+    function renderRecordDeleteConfirm() {
+      if (!recordDangerZone) return;
+      recordDangerZone.innerHTML = `
+        <div style="font-size:12.5px;color:var(--red);text-align:center;margin-bottom:10px;">
+          本当に削除しますか？この操作は取り消せません
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button id="btn-delete-record-cancel"
+            style="flex:1;padding:12px;border-radius:14px;
+            border:1.5px solid var(--border);background:none;
+            color:var(--mid);font-family:'Noto Sans JP',sans-serif;
+            font-size:13.5px;font-weight:500;cursor:pointer;">
+            キャンセル
+          </button>
+          <button id="btn-delete-record-confirm"
+            style="flex:1;padding:12px;border-radius:14px;
+            border:1.5px solid var(--red);background:var(--red-bg);
+            color:var(--red);font-family:'Noto Sans JP',sans-serif;
+            font-size:13.5px;font-weight:600;cursor:pointer;">
+            削除する
+          </button>
+        </div>`;
+      recordDangerZone.querySelector('#btn-delete-record-cancel')?.addEventListener('click', renderRecordDeleteIdle, { once: true });
+      recordDangerZone.querySelector('#btn-delete-record-confirm')?.addEventListener('click', async function() {
+        const btn = this;
         btn.disabled = true;
+        btn.textContent = '削除中…';
+        const cancelBtn = recordDangerZone.querySelector('#btn-delete-record-cancel');
+        if (cancelBtn) cancelBtn.disabled = true;
         try {
           await DB.deleteTransaction(tx.id);
           await markDeletedTransaction(tx.id);
@@ -793,11 +819,12 @@ export async function openEditRecord(tx, onSave) {
           if (onSave) onSave();
         } catch (e) {
           showToast('削除エラー: ' + e.message);
-          btn.disabled = false;
-          btn.dataset.confirmed = '';
+          renderRecordDeleteIdle();
         }
       }, { once: true });
-    });
+    }
+
+    renderRecordDeleteIdle();
   }
 
   render();
