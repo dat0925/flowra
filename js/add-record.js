@@ -732,13 +732,18 @@ async function showSuggest(onSave, onReady, accounts, tags) {
             + '</button>';
         }).join('')
       + '</div>';
-    // 検索リンクは常に表示
+    // 検索リンクは常に表示（タップしやすいフルサイズの行として表示）
     return '<div style="padding:0 16px 16px;">'
       + cards
-      + '<button id="ar-search-history-btn" style="display:flex;align-items:center;gap:4px;'
-      + 'margin-top:8px;padding:0;border:none;background:none;cursor:pointer;color:var(--sage);font-size:12px;">'
-      + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
-      + '過去の履歴を検索'
+      + '<button id="ar-search-history-btn" style="display:flex;align-items:center;gap:10px;'
+      + 'width:100%;margin-top:10px;padding:11px 12px;border-radius:12px;border:1px solid var(--border);'
+      + 'background:var(--white);cursor:pointer;text-align:left;transition:background 0.12s;">'
+      + '<span style="flex-shrink:0;width:26px;height:26px;border-radius:8px;background:var(--sage-bg);'
+      + 'display:flex;align-items:center;justify-content:center;">'
+      + '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="var(--sage-dk)" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+      + '</span>'
+      + '<span style="flex:1;font-size:13px;font-weight:600;color:var(--ink);">過去の履歴を検索</span>'
+      + '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="var(--mid-lt)" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>'
       + '</button>'
       + '</div>';
   })();
