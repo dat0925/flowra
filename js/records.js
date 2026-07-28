@@ -223,13 +223,10 @@ function renderShell(transactions, year, month, focusSearch = false) {
               </svg>
             </button>
           </div>
-          <div id="search-count-badge" hidden
-            style="font-size:12px;font-weight:600;color:var(--sage);background:var(--sage-bg);
-              border-radius:8px;padding:3px 8px;white-space:nowrap;flex-shrink:0;">
-          </div>
           <button id="btn-search-scope" hidden
-            style="font-size:11px;font-weight:700;color:var(--sage-dk);background:none;border:none;
-              padding:2px 4px;cursor:pointer;white-space:nowrap;text-decoration:underline;flex-shrink:0;">
+            style="font-size:12px;font-weight:700;color:var(--sage-dk);background:var(--sage-bg);
+              border:1.5px solid var(--sage);border-radius:8px;padding:3px 8px;cursor:pointer;
+              white-space:nowrap;flex-shrink:0;display:flex;align-items:center;gap:3px;">
           </button>
           <button id="btn-summary-sheet"
             style="flex-shrink:0;padding:6px 12px;border-radius:10px;border:1.5px solid var(--sage);
@@ -373,9 +370,7 @@ function renderShell(transactions, year, month, focusSearch = false) {
     _searchScope   = 'recent';
     _searchCursor  = null;
     _searchHasMore = false;
-    // 件数バッジ・スコープボタンは検索中は非表示
-    const badge = document.getElementById('search-count-badge');
-    if (badge) badge.hidden = true;
+    // スコープチップは検索中は非表示（renderListで再表示）
     const scopeBtn = document.getElementById('btn-search-scope');
     if (scopeBtn) scopeBtn.hidden = true;
     clearTimeout(_searchDebounce);
@@ -394,10 +389,9 @@ function renderShell(transactions, year, month, focusSearch = false) {
     _searchCursor  = null;
     _searchHasMore = false;
     clearBtn.hidden = true;
-    const badge = document.getElementById('search-count-badge');
-    if (badge) badge.hidden = true;
     const scopeBtn = document.getElementById('btn-search-scope');
     if (scopeBtn) scopeBtn.hidden = true;
+    setSecondaryActionsVisible(true);
     renderList();
   });
 
@@ -406,6 +400,25 @@ function renderShell(transactions, year, month, focusSearch = false) {
     _searchCursor = null;
     renderList();
   });
+}
+
+// 検索中は「集計」「選択」ボタンを隠して横スペースを空ける
+// （検索結果に対しては優先度が低い機能のため、件数・範囲チップを優先表示する）
+function setSecondaryActionsVisible(visible) {
+  const summaryBtn = document.getElementById('btn-summary-sheet');
+  const selectBtn  = document.getElementById('btn-select-mode');
+  if (summaryBtn) summaryBtn.hidden = !visible;
+  if (selectBtn)  selectBtn.hidden  = !visible;
+}
+
+// 件数バッジ＋スコープ切替を1つのチップに統合（要素を増やさず横幅を節約するため）
+// タップで直近1ヶ月⇄全期間を切り替える
+function updateSearchScopeChip(count) {
+  const scopeBtn = document.getElementById('btn-search-scope');
+  if (!scopeBtn) return;
+  const scopeLabel = _searchScope === 'recent' ? '直近1ヶ月' : '全期間';
+  scopeBtn.textContent = `${count.toLocaleString()}件・${scopeLabel} ▾`;
+  scopeBtn.hidden = false;
 }
 
 function updateSummaryBar(summary) {
@@ -429,6 +442,10 @@ async function renderList() {
   let filtered;
 
   if (isGlobal) {
+    // 検索中は「集計」「選択」を隠してスペースを確保（選択モードも解除）
+    setSecondaryActionsVisible(false);
+    if (selectionMode) exitSelectionMode();
+
     // 検索: Supabase直接検索（IndexedDBは使わない）。デフォルトは直近1ヶ月、
     // 0件だった場合のみ自動的に全期間へフォールバックする。
     listEl.innerHTML = '<div class="spinner"></div>';
@@ -446,12 +463,7 @@ async function renderList() {
       _searchHasMore  = result.hasMore;
       _searchCursor   = result.nextCursor;
       filtered = _searchResults;
-
-      const scopeBtn = document.getElementById('btn-search-scope');
-      if (scopeBtn) {
-        scopeBtn.hidden = false;
-        scopeBtn.textContent = _searchScope === 'recent' ? '全期間で検索' : '直近1ヶ月のみ';
-      }
+      updateSearchScopeChip(filtered.length);
     } catch (e) {
       if (myGen !== _searchGen) return;
       listEl.innerHTML = `<div class="empty-state">
@@ -468,6 +480,7 @@ async function renderList() {
     });
     const scopeBtn = document.getElementById('btn-search-scope');
     if (scopeBtn) scopeBtn.hidden = true;
+    setSecondaryActionsVisible(true);
   }
 
   // ── サマリーバー更新 ────────────────────
@@ -486,13 +499,6 @@ async function renderList() {
           <div class="rsb-label">支出計</div>
           <div class="rsb-amount expense">¥${fmt(expense)}</div>
         </div>`;
-      // 件数バッジを検索ボックス横に表示（検索範囲も明示し、絞り込み中を隠さない）
-      const badge = document.getElementById('search-count-badge');
-      if (badge) {
-        const scopeLabel = _searchScope === 'recent' ? '直近1ヶ月' : '全期間';
-        badge.textContent = `${filtered.length.toLocaleString()}件（${scopeLabel}）`;
-        badge.hidden = false;
-      }
     }
   }
 
@@ -620,12 +626,7 @@ async function loadMoreSearch() {
     if (!listEl) return;
     const filtered = _searchResults.filter(tx => currentFilter === 'all' || tx.type === currentFilter);
 
-    const badge = document.getElementById('search-count-badge');
-    if (badge) {
-      const scopeLabel = _searchScope === 'recent' ? '直近1ヶ月' : '全期間';
-      badge.textContent = `${filtered.length.toLocaleString()}件（${scopeLabel}）`;
-      badge.hidden = false;
-    }
+    updateSearchScopeChip(filtered.length);
 
     const grouped = {};
     filtered.forEach(tx => {
