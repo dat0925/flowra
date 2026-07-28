@@ -487,22 +487,32 @@ export const DB = {
     return done;
   },
 
-  // キーワード全期間検索（Supabase直接）
+  // キーワード検索（Supabase RPC経由、日付範囲スコープ＋カーソルページネーション対応）
   // memo / タグ名 / 口座名に対してilike検索
-  async searchTransactions(keyword, type = 'all') {
+  // scope: 'recent' = 直近rangeDays日のみ（デフォルト・高速）, 'all' = 全期間
+  // cursor: {date, created_at, id} を渡すと続きから取得（もっと見る用）
+  // 戻り値: { rows, hasMore, nextCursor }
+  async searchTransactions(keyword, type = 'all', { scope = 'recent', rangeDays = 30, cursor = null, limit = 50 } = {}) {
     const teamId = await this.getTeamId();
     const q = keyword.trim();
-    if (!q) return [];
+    if (!q) return { rows: [], hasMore: false, nextCursor: null };
 
     const { data, error } = await supabase.rpc('search_transactions', {
       p_team_id: teamId,
       p_keyword: q,
       p_type: type,
+      p_range_days: scope === 'all' ? null : rangeDays,
+      p_cursor_date: cursor?.date ?? null,
+      p_cursor_created_at: cursor?.created_at ?? null,
+      p_cursor_id: cursor?.id ?? null,
+      p_limit: limit,
     });
     if (error) throw error;
 
+    const rows = data || [];
+
     // transaction_tagsを別途取得してマージ
-    const txIds = (data || []).map(t => t.id);
+    const txIds = rows.map(t => t.id);
     let tagMap = {};
     if (txIds.length > 0) {
       const { data: tagRows } = await supabase
@@ -520,12 +530,19 @@ export const DB = {
     const acctMap = {};
     accounts.forEach(a => { acctMap[a.id] = a; });
 
-    return (data || []).map(t => ({
+    const merged = rows.map(t => ({
       ...t,
       tags: tagMap[t.id] || [],
       account: acctMap[t.account_id] || null,
       to_account: acctMap[t.to_account_id] || null,
     }));
+
+    const last = rows[rows.length - 1];
+    return {
+      rows: merged,
+      hasMore: rows.length === limit,
+      nextCursor: last ? { date: last.date, created_at: last.created_at, id: last.id } : null,
+    };
   },
 
 

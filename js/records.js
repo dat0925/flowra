@@ -94,9 +94,12 @@ function showTagPicker({ tags = [], budgetTagIds = new Set(), title = 'カテゴ
 let currentFilter  = 'all';
 let searchQuery    = '';
 let _allTx         = [];   // 当月トランザクション
-let _searchResults = [];   // 全期間検索結果（タップ用）
+let _searchResults = [];   // 検索結果（タップ用）
 let _searchDebounce = null; // デバウンスタイマー
 let _searchGen     = 0;    // 競合防止カウンター（古い非同期結果を破棄）
+let _searchScope   = 'recent'; // 'recent'=直近1ヶ月（デフォルト・高速） / 'all'=全期間
+let _searchCursor  = null;     // もっと見る用カーソル
+let _searchHasMore = false;    // 続きがあるか
 let _budgetTagIds  = new Set(); // 主タグ判定用（budgetsテーブルのtag_id群）
 
 // ── 一括編集（複数選択）状態 ──
@@ -115,6 +118,9 @@ export async function renderRecords({ focusSearch = false } = {}) {
   currentFilter  = 'all';
   searchQuery    = '';
   _searchResults = [];
+  _searchScope   = 'recent';
+  _searchCursor  = null;
+  _searchHasMore = false;
   _searchGen++;          // 月切替時に進行中の検索を無効化
   exitSelectionMode();   // 月切替時は選択状態を破棄
 
@@ -221,6 +227,10 @@ function renderShell(transactions, year, month, focusSearch = false) {
             style="font-size:12px;font-weight:600;color:var(--sage);background:var(--sage-bg);
               border-radius:8px;padding:3px 8px;white-space:nowrap;flex-shrink:0;">
           </div>
+          <button id="btn-search-scope" hidden
+            style="font-size:11px;font-weight:700;color:var(--sage-dk);background:none;border:none;
+              padding:2px 4px;cursor:pointer;white-space:nowrap;text-decoration:underline;flex-shrink:0;">
+          </button>
           <button id="btn-summary-sheet"
             style="flex-shrink:0;padding:6px 12px;border-radius:10px;border:1.5px solid var(--sage);
               background:var(--sage-bg);color:var(--sage-dk);font-size:11px;font-weight:700;
@@ -269,6 +279,10 @@ function renderShell(transactions, year, month, focusSearch = false) {
   // 個別登録はrenderListのたびに重複するためここで一元管理
   const listElDelegate = document.getElementById('records-list');
   listElDelegate?.addEventListener('click', e => {
+    if (e.target.closest('#btn-search-load-more')) {
+      loadMoreSearch();
+      return;
+    }
     const item = e.target.closest('.tx-item[data-tx-id]');
     if (!item) return;
 
@@ -355,9 +369,15 @@ function renderShell(transactions, year, month, focusSearch = false) {
   searchInput?.addEventListener('input', e => {
     searchQuery = e.target.value;
     if (clearBtn) clearBtn.hidden = !searchQuery;
-    // 件数バッジは検索中は非表示
+    // 新しいキーワードごとに検索範囲は「直近1ヶ月」からやり直す
+    _searchScope   = 'recent';
+    _searchCursor  = null;
+    _searchHasMore = false;
+    // 件数バッジ・スコープボタンは検索中は非表示
     const badge = document.getElementById('search-count-badge');
     if (badge) badge.hidden = true;
+    const scopeBtn = document.getElementById('btn-search-scope');
+    if (scopeBtn) scopeBtn.hidden = true;
     clearTimeout(_searchDebounce);
     if (searchQuery.trim()) {
       _searchDebounce = setTimeout(() => renderList(), 300);
@@ -370,9 +390,20 @@ function renderShell(transactions, year, month, focusSearch = false) {
     if (searchInput) searchInput.value = '';
     searchQuery = '';
     _searchResults = [];
+    _searchScope   = 'recent';
+    _searchCursor  = null;
+    _searchHasMore = false;
     clearBtn.hidden = true;
     const badge = document.getElementById('search-count-badge');
     if (badge) badge.hidden = true;
+    const scopeBtn = document.getElementById('btn-search-scope');
+    if (scopeBtn) scopeBtn.hidden = true;
+    renderList();
+  });
+
+  document.getElementById('btn-search-scope')?.addEventListener('click', () => {
+    _searchScope  = _searchScope === 'recent' ? 'all' : 'recent';
+    _searchCursor = null;
     renderList();
   });
 }
@@ -398,13 +429,29 @@ async function renderList() {
   let filtered;
 
   if (isGlobal) {
-    // 全期間: Supabase直接検索（IndexedDBは使わない）
+    // 検索: Supabase直接検索（IndexedDBは使わない）。デフォルトは直近1ヶ月、
+    // 0件だった場合のみ自動的に全期間へフォールバックする。
     listEl.innerHTML = '<div class="spinner"></div>';
     try {
-      const results = await DB.searchTransactions(q, currentFilter);
+      let result = await DB.searchTransactions(q, currentFilter, { scope: _searchScope, rangeDays: 30 });
+      if (result.rows.length === 0 && _searchScope === 'recent') {
+        const wider = await DB.searchTransactions(q, currentFilter, { scope: 'all', rangeDays: 30 });
+        if (wider.rows.length > 0) {
+          _searchScope = 'all';
+          result = wider;
+        }
+      }
       if (myGen !== _searchGen) return;
-      _searchResults = results;
-      filtered = results;
+      _searchResults  = result.rows;
+      _searchHasMore  = result.hasMore;
+      _searchCursor   = result.nextCursor;
+      filtered = _searchResults;
+
+      const scopeBtn = document.getElementById('btn-search-scope');
+      if (scopeBtn) {
+        scopeBtn.hidden = false;
+        scopeBtn.textContent = _searchScope === 'recent' ? '全期間で検索' : '直近1ヶ月のみ';
+      }
     } catch (e) {
       if (myGen !== _searchGen) return;
       listEl.innerHTML = `<div class="empty-state">
@@ -419,6 +466,8 @@ async function renderList() {
     filtered = _allTx.filter(tx => {
       return currentFilter === 'all' || tx.type === currentFilter;
     });
+    const scopeBtn = document.getElementById('btn-search-scope');
+    if (scopeBtn) scopeBtn.hidden = true;
   }
 
   // ── サマリーバー更新 ────────────────────
@@ -437,10 +486,11 @@ async function renderList() {
           <div class="rsb-label">支出計</div>
           <div class="rsb-amount expense">¥${fmt(expense)}</div>
         </div>`;
-      // 件数バッジを検索ボックス横に表示
+      // 件数バッジを検索ボックス横に表示（検索範囲も明示し、絞り込み中を隠さない）
       const badge = document.getElementById('search-count-badge');
       if (badge) {
-        badge.textContent = `${filtered.length.toLocaleString()}件`;
+        const scopeLabel = _searchScope === 'recent' ? '直近1ヶ月' : '全期間';
+        badge.textContent = `${filtered.length.toLocaleString()}件（${scopeLabel}）`;
         badge.hidden = false;
       }
     }
@@ -463,7 +513,25 @@ async function renderList() {
     grouped[tx.date].push(tx);
   });
 
-  listEl.innerHTML = `
+  listEl.innerHTML = buildTxGroupsHTML(grouped, isGlobal)
+    + (isGlobal && _searchHasMore ? loadMoreButtonHTML() : '');
+
+  // クリックはrenderShellのイベントデリゲーションで処理
+}
+
+function loadMoreButtonHTML() {
+  return `
+    <button id="btn-search-load-more"
+      style="display:block;width:calc(100% - 24px);margin:10px 12px 16px;padding:10px;
+        border-radius:10px;border:1.5px solid var(--border);background:#fff;
+        color:var(--mid);font-size:13px;font-weight:600;cursor:pointer;">
+      もっと見る
+    </button>`;
+}
+
+// 日付グループ済みの取引一覧をHTML化する共通ロジック（renderList / loadMoreSearch双方から利用）
+function buildTxGroupsHTML(grouped, isGlobal) {
+  return `
     <div class="panel">
       ${Object.entries(grouped).map(([date, txs]) => `
         <div class="tx-date-label">
@@ -525,8 +593,51 @@ async function renderList() {
         }).join('')}
       `).join('')}
     </div>`;
+}
 
-  // クリックはrenderShellのイベントデリゲーションで処理
+// 検索結果の追加読み込み（カーソルベースページネーション）。
+// renderListとは違い再フェッチではなく続き分だけ取得し、既存結果に追記する。
+async function loadMoreSearch() {
+  if (!_searchHasMore || !_searchCursor) return;
+  const q = searchQuery.trim().toLowerCase();
+  if (!q) return;
+
+  const btn = document.getElementById('btn-search-load-more');
+  if (btn) { btn.textContent = '読み込み中…'; btn.disabled = true; }
+
+  const myGen = _searchGen; // 新しい検索が始まっていないかの確認用（インクリメントはしない）
+  try {
+    const result = await DB.searchTransactions(q, currentFilter, {
+      scope: _searchScope, rangeDays: 30, cursor: _searchCursor,
+    });
+    if (myGen !== _searchGen) return; // その間に別の検索が始まっていたら破棄
+
+    _searchResults = _searchResults.concat(result.rows);
+    _searchHasMore = result.hasMore;
+    _searchCursor  = result.nextCursor;
+
+    const listEl = document.getElementById('records-list');
+    if (!listEl) return;
+    const filtered = _searchResults.filter(tx => currentFilter === 'all' || tx.type === currentFilter);
+
+    const badge = document.getElementById('search-count-badge');
+    if (badge) {
+      const scopeLabel = _searchScope === 'recent' ? '直近1ヶ月' : '全期間';
+      badge.textContent = `${filtered.length.toLocaleString()}件（${scopeLabel}）`;
+      badge.hidden = false;
+    }
+
+    const grouped = {};
+    filtered.forEach(tx => {
+      if (!grouped[tx.date]) grouped[tx.date] = [];
+      grouped[tx.date].push(tx);
+    });
+
+    listEl.innerHTML = buildTxGroupsHTML(grouped, true)
+      + (_searchHasMore ? loadMoreButtonHTML() : '');
+  } catch (e) {
+    if (btn) { btn.textContent = 'もっと見る（失敗・タップして再試行）'; btn.disabled = false; }
+  }
 }
 
 // ── 一括編集（複数選択）関連 ──────────────────────
