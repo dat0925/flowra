@@ -1,6 +1,56 @@
 # Flowra 引き継ぎドキュメント
 
-最終更新: 2026-07-12
+最終更新: 2026-07-28
+
+---
+
+## ⚡ 記録検索の高速化＋検索範囲スコープ・カーソルページネーション対応（2026-07-28）
+
+**発端**: 記録一覧の検索（`records.js`のメモ・口座・タグ検索）が体感遅い。ユーザー案は
+「デフォルト過去1ヶ月、全期間検索は選択式に」。
+
+**調査で判明した根本原因（`search_transactions` RPC）**:
+1. 日付範囲での絞り込みが一切なく、**常に全期間**をスキャンしていた
+2. `memo ilike '%keyword%'`が前方一致でない（`%`が先頭）ため通常のB-treeが効かず、
+   シーケンシャルスキャンになっていた
+3. `transaction_tags.tag_id`に索引が無く、タグ経由検索の逆引きも全件スキャンだった
+
+`EXPLAIN ANALYZE`で確認済み（27,080件のteamで検証）:
+- 対応前: `memo ilike`は`idx_transactions_team_date`頼みで日付フィルタなしだと非効率
+- 対応後: `idx_transactions_memo_trgm`（GIN, pg_trgm）が実際にBitmap Index Scanとして使われることを確認
+
+**DB側対応（Supabase MCPで適用済み・マイグレーションとして記録）**:
+- `CREATE EXTENSION pg_trgm` + `idx_transactions_memo_trgm`（memoへのGIN trgmインデックス）
+- `idx_transaction_tags_tag_id`（tag_idへのbtreeインデックス）
+- `idx_transactions_team_type_date`（team_id, type, date DESC複合インデックス）
+- `search_transactions(p_team_id, p_keyword, p_type, p_range_days, p_cursor_date,
+  p_cursor_created_at, p_cursor_id, p_limit)`にシグネチャ拡張（`DROP FUNCTION`→再作成）
+  - `p_range_days`: デフォルト30（直近1ヶ月）。NULLで全期間
+  - `p_cursor_*`: `(date, created_at, id)`によるキーセット（カーソル）ページネーション
+  - 既存の呼び出し元は`js/db.js`の`searchTransactions()`のみだったため、破壊的変更なし
+
+**フロント対応（`js/db.js` / `js/records.js`）**:
+- `DB.searchTransactions(keyword, type, { scope, rangeDays, cursor, limit })`に変更。
+  戻り値も配列から`{ rows, hasMore, nextCursor }`に変更
+- デフォルトは`scope: 'recent'`（直近30日）。**0件だった場合のみ自動的に`scope: 'all'`へ
+  フォールバック**し、絞り込みのせいで「見つからない」と誤解させない設計
+- 検索件数バッジに`(直近1ヶ月)` / `(全期間)`を明示、ワンタップで切り替えられる
+  `#btn-search-scope`ボタンを追加
+- 新しいキーワード入力のたびに検索範囲は`recent`にリセットされる（前回「全期間」を
+  選んでいてもキーワードを変えたら直近1ヶ月から）
+- 50件（デフォルトlimit）を超える場合は「もっと見る」ボタン（`loadMoreSearch()`）で
+  カーソルベースの追加読み込み。再フェッチせず`_searchResults`に追記する設計
+- リスト描画ロジック（日付グループ化→HTML化）は`buildTxGroupsHTML()`として共通化し、
+  初回検索・もっと見る両方から呼ぶことで重複実装を回避
+
+**セキュリティチェック**: 認証・決済・新規テーブル・個人情報カラムの変更なし。
+既存RPCのシグネチャ拡張（後方互換）とインデックス追加のみ。RLSポリシー自体は無変更。
+
+**次にやる人へ**:
+- `p_limit`のデフォルトは50。もっと極端に検索結果が多いユーザーが出てきたら
+  UIの「もっと見る」の見え方（何度もタップさせる体験）を再検討する余地あり
+- 現状`p_range_days`のデフォルト30はハードコード。ユーザーごとに前回選択した
+  スコープを記憶する等の個人最適化は未実装（将来検討事項）
 
 ---
 
