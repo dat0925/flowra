@@ -170,6 +170,18 @@ async function renderContent(content, accounts, transactions, year, month, fromC
   const income  = transactions.filter(t=>t.type==='income' ).reduce((s,t)=>s+t.amount, 0);
   const expense = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount, 0);
 
+  // 表示中の月に応じた期間ラベル
+  // 当月 → 「今月」 / 同年の他月 → 「6月」 / 年またぎ → 「2025年12月」
+  const _now = new Date();
+  const isCurrentMonth = (year === _now.getFullYear() && month === _now.getMonth() + 1);
+  const periodLabel = isCurrentMonth
+    ? '今月'
+    : (year === _now.getFullYear() ? `${month}月` : `${year}年${month}月`);
+  // 「先月と比べて」チップ用：表示月の前月ラベル
+  const _prevM = month === 1 ? 12 : month - 1;
+  const _prevY = month === 1 ? year - 1 : year;
+  const prevPeriodLabel = _prevY === _now.getFullYear() ? `${_prevM}月` : `${_prevY}年${_prevM}月`;
+
   const hidden = localStorage.getItem('flowra_balance_hidden') === '1';
   const maskNum = (n) => '••••••';
   const totalDisp = hidden
@@ -192,7 +204,7 @@ async function renderContent(content, accounts, transactions, year, month, fromC
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div class="s-card income-card" style="overflow:hidden;">
-          <div class="s-card-label">今月の収入</div>
+          <div class="s-card-label">${periodLabel}の収入</div>
           <div class="s-amount" style="white-space:nowrap;overflow:hidden;">
             ${hidden
               ? '<span class="s-currency" style="opacity:0.4;">¥</span><span class="s-number" style="font-size:30px;letter-spacing:2px;color:var(--sage-lt);">••••••</span>'
@@ -202,7 +214,7 @@ async function renderContent(content, accounts, transactions, year, month, fromC
           <div class="s-accent-line"></div>
         </div>
         <div class="s-card expense-card" style="overflow:hidden;">
-          <div class="s-card-label">今月の支出</div>
+          <div class="s-card-label">${periodLabel}の支出</div>
           <div class="s-amount" style="white-space:nowrap;overflow:hidden;">
             <span class="s-currency">¥</span>
             <span class="s-number" style="font-size:30px;">${fmt(expense)}</span>
@@ -373,13 +385,13 @@ async function renderContent(content, accounts, transactions, year, month, fromC
               style="font-size:11px;padding:5px 11px;border-radius:20px;
                 border:1px solid var(--sage-lt);background:none;
                 color:var(--sage);cursor:pointer;font-weight:500;white-space:nowrap;">
-              今月どう？
+              ${isCurrentMonth ? '今月どう？' : periodLabel + 'どう？'}
             </button>
             <button class="btn-ai-q" data-q="compare"
               style="font-size:11px;padding:5px 11px;border-radius:20px;
                 border:1px solid var(--border);background:none;
                 color:var(--mid);cursor:pointer;font-weight:500;white-space:nowrap;">
-              先月と比べて
+              ${isCurrentMonth ? '先月と比べて' : prevPeriodLabel + 'と比べて'}
             </button>
             <button class="btn-ai-q" data-q="saving"
               style="font-size:11px;padding:5px 11px;border-radius:20px;
