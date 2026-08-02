@@ -26,9 +26,9 @@ export async function openSummarySheet() {
   overlay.id = 'summary-sheet-overlay';
   overlay.style.cssText = `position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.45);display:flex;align-items:flex-end;justify-content:center;`;
   overlay.innerHTML = `
-    <div id="summary-sheet" style="width:100%;max-width:640px;background:var(--stone);border-radius:20px 20px 0 0;height:90vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div id="summary-sheet" style="width:100%;max-width:640px;background:var(--stone);border-radius:20px 20px 0 0;height:min(90vh, calc(100dvh - env(safe-area-inset-top) - 8px));max-height:calc(100dvh - env(safe-area-inset-top) - 8px);display:flex;flex-direction:column;overflow:hidden;">
       <!-- ヘッダー（ホームと同じレイアウト：左タイトル、中央月ナビ、右今月+閉じる） -->
-      <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 16px 8px;border-bottom:none;flex-shrink:0;">
+      <div id="summary-sheet-header" style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:max(12px, env(safe-area-inset-top)) 16px 8px;border-bottom:none;flex-shrink:0;touch-action:none;">
         <div style="font-size:15px;font-weight:700;color:var(--ink);">タグ別集計</div>
         <div style="display:flex;align-items:center;gap:0;">
           <button id="ss-prev-month" style="background:none;border:none;padding:4px 8px;cursor:pointer;color:var(--sage);font-size:18px;line-height:1;">‹</button>
@@ -37,7 +37,7 @@ export async function openSummarySheet() {
         </div>
         <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;">
           <button id="ss-today-btn" style="font-size:11px;padding:4px 10px;border-radius:20px;border:1px solid var(--border);background:var(--white);color:var(--mid);cursor:pointer;white-space:nowrap;display:none;">今月</button>
-          <button id="btn-close-summary" style="background:none;border:none;padding:4px;cursor:pointer;color:var(--mid);">
+          <button id="btn-close-summary" aria-label="閉じる" style="background:none;border:none;padding:10px;margin:-6px;cursor:pointer;color:var(--mid);touch-action:manipulation;">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
@@ -72,6 +72,29 @@ export async function openSummarySheet() {
   };
   document.getElementById('btn-close-summary').addEventListener('click', close);
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+  // ヘッダーを下方向にスワイプで閉じる（×が押しにくい端末向けの保険）
+  const header = document.getElementById('summary-sheet-header');
+  let dragStartY = null;
+  header.addEventListener('touchstart', e => {
+    // 月ナビ・×ボタンや月ラベル（独自タップ処理あり）は邪魔しない
+    if (e.target.closest('button') || e.target.closest('#ss-month-label')) { dragStartY = null; return; }
+    dragStartY = e.touches[0].clientY;
+    sheet.style.transition = 'none';
+  }, { passive: true });
+  header.addEventListener('touchmove', e => {
+    if (dragStartY === null) return;
+    const dy = e.touches[0].clientY - dragStartY;
+    if (dy > 0) sheet.style.transform = `translateY(${dy}px)`;
+  }, { passive: true });
+  header.addEventListener('touchend', e => {
+    if (dragStartY === null) return;
+    const dy = e.changedTouches[0].clientY - dragStartY;
+    sheet.style.transition = 'transform 0.3s cubic-bezier(0.25,0.46,0.45,0.94)';
+    if (dy > 80) { close(); }
+    else { sheet.style.transform = 'translateY(0)'; }
+    dragStartY = null;
+  });
 
   let mode = 'primary'; // 'primary' or 'sub'
 
