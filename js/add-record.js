@@ -14,36 +14,69 @@ import { showAccountPicker } from './account-picker.js';
 const today = () => new Date().toISOString().slice(0, 10);
 
 // メモリキャッシュ（同期的にモーダルを開くため）
-let _accounts = null, _tags = null, _budgetTagIds = null;
+// _cacheTeamId: このキャッシュがどのチーム（我が家／共有チーム等）のものかを記録する。
+// チームを切り替えるとIndexedDB側は clearAll() で消されるが、このメモリキャッシュは
+// 残り続けるため、以前は切り替え後に開いた追加・複製画面で「切り替え前のチームの口座／
+// タグ」が選択肢として出てしまっていた（アプリ再起動で直る＝メモリキャッシュが原因）。
+// 使う直前にアクティブチームと一致するかを必ず確認する。
+let _accounts = null, _tags = null, _budgetTagIds = null, _cacheTeamId = null;
 
-// アプリ起動時・保存後に呼ぶ（事前ウォームアップ）
+// キャッシュが今のアクティブチームのものかどうか（同期判定）
+function isCacheStale() {
+  return _accounts === null || _cacheTeamId !== DB.getActiveTeamId();
+}
+
+// キャッシュを破棄する（チーム切り替え時に呼ぶ）
+export function resetAddRecordCache() {
+  _accounts = null;
+  _tags = null;
+  _budgetTagIds = null;
+  _cacheTeamId = null;
+}
+
+// アプリ起動時・保存後・チーム切り替え後に呼ぶ（事前ウォームアップ）
 export async function warmupAddRecord() {
   try {
-    [_accounts, _tags, _budgetTagIds] = await Promise.all([
+    const teamId = await DB.getTeamId();
+    const [accounts, tags, budgetTagIds] = await Promise.all([
       DB.getAccounts(), DB.getTags(), DB.getBudgetTagIds()
     ]);
+    // 取得中にチームが切り替わっていたら破棄する（古いチームのデータで上書きしない）
+    if (teamId !== DB.getActiveTeamId()) return;
+    _accounts = accounts; _tags = tags; _budgetTagIds = budgetTagIds;
+    _cacheTeamId = teamId;
   } catch (e) { /* silent */ }
 }
 
 export async function renderAddRecord(onSave, onReady, initialState = {}) {
-  // キャッシュがあれば同期的に開始、なければ取得
-  let accounts  = _accounts  ?? [];
-  let tags      = _tags      ?? [];
-  let budgetMap = _budgetTagIds ?? new Set();
+  // キャッシュが今のチームのものなら同期的に開始、そうでなければ取得を待つ
+  const stale = isCacheStale();
+  let accounts  = stale ? [] : _accounts;
+  let tags      = stale ? [] : _tags;
+  let budgetMap = stale ? new Set() : (_budgetTagIds ?? new Set());
 
-  if (_accounts === null) {
+  if (stale) {
     try {
+      const teamId = await DB.getTeamId();
       [accounts, tags, budgetMap] = await Promise.all([
         DB.getAccounts(), DB.getTags(), DB.getBudgetTagIds()
       ]);
-      _accounts = accounts; _tags = tags; _budgetTagIds = budgetMap;
+      if (teamId === DB.getActiveTeamId()) {
+        _accounts = accounts; _tags = tags; _budgetTagIds = budgetMap;
+        _cacheTeamId = teamId;
+      }
     } catch (e) {
       showToast('データ取得エラー: ' + e.message);
       return;
     }
   } else {
+    const cachedTeamId = _cacheTeamId;
     Promise.all([DB.getAccounts(), DB.getTags(), DB.getBudgetTagIds()])
-      .then(([a, t, b]) => { _accounts = a; _tags = t; _budgetTagIds = b; })
+      .then(([a, t, b]) => {
+        // 背景更新の途中でチームが切り替わっていたら反映しない
+        if (cachedTeamId !== DB.getActiveTeamId()) return;
+        _accounts = a; _tags = t; _budgetTagIds = b;
+      })
       .catch(() => {});
   }
 

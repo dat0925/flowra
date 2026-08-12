@@ -4,7 +4,7 @@
 import { Auth }       from './auth.js';
 import { Router, MonthState } from './router.js';
 import { renderDashboard }    from './dashboard.js';
-import { renderAddRecord, warmupAddRecord } from './add-record.js';
+import { renderAddRecord, warmupAddRecord, resetAddRecordCache } from './add-record.js';
 import { checkAndShowOnboarding } from './onboarding.js';
 import { renderAccounts }     from './accounts.js';
 import { renderSettings }     from './settings.js';
@@ -509,6 +509,10 @@ async function initTeamSwitcher() {
         const { clearAiAdviceCache } = await import('./dashboard.js');
         clearAiAdviceCache();
         await clearCache();
+        // 追加・複製画面のメモリキャッシュ（口座・タグ・主タグ）も破棄する。
+        // これを消さないと切り替え前のチームの口座が選択肢に出続ける。
+        resetAddRecordCache();
+        warmupAddRecord();   // 新チームのデータを裏で先読み（待たない）
         await initTeamSwitcher();
         applyViewerMode();
         Router.navigate(Router.currentPage);
