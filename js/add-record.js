@@ -7,7 +7,7 @@
 // ─────────────────────────────────────
 import { DB }        from './db.js';
 import { Sound }     from './sound.js';
-import { openModal, closeModal, showToast } from './utils.js';
+import { openModal, closeModal, showToast, escapeHtml, memoRowHTML, setupMemoField } from './utils.js';
 import { getCachedTransactions } from './cache.js';
 import { showAccountPicker } from './account-picker.js';
 
@@ -262,15 +262,7 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
               <input class="date-input" id="date-input" type="date" value="${state.date}">
             </div>
           </div>
-          <div class="form-row no-tap">
-            <div class="row-icon" style="background:#F0EDE8;">
-              <svg viewBox="0 0 24 24" style="stroke:var(--mid)"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            </div>
-            <div class="row-body">
-              <div class="row-label">メモ</div>
-              <input class="text-input" id="memo-input" type="text" placeholder="メモを入力（任意）" value="${state.memo}">
-            </div>
-          </div>
+          ${memoRowHTML(state.memo)}
         </div>
 
         ${tagsHTML}
@@ -524,17 +516,20 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       if (!q) { memoSuggest.style.display = 'none'; return; }
       const matched = pastMemos.filter(m => m.includes(q)).slice(0, 5);
       if (matched.length === 0) { memoSuggest.style.display = 'none'; return; }
+      // 候補一覧は1行に畳んで表示する（メモ本体は改行を含みうるため）
       memoSuggest.innerHTML = matched.map(m =>
         '<div class="memo-suggest-item" style="padding:10px 14px;font-size:13.5px;'
         + 'color:var(--ink);cursor:pointer;border-bottom:1px solid var(--border);'
         + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'
-        + m + '</div>'
+        + escapeHtml(m.replace(/\s*\n\s*/g, ' ')) + '</div>'
       ).join('');
       memoSuggest.querySelectorAll('.memo-suggest-item').forEach((item, i) => {
         item.addEventListener('mousedown', e => {
           e.preventDefault();
           memoInput.value = matched[i];
           state.memo = matched[i];
+          // 改行を含む候補を選んだときも高さとリンクチップを合わせる
+          memoField.refresh();
           memoSuggest.style.display = 'none';
         });
       });
@@ -546,10 +541,15 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       memoSuggest.style.display = 'block';
     }
 
-    memoInput?.addEventListener('input', e => {
-      state.memo = e.target.value;
-      showMemoSuggest(e.target.value);
-    });
+    // 高さの自動調整とURLリンクチップは編集画面と共通（utils.js）
+    const memoField = setupMemoField(
+      memoInput,
+      document.getElementById('memo-links'),
+      value => {
+        state.memo = value;
+        showMemoSuggest(value);
+      }
+    );
     memoInput?.addEventListener('blur', () => {
       setTimeout(() => { memoSuggest.style.display = 'none'; }, 150);
     });
