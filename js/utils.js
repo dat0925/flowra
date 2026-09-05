@@ -29,34 +29,15 @@ export function openModal(contentHTML) {
   document.body.style.overflow = 'hidden';
   Sound.playOpen();
 
-  // 下スワイプで閉じる（リスナーは一度だけ登録）
-  const sheet = document.getElementById('modal-add-record');
-  if (sheet && !sheet._swipeInit) {
-    sheet._swipeInit = true;
-    let startY = 0;
-    let startScrollTop = 0;
-    const onTouchStart = (e) => {
-      startY = e.touches[0].clientY;
-      startScrollTop = sheet.scrollTop;
-    };
-    const onTouchEnd = (e) => {
-      const dy = e.changedTouches[0].clientY - startY;
-      // スクロール位置が一番上 かつ 60px以上下スワイプで閉じる
-      if (startScrollTop === 0 && dy > 60) {
-        closeModal();
-      }
-    };
-    sheet.addEventListener('touchstart', onTouchStart, { passive: true });
-    sheet.addEventListener('touchend', onTouchEnd, { passive: true });
-    // リスナーを保持しておく（将来の削除に備えて）
-    sheet._swipeHandlers = { onTouchStart, onTouchEnd };
-  }
+  // 下スワイプでの誤クローズ防止:
+  // このシートは記録追加・複製・口座編集など入力フォームを表示する共通コンポーネントで、
+  // 途中で下スワイプすると未保存のまま閉じてしまっていたため、スワイプでは閉じない。
+  // 閉じるのは×ボタン／キャンセルなど明示的な操作のみとする。
 }
 
 export function closeModal() {
   const overlay = document.getElementById('modal-overlay');
   const sheet = document.getElementById('modal-add-record');
-  if (sheet) sheet._swipeInit = false;
   // save-barを非表示
   const saveBar = document.getElementById('save-bar');
   if (saveBar) saveBar.hidden = true;
