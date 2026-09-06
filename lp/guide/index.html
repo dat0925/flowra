@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>使い方ガイド — Flowra（フローラ）の使い方をわかりやすく解説</title>
+
+  <meta name="description" content="家計管理アプリFlowra（フローラ）の使い方ガイド。記録の付け方、レシート読み取り、口座管理、タグ・予算管理、パートナーとの共有、AIアドバイスの使い方を図解つきで解説します。">
+  <meta name="keywords" content="Flowra,フローラ,使い方,マニュアル,ガイド,家計簿アプリ,レシート読み取り,口座管理,予算管理,パートナー共有">
+  <link rel="canonical" href="https://flowra.taskra.jp/lp/guide/">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://flowra.taskra.jp/lp/guide/">
+  <meta property="og:title" content="使い方ガイド — Flowra（フローラ）">
+  <meta property="og:description" content="家計管理アプリFlowraの使い方を図解つきで解説。記録・レシート読み取り・口座管理・予算・パートナー共有・AIアドバイスまで。">
+  <meta property="og:image" content="https://flowra.taskra.jp/images/ogp.jpg">
+  <meta property="og:site_name" content="Flowra（フローラ）">
+  <meta property="og:locale" content="ja_JP">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="使い方ガイド — Flowra（フローラ）">
+  <meta name="twitter:description" content="家計管理アプリFlowraの使い方を図解つきで解説。記録・レシート読み取り・口座管理・予算・パートナー共有・AIアドバイスまで。">
+  <meta name="twitter:image" content="https://flowra.taskra.jp/images/ogp.jpg">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@400;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Flowra", "item": "https://flowra.taskra.jp/lp/" },
+      { "@type": "ListItem", "position": 2, "name": "使い方ガイド", "item": "https://flowra.taskra.jp/lp/guide/" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    "name": "Flowra 使い方ガイド",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "記録をつける", "url": "https://flowra.taskra.jp/lp/guide/records/" },
+      { "@type": "ListItem", "position": 2, "name": "口座を管理する", "url": "https://flowra.taskra.jp/lp/guide/accounts/" },
+      { "@type": "ListItem", "position": 3, "name": "タグ・予算管理", "url": "https://flowra.taskra.jp/lp/guide/budget/" },
+      { "@type": "ListItem", "position": 4, "name": "パートナーと共有する", "url": "https://flowra.taskra.jp/lp/guide/team/" },
+      { "@type": "ListItem", "position": 5, "name": "AIアドバイス・Premiumプラン", "url": "https://flowra.taskra.jp/lp/guide/premium/" }
+    ]
+  }
+  </script>
+
+  <style>
+    :root {
+      --sage:    #4A7C59;
+      --sage-lt: #6FA882;
+      --sage-dk: #2F5239;
+      --sage-bg: #EEF5F1;
+      --mist:    #E8F0EC;
+      --stone:   #F5F2ED;
+      --ink:     #1C2B22;
+      --gold:    #B8973E;
+      --gold-bg: #FBF5E6;
+      --warm:    #FAF7F2;
+      --mid:     #7A9485;
+      --mid-lt:  #B0C4BB;
+      --border:  #E4DDD4;
+      --white:   #ffffff;
+      --red:     #B83232;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: var(--stone);
+      color: var(--ink);
+      line-height: 1.8;
+    }
+
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; height: 56px;
+      background: rgba(245,242,237,0.92);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ink); text-decoration: none; letter-spacing: -0.02em; }
+    .nav-logo span { color: var(--sage); }
+    .nav-back { font-size: 13px; color: var(--mid); text-decoration: none; }
+    .nav-back:hover { color: var(--ink); }
+
+    .page-wrap { max-width: 880px; margin: 0 auto; padding: 56px 24px 120px; }
+
+    .crumbs { font-size: 12px; color: var(--mid-lt); margin-bottom: 20px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .crumbs a { color: var(--mid-lt); text-decoration: none; }
+    .crumbs a:hover { color: var(--sage); }
+
+    .page-label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: var(--sage); text-transform: uppercase; margin-bottom: 16px; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: clamp(30px, 5.5vw, 48px); line-height: 1.25; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 16px; }
+    .page-lead { font-size: 15px; color: var(--mid); max-width: 560px; margin-bottom: 48px; line-height: 1.9; }
+
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 16px; margin-bottom: 72px; }
+    .g-card {
+      background: var(--white); border: 1px solid var(--border); border-radius: 20px;
+      padding: 24px 22px; text-decoration: none; display: block;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .g-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(28,43,34,0.08); }
+    .g-card-icon {
+      width: 40px; height: 40px; border-radius: 10px; background: var(--sage-bg);
+      display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 14px;
+    }
+    .g-card-name { font-family: 'Noto Serif JP', serif; font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+    .g-card-desc { font-size: 13px; line-height: 1.8; color: var(--mid); margin-bottom: 12px; }
+    .g-card-arrow { font-size: 12px; color: var(--sage); font-weight: 600; }
+
+    .section-label { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: var(--sage); text-transform: uppercase; margin-bottom: 16px; }
+    .section-title { font-family: 'Noto Serif JP', serif; font-size: clamp(20px, 3vw, 26px); font-weight: 700; line-height: 1.4; color: var(--ink); margin-bottom: 12px; }
+    .section-desc { font-size: 14px; color: var(--mid); max-width: 520px; margin-bottom: 40px; line-height: 1.9; }
+
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 28px; margin-bottom: 72px; }
+    .step-num { font-family: 'DM Serif Display', serif; font-size: 40px; line-height: 1; color: rgba(28,43,34,0.08); margin-bottom: 6px; }
+    .step-title { font-family: 'Noto Serif JP', serif; font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 8px; }
+    .step-desc { font-size: 13px; line-height: 1.8; color: var(--mid); }
+
+    .faq-mini { display: flex; flex-direction: column; gap: 12px; margin-bottom: 72px; }
+    .faq-item { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+    .faq-q { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 6px; display: flex; gap: 8px; }
+    .faq-q::before { content: 'Q'; color: var(--sage); }
+    .faq-a { font-size: 13px; color: var(--mid); line-height: 1.8; padding-left: 18px; }
+
+    .cta-band {
+      background: var(--sage); border-radius: 24px; padding: 40px 32px; text-align: center;
+    }
+    .cta-band-title { font-family: 'Noto Serif JP', serif; font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .cta-band-desc { font-size: 13px; color: rgba(255,255,255,0.75); margin-bottom: 22px; }
+    .cta-band-btn { display: inline-block; background: #fff; color: var(--sage-dk); font-size: 14px; font-weight: 700; padding: 13px 28px; border-radius: 100px; text-decoration: none; }
+
+    footer { background: var(--ink); padding: 28px 24px; text-align: center; margin-top: 40px; }
+    .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; flex-wrap: wrap; }
+    .footer-links a { font-size: 12px; color: rgba(255,255,255,0.35); text-decoration: none; }
+    .footer-links a:hover { color: rgba(255,255,255,0.7); }
+    .footer-copy { font-size: 12px; color: rgba(255,255,255,0.2); }
+
+    @media (max-width: 640px) {
+      nav { padding: 0 16px; }
+      .page-wrap { padding: 40px 20px 80px; }
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="https://flowra.taskra.jp/lp/" class="nav-logo">Flow<span>ra</span></a>
+  <a href="https://flowra.taskra.jp/lp/" class="nav-back">← LPに戻る</a>
+</nav>
+
+<div class="page-wrap">
+  <div class="crumbs"><a href="https://flowra.taskra.jp/lp/">ホーム</a><span>／</span><span>使い方ガイド</span></div>
+  <div class="page-label">Guide</div>
+  <h1 class="page-title">Flowraの使い方ガイド</h1>
+  <p class="page-lead">
+    レシートを撮るだけの記録から、口座・タグ・予算の管理、パートナーとの共有、AIアドバイスまで。
+    Flowraでできることを図解つきでひとつずつ解説します。迷ったときはこのページから探してください。
+  </p>
+
+  <div class="card-grid">
+    <a class="g-card" href="https://flowra.taskra.jp/lp/guide/records/">
+      <div class="g-card-icon">🧾</div>
+      <div class="g-card-name">記録をつける</div>
+      <div class="g-card-desc">手入力での記録と、レシートを撮るだけのAI読み取り。基本の使い方です。</div>
+      <div class="g-card-arrow">読む →</div>
+    </a>
+    <a class="g-card" href="https://flowra.taskra.jp/lp/guide/accounts/">
+      <div class="g-card-icon">💳</div>
+      <div class="g-card-name">口座を管理する</div>
+      <div class="g-card-desc">現金・銀行・クレジットカードなど、複数口座の登録と使い分け方。</div>
+      <div class="g-card-arrow">読む →</div>
+    </a>
+    <a class="g-card" href="https://flowra.taskra.jp/lp/guide/budget/">
+      <div class="g-card-icon">🏷️</div>
+      <div class="g-card-name">タグ・予算管理</div>
+      <div class="g-card-desc">支出をタグで分類し、タグごとに月の予算を設定して進捗を可視化。</div>
+      <div class="g-card-arrow">読む →</div>
+    </a>
+    <a class="g-card" href="https://flowra.taskra.jp/lp/guide/team/">
+      <div class="g-card-icon">🤝</div>
+      <div class="g-card-name">パートナーと共有する</div>
+      <div class="g-card-desc">招待リンクを送るだけで、ふたりの家計をリアルタイムに共同管理。</div>
+      <div class="g-card-arrow">読む →</div>
+    </a>
+    <a class="g-card" href="https://flowra.taskra.jp/lp/guide/premium/">
+      <div class="g-card-icon">✦</div>
+      <div class="g-card-name">AIアドバイス・Premium</div>
+      <div class="g-card-desc">AIによる節約アドバイスの受け取り方と、Free / Premiumプランの違い。</div>
+      <div class="g-card-arrow">読む →</div>
+    </a>
+  </div>
+
+  <div class="section-label">How to start</div>
+  <h2 class="section-title">はじめての方は、この3ステップ</h2>
+  <p class="section-desc">面倒な初期設定はありません。Googleアカウントがあれば今すぐ使えます。</p>
+  <div class="steps">
+    <div>
+      <div class="step-num">01</div>
+      <div class="step-title">Googleでログイン</div>
+      <p class="step-desc">Googleアカウントでワンタップ。メールアドレスや個人情報の入力は不要です。</p>
+    </div>
+    <div>
+      <div class="step-num">02</div>
+      <div class="step-title">口座・タグを設定</div>
+      <p class="step-desc">よく使う口座をプリセットから選ぶだけ。オンボーディングに沿って2〜3分で完了します。</p>
+    </div>
+    <div>
+      <div class="step-num">03</div>
+      <div class="step-title">レシートを撮ってみる</div>
+      <p class="step-desc">最初の記録は「＋」→「レシート読み取り」を試してみてください。品目が自動で並びます。</p>
+    </div>
+  </div>
+
+  <div class="section-label">FAQ</div>
+  <h2 class="section-title">よくある質問</h2>
+  <div class="faq-mini">
+    <div class="faq-item">
+      <div class="faq-q">アプリのインストールは必要ですか？</div>
+      <div class="faq-a">不要です。ブラウザからそのまま使えるPWA（Progressive Web App）です。スマホのホーム画面に追加すれば、アプリのように起動できます。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">パソコンとスマホ、どちらでも使えますか？</div>
+      <div class="faq-a">はい。同じGoogleアカウントでログインすれば、パソコン・スマホ・タブレットのどこからでも同じデータにアクセスできます。</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">機能ごとの詳しい説明はどこにありますか？</div>
+      <div class="faq-a">上の5つのガイドから探せます。それぞれ図解つきで手順を説明しています。料金プランの詳細は<a href="https://flowra.taskra.jp/lp/#pricing" style="color:var(--sage);">LPの料金セクション</a>もご覧ください。</div>
+    </div>
+  </div>
+
+  <div class="cta-band">
+    <div class="cta-band-title">まず、撮ってみてください。</div>
+    <div class="cta-band-desc">Googleアカウントで、今すぐ無料で使えます。</div>
+    <a href="https://flowra.taskra.jp" class="cta-band-btn">Flowraを無料で使う →</a>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-links">
+    <a href="https://flowra.taskra.jp/lp/">Flowra トップ</a>
+    <a href="https://flowra.taskra.jp/lp/guide/">使い方ガイド</a>
+    <a href="https://flowra.taskra.jp/lp/privacy/">プライバシーポリシー</a>
+    <a href="https://flowra.taskra.jp/lp/terms/">利用規約</a>
+    <a href="https://flowra.taskra.jp/lp/contact/">お問い合わせ</a>
+  </div>
+  <p class="footer-copy">© 2026 Flowra. All rights reserved.</p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>パートナーとの家計共有の使い方 — Flowra使い方ガイド</title>
+
+  <meta name="description" content="Flowra（フローラ）でパートナーと家計を共有する方法を解説。招待リンクの発行・参加方法、編集権限と閲覧のみ権限の違い、チームの切り替え・脱退まで図解つきで紹介します。">
+  <meta name="keywords" content="Flowra,フローラ,パートナー共有,夫婦家計簿,招待リンク,家計簿アプリ,使い方">
+  <link rel="canonical" href="https://flowra.taskra.jp/lp/guide/team/">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://flowra.taskra.jp/lp/guide/team/">
+  <meta property="og:title" content="パートナーとの家計共有の使い方 — Flowra使い方ガイド">
+  <meta property="og:description" content="招待リンクを送るだけで、ふたりの家計をリアルタイムに共同管理する方法を図解つきで解説します。">
+  <meta property="og:image" content="https://flowra.taskra.jp/images/ogp.jpg">
+  <meta property="og:site_name" content="Flowra（フローラ）">
+  <meta property="og:locale" content="ja_JP">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@400;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Flowra", "item": "https://flowra.taskra.jp/lp/" },
+      { "@type": "ListItem", "position": 2, "name": "使い方ガイド", "item": "https://flowra.taskra.jp/lp/guide/" },
+      { "@type": "ListItem", "position": 3, "name": "パートナーと共有する", "item": "https://flowra.taskra.jp/lp/guide/team/" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "Flowraでパートナーを招待する方法",
+    "step": [
+      { "@type": "HowToStep", "name": "招待リンクを発行", "text": "設定画面の「招待リンクを発行」をタップすると、リンクが自動でコピーされます（7日間有効）。" },
+      { "@type": "HowToStep", "name": "リンクを送る", "text": "LINEやメールなど好きな方法でパートナーにリンクを送ります。" },
+      { "@type": "HowToStep", "name": "パートナーが参加", "text": "パートナーがリンクを開き、Googleアカウントでログインして「参加する」をタップすると共有が完了します。" }
+    ]
+  }
+  </script>
+
+  <style>
+    :root {
+      --sage:#4A7C59; --sage-lt:#6FA882; --sage-dk:#2F5239; --sage-bg:#EEF5F1;
+      --mist:#E8F0EC; --stone:#F5F2ED; --ink:#1C2B22; --gold:#B8973E; --gold-bg:#FBF5E6;
+      --warm:#FAF7F2; --mid:#7A9485; --mid-lt:#B0C4BB; --border:#E4DDD4; --white:#ffffff; --red:#B83232;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Noto Sans JP', sans-serif; background: var(--stone); color: var(--ink); line-height: 1.8; }
+
+    nav { position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; height: 56px; background: rgba(245,242,237,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); }
+    .nav-logo { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ink); text-decoration: none; letter-spacing: -0.02em; }
+    .nav-logo span { color: var(--sage); }
+    .nav-back { font-size: 13px; color: var(--mid); text-decoration: none; }
+    .nav-back:hover { color: var(--ink); }
+
+    .page-wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 120px; }
+    .crumbs { font-size: 12px; color: var(--mid-lt); margin-bottom: 20px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .crumbs a { color: var(--mid-lt); text-decoration: none; }
+    .crumbs a:hover { color: var(--sage); }
+
+    .page-label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: var(--sage); text-transform: uppercase; margin-bottom: 16px; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: clamp(28px, 5vw, 42px); line-height: 1.25; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 16px; }
+    .page-lead { font-size: 15px; color: var(--mid); margin-bottom: 40px; line-height: 1.9; }
+
+    .toc { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 18px 22px; margin-bottom: 56px; }
+    .toc-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--mid); text-transform: uppercase; margin-bottom: 10px; }
+    .toc ol { list-style: none; display: flex; flex-direction: column; gap: 6px; counter-reset: toc; }
+    .toc li { counter-increment: toc; font-size: 13px; }
+    .toc li::before { content: counter(toc) '. '; color: var(--sage); font-weight: 700; }
+    .toc a { color: var(--ink); text-decoration: none; }
+    .toc a:hover { color: var(--sage); text-decoration: underline; }
+
+    .sec { margin-bottom: 64px; scroll-margin-top: 72px; }
+    .sec-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--sage); text-transform: uppercase; margin-bottom: 10px; }
+    .sec h2 { font-family: 'Noto Serif JP', serif; font-size: 21px; font-weight: 700; color: var(--ink); margin-bottom: 14px; padding-left: 14px; border-left: 3px solid var(--sage); }
+    .sec-desc { font-size: 14px; color: var(--mid); line-height: 1.9; margin-bottom: 28px; }
+
+    .step-row { display: flex; gap: 16px; margin-bottom: 28px; }
+    .step-badge { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--sage); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .step-body h3 { font-family: 'Noto Serif JP', serif; font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+    .step-body p { font-size: 13px; color: var(--mid); line-height: 1.8; }
+
+    .share-visual { display: flex; gap: 10px; align-items: center; justify-content: center; margin: 24px 0 32px; }
+    .avatar-card { flex: 1; background: var(--white); border: 1px solid var(--border); border-radius: 18px; padding: 18px 14px; text-align: center; }
+    .avatar-circle { width: 44px; height: 44px; border-radius: 50%; margin: 0 auto 10px; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 600; color: #fff; }
+    .avatar-name { font-size: 12px; font-weight: 600; color: var(--ink); margin-bottom: 2px; }
+    .avatar-role { font-size: 10px; color: var(--mid-lt); }
+    .share-arrow { font-size: 18px; color: var(--mid-lt); flex-shrink: 0; }
+
+    .panel { background: var(--white); border-radius: 20px; padding: 20px; box-shadow: 0 12px 40px rgba(28,43,34,0.08); margin: 24px 0 32px; }
+    .panel-title { font-size: 12px; font-weight: 700; color: var(--mid); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 14px; }
+    .member-row { display: flex; align-items: center; gap: 10px; padding: 10px 4px; border-bottom: 1px solid var(--stone); }
+    .member-row:last-child { border-bottom: none; }
+    .m-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+    .member-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .member-role { font-size: 10px; color: var(--mid-lt); }
+    .invite-btn { width: 100%; text-align: center; background: var(--sage); color: #fff; font-size: 13px; font-weight: 700; padding: 13px; border-radius: 12px; margin-top: 12px; }
+
+    .pill-tabs { display: flex; gap: 6px; margin-bottom: 20px; }
+    .pill-tab { padding: 6px 14px; border-radius: 100px; font-size: 11px; font-weight: 600; background: var(--stone); color: var(--mid); display: flex; align-items: center; gap: 5px; }
+    .pill-tab.active { background: var(--sage); color: #fff; }
+    .pill-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+    .tip { background: var(--sage-bg); border: 1px solid rgba(74,124,89,0.15); border-radius: 14px; padding: 16px 18px; font-size: 13px; color: var(--ink); line-height: 1.8; margin-top: 8px; }
+    .tip strong { color: var(--sage-dk); }
+    .warn-tip { background: var(--gold-bg); border: 1px solid rgba(184,151,62,0.25); border-radius: 14px; padding: 16px 18px; font-size: 13px; color: var(--ink); line-height: 1.8; margin-top: 8px; }
+    .warn-tip strong { color: var(--gold); }
+
+    .faq-mini { display: flex; flex-direction: column; gap: 12px; }
+    .faq-item { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+    .faq-q { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 6px; display: flex; gap: 8px; }
+    .faq-q::before { content: 'Q'; color: var(--sage); }
+    .faq-a { font-size: 13px; color: var(--mid); line-height: 1.8; padding-left: 18px; }
+
+    .related { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 16px; }
+    .related a { display: block; background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; text-decoration: none; font-size: 13px; color: var(--ink); font-weight: 600; }
+    .related a:hover { border-color: var(--sage); }
+    .related span { display: block; font-size: 12px; color: var(--mid); font-weight: 400; margin-top: 4px; }
+
+    .cta-band { background: var(--sage); border-radius: 24px; padding: 36px 28px; text-align: center; margin-top: 64px; }
+    .cta-band-title { font-family: 'Noto Serif JP', serif; font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .cta-band-desc { font-size: 13px; color: rgba(255,255,255,0.75); margin-bottom: 20px; }
+    .cta-band-btn { display: inline-block; background: #fff; color: var(--sage-dk); font-size: 14px; font-weight: 700; padding: 13px 28px; border-radius: 100px; text-decoration: none; }
+
+    footer { background: var(--ink); padding: 28px 24px; text-align: center; margin-top: 40px; }
+    .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; flex-wrap: wrap; }
+    .footer-links a { font-size: 12px; color: rgba(255,255,255,0.35); text-decoration: none; }
+    .footer-links a:hover { color: rgba(255,255,255,0.7); }
+    .footer-copy { font-size: 12px; color: rgba(255,255,255,0.2); }
+
+    @media (max-width: 640px) { nav { padding: 0 16px; } .page-wrap { padding: 40px 20px 80px; } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="https://flowra.taskra.jp/lp/" class="nav-logo">Flow<span>ra</span></a>
+  <a href="https://flowra.taskra.jp/lp/guide/" class="nav-back">← ガイド一覧</a>
+</nav>
+
+<div class="page-wrap">
+  <div class="crumbs">
+    <a href="https://flowra.taskra.jp/lp/">ホーム</a><span>／</span>
+    <a href="https://flowra.taskra.jp/lp/guide/">使い方ガイド</a><span>／</span>
+    <span>パートナーと共有する</span>
+  </div>
+  <div class="page-label">Guide 04</div>
+  <h1 class="page-title">パートナーと共有する</h1>
+  <p class="page-lead">
+    招待リンクを1つ送るだけで、パートナーとリアルタイムに同じ家計データを見て、記録できるようになります。
+    設定画面から招待・権限管理・脱退までを行います。
+  </p>
+
+  <div class="share-visual">
+    <div class="avatar-card">
+      <div class="avatar-circle" style="background:var(--sage);">A</div>
+      <div class="avatar-name">あなた</div>
+      <div class="avatar-role">オーナー</div>
+    </div>
+    <div class="share-arrow">⇄</div>
+    <div class="avatar-card">
+      <div class="avatar-circle" style="background:#3B6FBF;">B</div>
+      <div class="avatar-name">パートナー</div>
+      <div class="avatar-role">編集・削除可</div>
+    </div>
+  </div>
+
+  <div class="toc">
+    <div class="toc-title">この記事の内容</div>
+    <ol>
+      <li><a href="#invite">招待リンクを発行する</a></li>
+      <li><a href="#join">パートナーが参加する</a></li>
+      <li><a href="#permission">権限とメンバー管理</a></li>
+      <li><a href="#switch">チームの切り替え・脱退</a></li>
+      <li><a href="#faq">よくある質問</a></li>
+    </ol>
+  </div>
+
+  <section class="sec" id="invite">
+    <div class="sec-label">Step 1</div>
+    <h2>招待リンクを発行する</h2>
+    <p class="sec-desc">設定画面の「招待リンクを発行」をタップすると、リンクが自動でクリップボードにコピーされます。LINEやメールなど、いつも使っている方法でパートナーに送るだけです。</p>
+
+    <div class="panel">
+      <div class="panel-title">パートナー共有</div>
+      <div class="member-row"><div class="m-avatar" style="background:#C4602A;">遠</div><div><div class="member-name">パートナー</div><div class="member-role">編集・削除可</div></div></div>
+      <div class="invite-btn">🤝 招待リンクを発行</div>
+    </div>
+
+    <div class="tip"><strong>ポイント：</strong>発行したリンクは7日間だけ有効です。期限が切れた場合は、もう一度「招待リンクを発行」をタップして新しいリンクを送りましょう。</div>
+  </section>
+
+  <section class="sec" id="join">
+    <div class="sec-label">Step 2</div>
+    <h2>パートナーが参加する</h2>
+    <p class="sec-desc">パートナーが受け取ったリンクを開き、Googleアカウントでログインすると「共有への招待」という画面が表示されます。「参加する」をタップすれば、その場で同じ家計データにアクセスできるようになります。</p>
+    <div class="step-row">
+      <div class="step-badge">✓</div>
+      <div class="step-body">
+        <h3>参加後にできること</h3>
+        <p>権限に応じて、記録の閲覧・追加・編集ができます。パートナーがレシートを撮った記録も、リアルタイムであなたの画面に反映されます。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="permission">
+    <div class="sec-label">Step 3</div>
+    <h2>権限とメンバー管理</h2>
+    <p class="sec-desc">メンバーには2種類の権限があります。招待後にメンバー一覧からいつでも切り替えられます。</p>
+    <div class="pill-tabs">
+      <div class="pill-tab active"><span class="pill-dot"></span>編集・削除可</div>
+      <div class="pill-tab"><span class="pill-dot"></span>閲覧のみ</div>
+    </div>
+    <div class="step-row">
+      <div class="step-badge">◆</div>
+      <div class="step-body">
+        <h3>編集・削除可</h3>
+        <p>記録の追加・編集・削除がすべてできます。一緒に家計を管理するパートナーに向いています。</p>
+      </div>
+    </div>
+    <div class="step-row">
+      <div class="step-badge">◇</div>
+      <div class="step-body">
+        <h3>閲覧のみ</h3>
+        <p>記録の確認だけができ、「＋」ボタンや編集・削除の操作は表示されません。家計を見せたいだけの家族などに向いています。</p>
+      </div>
+    </div>
+    <p class="sec-desc">メンバーを削除したい場合は確認画面が表示されます。削除してもデータが消えるわけではなく、再度招待すればまた参加できます。</p>
+  </section>
+
+  <section class="sec" id="switch">
+    <div class="sec-label">Step 4</div>
+    <h2>チームの切り替え・脱退</h2>
+    <p class="sec-desc">複数のチーム（自分のチーム＋招待されたチーム）に参加している場合は、画面上部にチーム切り替えのタブが表示されます。タップするだけで表示するデータを切り替えられます。</p>
+    <p class="sec-desc">招待されて参加したチームから抜けたい場合は、設定画面の「このチームから脱退する」から手続きします。誤操作防止のため「脱退する」という文字を自分で入力してから確定する仕組みになっています。</p>
+    <div class="warn-tip"><strong>注意：</strong>Premiumプランはチーム単位で適用されます。Premiumのオーナーが所有するチームに参加している間は、参加者もAIアドバイスやレシート読み取りの上限が広がります。ただし、これは「今どのチームを表示しているか」に連動するため、切り替え後は上限表示が変わることがあります。</div>
+  </section>
+
+  <section class="sec" id="faq">
+    <div class="sec-label">FAQ</div>
+    <h2>よくある質問</h2>
+    <div class="faq-mini">
+      <div class="faq-item">
+        <div class="faq-q">何人まで招待できますか？</div>
+        <div class="faq-a">主にパートナーとの2人利用を想定した機能ですが、招待リンクを複数人に送ることで家族など複数人での共有にも対応できます。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">招待した相手は自分の他のチームも見えますか？</div>
+        <div class="faq-a">いいえ。招待したチームのデータのみ共有され、あなたが参加している他のチームのデータは見えません。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">非公開に設定した口座はパートナーに見えますか？</div>
+        <div class="faq-a">見えません。非公開口座は<a href="https://flowra.taskra.jp/lp/guide/accounts/" style="color:var(--sage);">口座管理ガイド</a>で説明している通り、自分専用の口座として扱われます。</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="related">
+    <a href="https://flowra.taskra.jp/lp/guide/accounts/">口座を管理する<span>非公開口座の設定方法</span></a>
+    <a href="https://flowra.taskra.jp/lp/guide/premium/">AIアドバイス・Premium<span>2人で使えば月¥199/人</span></a>
+  </div>
+
+  <div class="cta-band">
+    <div class="cta-band-title">パートナーを招待してみましょう</div>
+    <div class="cta-band-desc">Googleアカウントで、今すぐ無料で使えます。</div>
+    <a href="https://flowra.taskra.jp" class="cta-band-btn">Flowraを開く →</a>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-links">
+    <a href="https://flowra.taskra.jp/lp/">Flowra トップ</a>
+    <a href="https://flowra.taskra.jp/lp/guide/">使い方ガイド</a>
+    <a href="https://flowra.taskra.jp/lp/privacy/">プライバシーポリシー</a>
+    <a href="https://flowra.taskra.jp/lp/terms/">利用規約</a>
+    <a href="https://flowra.taskra.jp/lp/contact/">お問い合わせ</a>
+  </div>
+  <p class="footer-copy">© 2026 Flowra. All rights reserved.</p>
+</footer>
+
+</body>
+</html>

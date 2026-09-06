@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>記録の付け方・レシート読み取りの使い方 — Flowra使い方ガイド</title>
+
+  <meta name="description" content="Flowra（フローラ）で収支を記録する方法を解説。手入力での記録方法、レシートを撮るだけで品目を自動読み取りするAI OCR機能の使い方、タグ・メモの活用法まで図解つきで紹介します。">
+  <meta name="keywords" content="Flowra,フローラ,記録,レシート読み取り,OCR,家計簿,支出記録,使い方">
+  <link rel="canonical" href="https://flowra.taskra.jp/lp/guide/records/">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://flowra.taskra.jp/lp/guide/records/">
+  <meta property="og:title" content="記録の付け方・レシート読み取りの使い方 — Flowra使い方ガイド">
+  <meta property="og:description" content="手入力での記録方法と、レシートを撮るだけのAI読み取り機能の使い方を図解つきで解説します。">
+  <meta property="og:image" content="https://flowra.taskra.jp/images/ogp.jpg">
+  <meta property="og:site_name" content="Flowra（フローラ）">
+  <meta property="og:locale" content="ja_JP">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@400;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Flowra", "item": "https://flowra.taskra.jp/lp/" },
+      { "@type": "ListItem", "position": 2, "name": "使い方ガイド", "item": "https://flowra.taskra.jp/lp/guide/" },
+      { "@type": "ListItem", "position": 3, "name": "記録をつける", "item": "https://flowra.taskra.jp/lp/guide/records/" }
+    ]
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "HowTo",
+    "name": "Flowraでレシートを撮って記録する方法",
+    "step": [
+      { "@type": "HowToStep", "name": "レシートを撮影する", "text": "「＋」ボタン→「レシートを読み取る」をタップし、カメラで撮影するかカメラロールから選択します。" },
+      { "@type": "HowToStep", "name": "AIが自動解析", "text": "AIが店名・日付・品目・金額・タグを自動で読み取ります。" },
+      { "@type": "HowToStep", "name": "内容を確認する", "text": "品目ごとにチェックを入れ、必要ならタグや金額を修正します。" },
+      { "@type": "HowToStep", "name": "保存する", "text": "「保存する」をタップすると、チェックした品目がそれぞれ記録として保存されます。" }
+    ]
+  }
+  </script>
+
+  <style>
+    :root {
+      --sage:#4A7C59; --sage-lt:#6FA882; --sage-dk:#2F5239; --sage-bg:#EEF5F1;
+      --mist:#E8F0EC; --stone:#F5F2ED; --ink:#1C2B22; --gold:#B8973E; --gold-bg:#FBF5E6;
+      --warm:#FAF7F2; --mid:#7A9485; --mid-lt:#B0C4BB; --border:#E4DDD4; --white:#ffffff; --red:#B83232;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Noto Sans JP', sans-serif; background: var(--stone); color: var(--ink); line-height: 1.8; }
+
+    nav { position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; height: 56px; background: rgba(245,242,237,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); }
+    .nav-logo { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ink); text-decoration: none; letter-spacing: -0.02em; }
+    .nav-logo span { color: var(--sage); }
+    .nav-back { font-size: 13px; color: var(--mid); text-decoration: none; }
+    .nav-back:hover { color: var(--ink); }
+
+    .page-wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 120px; }
+    .crumbs { font-size: 12px; color: var(--mid-lt); margin-bottom: 20px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .crumbs a { color: var(--mid-lt); text-decoration: none; }
+    .crumbs a:hover { color: var(--sage); }
+
+    .page-label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: var(--sage); text-transform: uppercase; margin-bottom: 16px; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: clamp(28px, 5vw, 42px); line-height: 1.25; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 16px; }
+    .page-lead { font-size: 15px; color: var(--mid); margin-bottom: 40px; line-height: 1.9; }
+
+    .toc { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 18px 22px; margin-bottom: 56px; }
+    .toc-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--mid); text-transform: uppercase; margin-bottom: 10px; }
+    .toc ol { list-style: none; display: flex; flex-direction: column; gap: 6px; counter-reset: toc; }
+    .toc li { counter-increment: toc; font-size: 13px; }
+    .toc li::before { content: counter(toc) '. '; color: var(--sage); font-weight: 700; }
+    .toc a { color: var(--ink); text-decoration: none; }
+    .toc a:hover { color: var(--sage); text-decoration: underline; }
+
+    .sec { margin-bottom: 64px; scroll-margin-top: 72px; }
+    .sec-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--sage); text-transform: uppercase; margin-bottom: 10px; }
+    .sec h2 { font-family: 'Noto Serif JP', serif; font-size: 21px; font-weight: 700; color: var(--ink); margin-bottom: 14px; padding-left: 14px; border-left: 3px solid var(--sage); }
+    .sec-desc { font-size: 14px; color: var(--mid); line-height: 1.9; margin-bottom: 28px; }
+
+    .step-row { display: flex; gap: 16px; margin-bottom: 28px; }
+    .step-badge { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--sage); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .step-body h3 { font-family: 'Noto Serif JP', serif; font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+    .step-body p { font-size: 13px; color: var(--mid); line-height: 1.8; }
+
+    /* 図解：スマホ風モック */
+    .phone-frame { width: 260px; margin: 24px auto 32px; background: #1a1a1a; border-radius: 32px; padding: 10px; box-shadow: 0 20px 50px rgba(28,43,34,0.18); }
+    .phone-screen { background: #fff; border-radius: 22px; overflow: hidden; }
+    .phone-header { background: var(--ink); color: #fff; padding: 12px 14px 9px; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .phone-body { padding: 12px; }
+
+    .m-btn { width: 100%; text-align: center; padding: 12px; border-radius: 12px; font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+    .m-btn-primary { background: var(--sage); color: #fff; }
+    .m-btn-dash { border: 1.5px dashed var(--sage-lt); color: var(--sage-dk); background: var(--sage-bg); }
+    .m-sub { font-size: 9px; opacity: 0.7; margin-top: 2px; }
+
+    .m-pill-row { display: flex; gap: 6px; margin-bottom: 12px; }
+    .m-pill { flex: 1; text-align: center; padding: 8px 0; border-radius: 10px; font-size: 11px; font-weight: 600; background: var(--stone); color: var(--mid); }
+    .m-pill.active { background: var(--sage); color: #fff; }
+
+    .m-amount { text-align: center; font-family: 'Noto Serif JP', serif; font-size: 24px; font-weight: 700; color: var(--ink); padding: 14px 0; }
+    .m-calc { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-bottom: 12px; }
+    .m-key { text-align: center; padding: 8px 0; border-radius: 8px; background: var(--stone); font-size: 11px; color: var(--ink); font-weight: 600; }
+
+    .m-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid var(--stone); font-size: 11px; }
+    .m-row-label { color: var(--mid); }
+    .m-row-value { color: var(--ink); font-weight: 600; }
+
+    .m-chip-group { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+    .m-chip { padding: 5px 11px; border-radius: 100px; font-size: 10px; font-weight: 600; border: 1.5px solid var(--border); color: var(--ink); }
+    .m-chip.on-primary { background: var(--sage); border-color: var(--sage); color: #fff; }
+    .m-chip.on-sub { background: var(--sage-bg); border-color: var(--sage-lt); color: var(--sage-dk); }
+
+    .m-item { display: flex; align-items: center; gap: 8px; padding: 8px 8px; border-radius: 9px; margin-bottom: 5px; background: var(--stone); }
+    .m-item.warn { background: var(--gold-bg); }
+    .m-item-check { width: 16px; height: 16px; border-radius: 4px; background: var(--sage); color: #fff; font-size: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .m-item.warn .m-item-check { background: #fff; border: 1.5px solid var(--gold); }
+    .m-item-name { flex: 1; font-size: 10px; color: var(--ink); font-weight: 500; }
+    .m-item-tag { font-size: 8px; color: var(--mid); }
+    .m-item-price { font-size: 10px; font-weight: 600; color: var(--ink); }
+    .m-item-warn-badge { font-size: 8px; color: var(--gold); font-weight: 700; }
+
+    .tip { background: var(--sage-bg); border: 1px solid rgba(74,124,89,0.15); border-radius: 14px; padding: 16px 18px; font-size: 13px; color: var(--ink); line-height: 1.8; margin-top: 8px; }
+    .tip strong { color: var(--sage-dk); }
+    .warn-tip { background: var(--gold-bg); border: 1px solid rgba(184,151,62,0.25); border-radius: 14px; padding: 16px 18px; font-size: 13px; color: var(--ink); line-height: 1.8; margin-top: 8px; }
+    .warn-tip strong { color: var(--gold); }
+
+    .limit-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--gold-bg); border: 1.5px solid var(--gold); border-radius: 100px; padding: 6px 14px; font-size: 12px; font-weight: 600; color: var(--gold); margin-top: 12px; }
+    .limit-chip a { color: var(--gold); }
+
+    .faq-mini { display: flex; flex-direction: column; gap: 12px; }
+    .faq-item { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+    .faq-q { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 6px; display: flex; gap: 8px; }
+    .faq-q::before { content: 'Q'; color: var(--sage); }
+    .faq-a { font-size: 13px; color: var(--mid); line-height: 1.8; padding-left: 18px; }
+
+    .related { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 16px; }
+    .related a { display: block; background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; text-decoration: none; font-size: 13px; color: var(--ink); font-weight: 600; }
+    .related a:hover { border-color: var(--sage); }
+    .related span { display: block; font-size: 12px; color: var(--mid); font-weight: 400; margin-top: 4px; }
+
+    .cta-band { background: var(--sage); border-radius: 24px; padding: 36px 28px; text-align: center; margin-top: 64px; }
+    .cta-band-title { font-family: 'Noto Serif JP', serif; font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .cta-band-desc { font-size: 13px; color: rgba(255,255,255,0.75); margin-bottom: 20px; }
+    .cta-band-btn { display: inline-block; background: #fff; color: var(--sage-dk); font-size: 14px; font-weight: 700; padding: 13px 28px; border-radius: 100px; text-decoration: none; }
+
+    footer { background: var(--ink); padding: 28px 24px; text-align: center; margin-top: 40px; }
+    .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; flex-wrap: wrap; }
+    .footer-links a { font-size: 12px; color: rgba(255,255,255,0.35); text-decoration: none; }
+    .footer-links a:hover { color: rgba(255,255,255,0.7); }
+    .footer-copy { font-size: 12px; color: rgba(255,255,255,0.2); }
+
+    @media (max-width: 640px) { nav { padding: 0 16px; } .page-wrap { padding: 40px 20px 80px; } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="https://flowra.taskra.jp/lp/" class="nav-logo">Flow<span>ra</span></a>
+  <a href="https://flowra.taskra.jp/lp/guide/" class="nav-back">← ガイド一覧</a>
+</nav>
+
+<div class="page-wrap">
+  <div class="crumbs">
+    <a href="https://flowra.taskra.jp/lp/">ホーム</a><span>／</span>
+    <a href="https://flowra.taskra.jp/lp/guide/">使い方ガイド</a><span>／</span>
+    <span>記録をつける</span>
+  </div>
+  <div class="page-label">Guide 01</div>
+  <h1 class="page-title">記録をつける</h1>
+  <p class="page-lead">
+    Flowraには、自分で金額を入力する「手入力」と、レシートを撮るだけのAI読み取りの2つの記録方法があります。
+    どちらも画面右下（スマホ）・右上（PC）の「＋」ボタンから始まります。
+  </p>
+
+  <div class="toc">
+    <div class="toc-title">この記事の内容</div>
+    <ol>
+      <li><a href="#manual">手入力で記録する</a></li>
+      <li><a href="#receipt">レシートを撮るだけで記録する</a></li>
+      <li><a href="#memo-tag">メモ・タグを使いこなす</a></li>
+      <li><a href="#faq">よくある質問</a></li>
+    </ol>
+  </div>
+
+  <section class="sec" id="manual">
+    <div class="sec-label">Step 1</div>
+    <h2>手入力で記録する</h2>
+    <p class="sec-desc">「＋」をタップすると、まず「金額を入力する」「📷 レシートを読み取る」の2択と、最近の記録・履歴検索が並ぶシートが開きます。手入力の場合は「金額を入力する」を選びます。</p>
+
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="phone-header">🌿 記録を追加</div>
+        <div class="phone-body">
+          <div class="m-btn m-btn-primary">金額を入力する<div class="m-sub">タグ・メモは後から選べます</div></div>
+          <div class="m-btn m-btn-dash">📷 レシートを読み取る</div>
+          <div class="m-row"><span class="m-row-label">最近の記録からコピー</span></div>
+          <div class="m-row"><span class="m-row-label">過去の履歴を検索</span><span class="m-row-value">›</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-badge">1</div>
+      <div class="step-body">
+        <h3>種別と金額を入力</h3>
+        <p>「収入」「支出」「移動」の3種類から選びます。「移動」は口座間でお金を動かした記録（例：現金からクレジットカードの引き落とし）に使います。金額欄には電卓機能が付いていて、「1200＋580」のような式をそのまま入力して計算できます。</p>
+      </div>
+    </div>
+
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="phone-header">🌿 記録を追加</div>
+        <div class="phone-body">
+          <div class="m-pill-row">
+            <div class="m-pill">収入</div>
+            <div class="m-pill active">支出</div>
+            <div class="m-pill">移動</div>
+          </div>
+          <div class="m-amount">¥1,780</div>
+          <div class="m-calc">
+            <div class="m-key">AC</div><div class="m-key">÷</div><div class="m-key">×</div><div class="m-key">−</div>
+            <div class="m-key">7</div><div class="m-key">8</div><div class="m-key">9</div><div class="m-key">＋</div>
+            <div class="m-key">4</div><div class="m-key">5</div><div class="m-key">6</div><div class="m-key">＝</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-badge">2</div>
+      <div class="step-body">
+        <h3>口座・日付を選ぶ</h3>
+        <p>どの口座から支払ったかをタップして選択します。日付は自動で今日の日付が入りますが、レシートを撮り忘れた日の記録も後からさかのぼって入力できます。</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-badge">3</div>
+      <div class="step-body">
+        <h3>タグとメモを付けて保存</h3>
+        <p>タグは「主タグ（予算がついているタグ・1つだけ選択）」と「サブタグ（複数選択可）」に分かれています。タグ・メモは省略しても保存できるので、忙しいときは金額だけ入力して後から編集することもできます。</p>
+      </div>
+    </div>
+
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="phone-header">🌿 記録を追加</div>
+        <div class="phone-body">
+          <div class="m-row"><span class="m-row-label">口座</span><span class="m-row-value">楽天カード ›</span></div>
+          <div class="m-row"><span class="m-row-label">日付</span><span class="m-row-value">2026-09-06</span></div>
+          <div class="m-chip-group">
+            <div class="m-chip on-primary">食費</div>
+            <div class="m-chip on-sub">日用品</div>
+            <div class="m-chip">交際費</div>
+          </div>
+          <div class="m-btn m-btn-primary">✓ 保存する</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tip"><strong>ヒント：</strong>同じ支出をよく記録する場合は、「＋」を押したときに出る「最近の記録からコピー」から選ぶと、口座・タグ・メモを引き継いだまま今日の日付で入力できます。</div>
+  </section>
+
+  <section class="sec" id="receipt">
+    <div class="sec-label">Step 2</div>
+    <h2>レシートを撮るだけで記録する</h2>
+    <p class="sec-desc">「📷 レシートを読み取る」を選ぶと、カメラが起動します（カメラロールからの選択も可能）。撮影後はAIが自動で内容を解析し、確認画面が開きます。</p>
+
+    <div class="step-row">
+      <div class="step-badge">1</div>
+      <div class="step-body">
+        <h3>撮影する</h3>
+        <p>レシート全体が写るように撮影します。「読み取り中…」の表示が数秒続いた後、AIが店名・日付・品目・金額・税率・おすすめタグを自動抽出します。</p>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-badge">2</div>
+      <div class="step-body">
+        <h3>内容を確認する</h3>
+        <p>品目ごとにチェックボックス・名前・金額・タグが並びます。保存したくない品目はチェックを外すだけでOK。読み取りに自信が持てない品目は自動でチェックが外れ、「⚠ 要確認」バッジが付くので、金額や店名の見間違いを防げます。</p>
+      </div>
+    </div>
+
+    <div class="phone-frame">
+      <div class="phone-screen">
+        <div class="phone-header">🌿 レシート確認</div>
+        <div class="phone-body">
+          <div class="m-row"><span class="m-row-label">店名</span><span class="m-row-value">サンプルマート</span></div>
+          <div class="m-item"><div class="m-item-check">✓</div><div><div class="m-item-name">食パン 6枚切</div><div class="m-item-tag">食費</div></div><div class="m-item-price">¥168</div></div>
+          <div class="m-item"><div class="m-item-check">✓</div><div><div class="m-item-name">洗濯用洗剤 詰替</div><div class="m-item-tag">日用品</div></div><div class="m-item-price">¥398</div></div>
+          <div class="m-item warn"><div class="m-item-check"></div><div><div class="m-item-name">きゅうり 3本</div><div class="m-item-warn-badge">⚠ 要確認</div></div><div class="m-item-price">¥128</div></div>
+          <div class="m-btn m-btn-primary">✓ 2件を保存する（¥566）</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-badge">3</div>
+      <div class="step-body">
+        <h3>必要なら税込に変換して保存</h3>
+        <p>「税抜き→税込に変換」ボタンを押すと、食品8％・その他10％の軽減税率を踏まえて一括で税込金額に変換できます（変換後は元に戻すことも可能）。内容を確認したら「保存する」で完了です。</p>
+      </div>
+    </div>
+
+    <div class="warn-tip"><strong>読み取り金額とレシートの小計が合わない場合：</strong>その場合は画面に警告バナーが表示されます。個別の品目をタップすると金額・タグ・税率を手動で修正できるので、その場で直せます。</div>
+
+    <div class="limit-chip">📷 無料プランは月10回まで（<a href="https://flowra.taskra.jp/lp/guide/premium/">Premiumで月200回</a>）</div>
+  </section>
+
+  <section class="sec" id="memo-tag">
+    <div class="sec-label">Tips</div>
+    <h2>メモ・タグを使いこなす</h2>
+    <p class="sec-desc">メモ欄に文字を入力すると、過去に使ったメモの候補が自動で表示されます（最大5件）。同じ支払い先を毎回入力し直す必要はありません。</p>
+    <p class="sec-desc">「集計除外」をオンにすると、その記録はタグ別の集計グラフには含まれなくなります（ホーム画面の収支合計には引き続き反映されます）。立て替えなど、集計に含めたくない一時的なお金の動きを記録するときに便利です。</p>
+  </section>
+
+  <section class="sec" id="faq">
+    <div class="sec-label">FAQ</div>
+    <h2>よくある質問</h2>
+    <div class="faq-mini">
+      <div class="faq-item">
+        <div class="faq-q">記録を間違えて保存してしまいました</div>
+        <div class="faq-a">記録一覧からその記録を開くと、編集・削除ができます。似た内容をもう一度入力したいときは「この記録を複製する」から素早く再入力できます。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">「移動」はどんなときに使いますか？</div>
+        <div class="faq-a">現金をATMで銀行口座に入金した、クレジットカードの引き落としが銀行口座から行われた、など口座間でお金が移動しただけで支出・収入ではない場合に使います。集計上、支出にも収入にもカウントされません。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">主タグとサブタグの違いは何ですか？</div>
+        <div class="faq-a">主タグは予算が設定されているタグで、1つの記録につき1つだけ選べます。サブタグは予算のないタグで、いくつでも重ねて選べます。タグの作成・予算設定は<a href="https://flowra.taskra.jp/lp/guide/budget/" style="color:var(--sage);">タグ・予算管理</a>で行います。</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="related">
+    <a href="https://flowra.taskra.jp/lp/guide/accounts/">口座を管理する<span>複数口座・クレジットカードの登録と使い分け</span></a>
+    <a href="https://flowra.taskra.jp/lp/guide/budget/">タグ・予算管理<span>タグの作り方と月の予算設定</span></a>
+  </div>
+
+  <div class="cta-band">
+    <div class="cta-band-title">実際にレシートを撮ってみましょう</div>
+    <div class="cta-band-desc">Googleアカウントで、今すぐ無料で使えます。</div>
+    <a href="https://flowra.taskra.jp" class="cta-band-btn">Flowraを開く →</a>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-links">
+    <a href="https://flowra.taskra.jp/lp/">Flowra トップ</a>
+    <a href="https://flowra.taskra.jp/lp/guide/">使い方ガイド</a>
+    <a href="https://flowra.taskra.jp/lp/privacy/">プライバシーポリシー</a>
+    <a href="https://flowra.taskra.jp/lp/terms/">利用規約</a>
+    <a href="https://flowra.taskra.jp/lp/contact/">お問い合わせ</a>
+  </div>
+  <p class="footer-copy">© 2026 Flowra. All rights reserved.</p>
+</footer>
+
+</body>
+</html>

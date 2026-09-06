@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AIアドバイス・Premiumプランの使い方 — Flowra使い方ガイド</title>
+
+  <meta name="description" content="Flowra（フローラ）のAIアドバイス機能とPremiumプランの使い方を解説。AIへの質問方法、Free/Premiumプランの違い、申し込み・解約方法まで図解つきで紹介します。">
+  <meta name="keywords" content="Flowra,フローラ,AIアドバイス,Premium,料金プラン,家計簿アプリ,使い方">
+  <link rel="canonical" href="https://flowra.taskra.jp/lp/guide/premium/">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://flowra.taskra.jp/lp/guide/premium/">
+  <meta property="og:title" content="AIアドバイス・Premiumプランの使い方 — Flowra使い方ガイド">
+  <meta property="og:description" content="AIによる節約アドバイスの受け取り方と、Free / Premiumプランの違い・申し込み方法を図解つきで解説します。">
+  <meta property="og:image" content="https://flowra.taskra.jp/images/ogp.jpg">
+  <meta property="og:site_name" content="Flowra（フローラ）">
+  <meta property="og:locale" content="ja_JP">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@400;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Flowra", "item": "https://flowra.taskra.jp/lp/" },
+      { "@type": "ListItem", "position": 2, "name": "使い方ガイド", "item": "https://flowra.taskra.jp/lp/guide/" },
+      { "@type": "ListItem", "position": 3, "name": "AIアドバイス・Premiumプラン", "item": "https://flowra.taskra.jp/lp/guide/premium/" }
+    ]
+  }
+  </script>
+
+  <style>
+    :root {
+      --sage:#4A7C59; --sage-lt:#6FA882; --sage-dk:#2F5239; --sage-bg:#EEF5F1;
+      --mist:#E8F0EC; --stone:#F5F2ED; --ink:#1C2B22; --gold:#B8973E; --gold-bg:#FBF5E6;
+      --warm:#FAF7F2; --mid:#7A9485; --mid-lt:#B0C4BB; --border:#E4DDD4; --white:#ffffff; --red:#B83232;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Noto Sans JP', sans-serif; background: var(--stone); color: var(--ink); line-height: 1.8; }
+
+    nav { position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; height: 56px; background: rgba(245,242,237,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); }
+    .nav-logo { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ink); text-decoration: none; letter-spacing: -0.02em; }
+    .nav-logo span { color: var(--sage); }
+    .nav-back { font-size: 13px; color: var(--mid); text-decoration: none; }
+    .nav-back:hover { color: var(--ink); }
+
+    .page-wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 120px; }
+    .crumbs { font-size: 12px; color: var(--mid-lt); margin-bottom: 20px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .crumbs a { color: var(--mid-lt); text-decoration: none; }
+    .crumbs a:hover { color: var(--sage); }
+
+    .page-label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: var(--sage); text-transform: uppercase; margin-bottom: 16px; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: clamp(28px, 5vw, 42px); line-height: 1.25; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 16px; }
+    .page-lead { font-size: 15px; color: var(--mid); margin-bottom: 40px; line-height: 1.9; }
+
+    .toc { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 18px 22px; margin-bottom: 56px; }
+    .toc-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--mid); text-transform: uppercase; margin-bottom: 10px; }
+    .toc ol { list-style: none; display: flex; flex-direction: column; gap: 6px; counter-reset: toc; }
+    .toc li { counter-increment: toc; font-size: 13px; }
+    .toc li::before { content: counter(toc) '. '; color: var(--sage); font-weight: 700; }
+    .toc a { color: var(--ink); text-decoration: none; }
+    .toc a:hover { color: var(--sage); text-decoration: underline; }
+
+    .sec { margin-bottom: 64px; scroll-margin-top: 72px; }
+    .sec-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--sage); text-transform: uppercase; margin-bottom: 10px; }
+    .sec h2 { font-family: 'Noto Serif JP', serif; font-size: 21px; font-weight: 700; color: var(--ink); margin-bottom: 14px; padding-left: 14px; border-left: 3px solid var(--sage); }
+    .sec-desc { font-size: 14px; color: var(--mid); line-height: 1.9; margin-bottom: 28px; }
+
+    .step-row { display: flex; gap: 16px; margin-bottom: 28px; }
+    .step-badge { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--sage); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .step-body h3 { font-family: 'Noto Serif JP', serif; font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+    .step-body p { font-size: 13px; color: var(--mid); line-height: 1.8; }
+
+    /* AIチャットモック */
+    .ai-mock { background: var(--ink); border-radius: 20px; padding: 20px; margin: 24px 0 32px; }
+    .ai-mock-inner { background: #fff; border-radius: 14px; padding: 16px; }
+    .ai-mock-header { font-size: 12px; font-weight: 700; color: var(--ink); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+    .ai-mock-header::before { content: '✦'; color: var(--sage); }
+    .ai-mock-answer { background: var(--sage-bg); border: 1px solid var(--mist); border-radius: 12px; padding: 12px 14px; font-size: 12px; color: var(--ink); line-height: 1.7; margin-bottom: 12px; }
+    .ai-mock-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .ai-mock-chip { padding: 6px 12px; border-radius: 100px; border: 1.5px solid var(--border); font-size: 11px; color: var(--ink); background: #fff; }
+    .ai-mock-chip.active { border-color: var(--sage); color: var(--sage); background: var(--sage-bg); }
+    .ai-mock-badge { font-size: 10px; color: var(--mid-lt); text-align: right; }
+
+    .plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0 32px; }
+    @media (max-width: 560px) { .plan-grid { grid-template-columns: 1fr; } }
+    .plan-card { background: var(--white); border: 1.5px solid var(--border); border-radius: 20px; padding: 22px 20px; position: relative; }
+    .plan-card.featured { border-color: var(--sage); background: #F0F7F3; }
+    .plan-badge { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: var(--sage); color: #fff; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; padding: 3px 12px; border-radius: 100px; white-space: nowrap; }
+    .plan-name { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--sage); margin-bottom: 8px; }
+    .plan-price { font-family: 'Noto Serif JP', serif; font-size: 28px; font-weight: 700; color: var(--ink); }
+    .plan-per { font-size: 12px; color: var(--mid); margin-left: 3px; }
+    .plan-sub { font-size: 11px; color: var(--mid-lt); margin: 4px 0 14px; }
+    .plan-list { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+    .plan-list li { font-size: 12px; color: var(--ink); display: flex; gap: 6px; align-items: flex-start; }
+    .plan-list li::before { content: '✓'; color: var(--sage); font-weight: 700; flex-shrink: 0; }
+    .plan-list li.limit::before { content: '◦'; color: var(--mid-lt); }
+    .plan-list li.limit { color: var(--mid); }
+
+    .tip { background: var(--sage-bg); border: 1px solid rgba(74,124,89,0.15); border-radius: 14px; padding: 16px 18px; font-size: 13px; color: var(--ink); line-height: 1.8; margin-top: 8px; }
+    .tip strong { color: var(--sage-dk); }
+    .warn-tip { background: var(--gold-bg); border: 1px solid rgba(184,151,62,0.25); border-radius: 14px; padding: 16px 18px; font-size: 13px; color: var(--ink); line-height: 1.8; margin-top: 8px; }
+    .warn-tip strong { color: var(--gold); }
+
+    .faq-mini { display: flex; flex-direction: column; gap: 12px; }
+    .faq-item { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+    .faq-q { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 6px; display: flex; gap: 8px; }
+    .faq-q::before { content: 'Q'; color: var(--sage); }
+    .faq-a { font-size: 13px; color: var(--mid); line-height: 1.8; padding-left: 18px; }
+
+    .related { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 16px; }
+    .related a { display: block; background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; text-decoration: none; font-size: 13px; color: var(--ink); font-weight: 600; }
+    .related a:hover { border-color: var(--sage); }
+    .related span { display: block; font-size: 12px; color: var(--mid); font-weight: 400; margin-top: 4px; }
+
+    .cta-band { background: var(--sage); border-radius: 24px; padding: 36px 28px; text-align: center; margin-top: 64px; }
+    .cta-band-title { font-family: 'Noto Serif JP', serif; font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .cta-band-desc { font-size: 13px; color: rgba(255,255,255,0.75); margin-bottom: 20px; }
+    .cta-band-btn { display: inline-block; background: #fff; color: var(--sage-dk); font-size: 14px; font-weight: 700; padding: 13px 28px; border-radius: 100px; text-decoration: none; }
+
+    footer { background: var(--ink); padding: 28px 24px; text-align: center; margin-top: 40px; }
+    .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; flex-wrap: wrap; }
+    .footer-links a { font-size: 12px; color: rgba(255,255,255,0.35); text-decoration: none; }
+    .footer-links a:hover { color: rgba(255,255,255,0.7); }
+    .footer-copy { font-size: 12px; color: rgba(255,255,255,0.2); }
+
+    @media (max-width: 640px) { nav { padding: 0 16px; } .page-wrap { padding: 40px 20px 80px; } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="https://flowra.taskra.jp/lp/" class="nav-logo">Flow<span>ra</span></a>
+  <a href="https://flowra.taskra.jp/lp/guide/" class="nav-back">← ガイド一覧</a>
+</nav>
+
+<div class="page-wrap">
+  <div class="crumbs">
+    <a href="https://flowra.taskra.jp/lp/">ホーム</a><span>／</span>
+    <a href="https://flowra.taskra.jp/lp/guide/">使い方ガイド</a><span>／</span>
+    <span>AIアドバイス・Premiumプラン</span>
+  </div>
+  <div class="page-label">Guide 05</div>
+  <h1 class="page-title">AIアドバイス・Premiumプラン</h1>
+  <p class="page-lead">
+    ホーム画面のAIアドバイスは、記録した収支をもとに使いすぎや節約ポイントを教えてくれます。
+    無料でも毎月一定回数使え、Premiumプランならもっとたくさん相談できます。
+  </p>
+
+  <div class="toc">
+    <div class="toc-title">この記事の内容</div>
+    <ol>
+      <li><a href="#ai">AIアドバイスに質問する</a></li>
+      <li><a href="#plans">Free / Premiumプランの違い</a></li>
+      <li><a href="#manage">申し込み・解約の方法</a></li>
+      <li><a href="#faq">よくある質問</a></li>
+    </ol>
+  </div>
+
+  <section class="sec" id="ai">
+    <div class="sec-label">Step 1</div>
+    <h2>AIアドバイスに質問する</h2>
+    <p class="sec-desc">ホーム画面の収支サマリーの下に、AIアドバイスのパネルがあります。ページを開くと自動で今月の状況について一言コメントが表示されます。もっと詳しく知りたいときは、質問チップをタップするか、自由に質問を入力します。</p>
+
+    <div class="ai-mock">
+      <div class="ai-mock-inner">
+        <div class="ai-mock-header">AI アドバイス</div>
+        <div class="ai-mock-answer">今月は食費が予算の72%です。このペースなら月末までに予算内に収まりそうです。日用品は91%とやや多めなので、残り数日は少し抑えめにすると安心です。</div>
+        <div class="ai-mock-chips">
+          <div class="ai-mock-chip active">今月どう？</div>
+          <div class="ai-mock-chip">先月と比べて</div>
+          <div class="ai-mock-chip">節約ヒント</div>
+          <div class="ai-mock-chip">一番多い支出は？</div>
+        </div>
+        <div class="ai-mock-badge">残り3回</div>
+      </div>
+    </div>
+
+    <p class="sec-desc">「今日いくら使った？」「5/1の支出は？」のように自由文でも質問できます。直近3ヶ月の記録・予算・固定費の傾向をもとに回答するので、家計簿をつけるほど答えの精度も上がっていきます。</p>
+  </section>
+
+  <section class="sec" id="plans">
+    <div class="sec-label">Step 2</div>
+    <h2>Free / Premiumプランの違い</h2>
+    <p class="sec-desc">記録・予算管理・パートナー共有といった基本機能はFreeプランでも期限なく無料で使えます。AIアドバイスとレシート読み取りの回数だけがプランで異なります。</p>
+
+    <div class="plan-grid">
+      <div class="plan-card">
+        <div class="plan-name">FREE</div>
+        <span class="plan-price">¥0</span><span class="plan-per">/ 月</span>
+        <div class="plan-sub">まず使ってみる</div>
+        <ul class="plan-list">
+          <li>収支の記録・編集（無制限）</li>
+          <li>パートナーとの共有</li>
+          <li>タグ別予算管理</li>
+          <li class="limit">AIアドバイス：月5回</li>
+          <li class="limit">レシート読み取り：月10回</li>
+        </ul>
+      </div>
+      <div class="plan-card featured">
+        <div class="plan-badge">おすすめ</div>
+        <div class="plan-name">PREMIUM</div>
+        <span class="plan-price">¥398</span><span class="plan-per">/ 月</span>
+        <div class="plan-sub">2人で使えば ¥199 / 人</div>
+        <ul class="plan-list">
+          <li>Freeの全機能</li>
+          <li>AIアドバイス：月200回</li>
+          <li>レシート読み取り：月200回</li>
+          <li>口座・タグ：無制限</li>
+          <li>新機能への優先アクセス</li>
+        </ul>
+      </div>
+    </div>
+    <div class="tip"><strong>ふたりで使うなら：</strong>どちらか1人がPremiumに申し込めば、招待したパートナーもそのチーム内でAIアドバイス・レシート読み取りの上限が広がります。ひとり分の料金でふたり分使えるのでお得です。</div>
+  </section>
+
+  <section class="sec" id="manage">
+    <div class="sec-label">Step 3</div>
+    <h2>申し込み・解約の方法</h2>
+    <div class="step-row">
+      <div class="step-badge">1</div>
+      <div class="step-body">
+        <h3>申し込む</h3>
+        <p>設定画面の「アップグレード」、またはAIアドバイスの上限に達したときに表示される案内から申し込みページに進みます。決済はStripeの安全な決済ページで行われ、クレジットカード情報がFlowraのサーバーに保存されることはありません。</p>
+      </div>
+    </div>
+    <div class="step-row">
+      <div class="step-badge">2</div>
+      <div class="step-body">
+        <h3>プランを確認する</h3>
+        <p>設定画面の名前の横に「✦ Premium」のようなバッジが表示されます。解約予約をしている場合は「◯/◯ に終了予定」という表示で、いつまで使えるかが確認できます。</p>
+      </div>
+    </div>
+    <div class="step-row">
+      <div class="step-badge">3</div>
+      <div class="step-body">
+        <h3>解約する</h3>
+        <p>設定画面の「管理」ボタンから、Stripeの契約管理ページに移動して解約手続きができます。いつでもキャンセル可能で、違約金はありません。</p>
+      </div>
+    </div>
+    <div class="warn-tip"><strong>Premiumバッジが消えてしまったら：</strong>お支払いが完了しているのにFreeプランの表示に戻ってしまった場合は、システム側の反映漏れの可能性があります。決済完了のメールなどを保存の上、<a href="https://flowra.taskra.jp/lp/contact/" style="color:var(--gold);">お問い合わせフォーム</a>からご連絡ください。</div>
+  </section>
+
+  <section class="sec" id="faq">
+    <div class="sec-label">FAQ</div>
+    <h2>よくある質問</h2>
+    <div class="faq-mini">
+      <div class="faq-item">
+        <div class="faq-q">AIアドバイスの回数はいつリセットされますか？</div>
+        <div class="faq-a">毎月1日にリセットされます。月の途中でプランを変更した場合も、その月の残り回数はプラン変更後の上限に応じて計算されます。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">Premiumを解約したらデータは消えますか？</div>
+        <div class="faq-a">消えません。解約後もFreeプランとして記録・予算管理・パートナー共有は引き続きご利用いただけます。AIアドバイスとレシート読み取りの上限がFreeプランの回数に戻るだけです。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">クレジットカードなしで試せますか？</div>
+        <div class="faq-a">はい。Freeプランはクレジットカードの登録が不要で、Googleアカウントだけですぐに使い始められます。</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="related">
+    <a href="https://flowra.taskra.jp/lp/guide/budget/">タグ・予算管理<span>AIが予算超過を教えてくれます</span></a>
+    <a href="https://flowra.taskra.jp/lp/guide/team/">パートナーと共有する<span>2人で使えば月¥199/人</span></a>
+  </div>
+
+  <div class="cta-band">
+    <div class="cta-band-title">AIアドバイスを試してみましょう</div>
+    <div class="cta-band-desc">Googleアカウントで、今すぐ無料で使えます。</div>
+    <a href="https://flowra.taskra.jp" class="cta-band-btn">Flowraを開く →</a>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-links">
+    <a href="https://flowra.taskra.jp/lp/">Flowra トップ</a>
+    <a href="https://flowra.taskra.jp/lp/guide/">使い方ガイド</a>
+    <a href="https://flowra.taskra.jp/lp/privacy/">プライバシーポリシー</a>
+    <a href="https://flowra.taskra.jp/lp/terms/">利用規約</a>
+    <a href="https://flowra.taskra.jp/lp/contact/">お問い合わせ</a>
+  </div>
+  <p class="footer-copy">© 2026 Flowra. All rights reserved.</p>
+</footer>
+
+</body>
+</html>

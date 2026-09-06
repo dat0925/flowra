@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>口座管理の使い方 — Flowra使い方ガイド</title>
+
+  <meta name="description" content="Flowra（フローラ）の口座管理機能の使い方を解説。現金・銀行・電子マネー・クレジットカードなど複数口座の登録方法、並び替え、非公開口座の設定まで図解つきで紹介します。">
+  <meta name="keywords" content="Flowra,フローラ,口座管理,銀行口座,クレジットカード,家計簿アプリ,使い方">
+  <link rel="canonical" href="https://flowra.taskra.jp/lp/guide/accounts/">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://flowra.taskra.jp/lp/guide/accounts/">
+  <meta property="og:title" content="口座管理の使い方 — Flowra使い方ガイド">
+  <meta property="og:description" content="現金・銀行・クレジットカードなど複数口座の登録方法と使い分け方を図解つきで解説します。">
+  <meta property="og:image" content="https://flowra.taskra.jp/images/ogp.jpg">
+  <meta property="og:site_name" content="Flowra（フローラ）">
+  <meta property="og:locale" content="ja_JP">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&family=Noto+Serif+JP:wght@400;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      { "@type": "ListItem", "position": 1, "name": "Flowra", "item": "https://flowra.taskra.jp/lp/" },
+      { "@type": "ListItem", "position": 2, "name": "使い方ガイド", "item": "https://flowra.taskra.jp/lp/guide/" },
+      { "@type": "ListItem", "position": 3, "name": "口座を管理する", "item": "https://flowra.taskra.jp/lp/guide/accounts/" }
+    ]
+  }
+  </script>
+
+  <style>
+    :root {
+      --sage:#4A7C59; --sage-lt:#6FA882; --sage-dk:#2F5239; --sage-bg:#EEF5F1;
+      --mist:#E8F0EC; --stone:#F5F2ED; --ink:#1C2B22; --gold:#B8973E; --gold-bg:#FBF5E6;
+      --warm:#FAF7F2; --mid:#7A9485; --mid-lt:#B0C4BB; --border:#E4DDD4; --white:#ffffff; --red:#B83232;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Noto Sans JP', sans-serif; background: var(--stone); color: var(--ink); line-height: 1.8; }
+
+    nav { position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 32px; height: 56px; background: rgba(245,242,237,0.92); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); }
+    .nav-logo { font-family: 'DM Serif Display', serif; font-size: 20px; color: var(--ink); text-decoration: none; letter-spacing: -0.02em; }
+    .nav-logo span { color: var(--sage); }
+    .nav-back { font-size: 13px; color: var(--mid); text-decoration: none; }
+    .nav-back:hover { color: var(--ink); }
+
+    .page-wrap { max-width: 720px; margin: 0 auto; padding: 56px 24px 120px; }
+    .crumbs { font-size: 12px; color: var(--mid-lt); margin-bottom: 20px; display: flex; gap: 6px; flex-wrap: wrap; }
+    .crumbs a { color: var(--mid-lt); text-decoration: none; }
+    .crumbs a:hover { color: var(--sage); }
+
+    .page-label { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; color: var(--sage); text-transform: uppercase; margin-bottom: 16px; }
+    .page-title { font-family: 'DM Serif Display', serif; font-size: clamp(28px, 5vw, 42px); line-height: 1.25; letter-spacing: -0.02em; color: var(--ink); margin-bottom: 16px; }
+    .page-lead { font-size: 15px; color: var(--mid); margin-bottom: 40px; line-height: 1.9; }
+
+    .toc { background: var(--white); border: 1px solid var(--border); border-radius: 16px; padding: 18px 22px; margin-bottom: 56px; }
+    .toc-title { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; color: var(--mid); text-transform: uppercase; margin-bottom: 10px; }
+    .toc ol { list-style: none; display: flex; flex-direction: column; gap: 6px; counter-reset: toc; }
+    .toc li { counter-increment: toc; font-size: 13px; }
+    .toc li::before { content: counter(toc) '. '; color: var(--sage); font-weight: 700; }
+    .toc a { color: var(--ink); text-decoration: none; }
+    .toc a:hover { color: var(--sage); text-decoration: underline; }
+
+    .sec { margin-bottom: 64px; scroll-margin-top: 72px; }
+    .sec-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; color: var(--sage); text-transform: uppercase; margin-bottom: 10px; }
+    .sec h2 { font-family: 'Noto Serif JP', serif; font-size: 21px; font-weight: 700; color: var(--ink); margin-bottom: 14px; padding-left: 14px; border-left: 3px solid var(--sage); }
+    .sec-desc { font-size: 14px; color: var(--mid); line-height: 1.9; margin-bottom: 28px; }
+
+    .step-row { display: flex; gap: 16px; margin-bottom: 28px; }
+    .step-badge { flex-shrink: 0; width: 28px; height: 28px; border-radius: 50%; background: var(--sage); color: #fff; font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+    .step-body h3 { font-family: 'Noto Serif JP', serif; font-size: 15px; font-weight: 600; color: var(--ink); margin-bottom: 6px; }
+    .step-body p { font-size: 13px; color: var(--mid); line-height: 1.8; }
+
+    /* 図解：パネル風モック */
+    .panel { background: var(--white); border-radius: 20px; padding: 18px; box-shadow: 0 12px 40px rgba(28,43,34,0.08); margin: 24px 0 32px; }
+    .panel-title { font-size: 12px; font-weight: 700; color: var(--mid); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 12px; }
+    .acct-row { display: flex; align-items: center; gap: 12px; padding: 11px 4px; border-bottom: 1px solid var(--stone); }
+    .acct-row:last-child { border-bottom: none; }
+    .acct-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
+    .acct-icon.green  { background: #EEF5F1; }
+    .acct-icon.blue   { background: #EEF3FF; }
+    .acct-icon.purple { background: #F5F0FF; }
+    .acct-icon.stone  { background: #F0EDE8; }
+    .acct-icon.gold   { background: #FBF5E6; }
+    .acct-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .acct-type { font-size: 10px; color: var(--mid-lt); }
+    .acct-balance { margin-left: auto; font-size: 13px; font-weight: 700; color: var(--ink); }
+    .acct-balance.neg { color: var(--red); }
+    .acct-drag { font-size: 14px; color: var(--mid-lt); margin-left: 8px; }
+
+    .swatch-row { display: flex; gap: 8px; margin: 16px 0; flex-wrap: wrap; }
+    .swatch { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; }
+    .swatch.active { border-color: var(--ink); }
+
+    .type-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 16px 0 32px; }
+    .type-card { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 14px 8px; text-align: center; }
+    .type-card .ic { font-size: 20px; margin-bottom: 6px; }
+    .type-card .lb { font-size: 11px; font-weight: 600; color: var(--ink); }
+
+    .tip { background: var(--sage-bg); border: 1px solid rgba(74,124,89,0.15); border-radius: 14px; padding: 16px 18px; font-size: 13px; color: var(--ink); line-height: 1.8; margin-top: 8px; }
+    .tip strong { color: var(--sage-dk); }
+    .warn-tip { background: var(--gold-bg); border: 1px solid rgba(184,151,62,0.25); border-radius: 14px; padding: 16px 18px; font-size: 13px; color: var(--ink); line-height: 1.8; margin-top: 8px; }
+    .warn-tip strong { color: var(--gold); }
+
+    .faq-mini { display: flex; flex-direction: column; gap: 12px; }
+    .faq-item { background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 18px 20px; }
+    .faq-q { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 6px; display: flex; gap: 8px; }
+    .faq-q::before { content: 'Q'; color: var(--sage); }
+    .faq-a { font-size: 13px; color: var(--mid); line-height: 1.8; padding-left: 18px; }
+
+    .related { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-top: 16px; }
+    .related a { display: block; background: var(--white); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; text-decoration: none; font-size: 13px; color: var(--ink); font-weight: 600; }
+    .related a:hover { border-color: var(--sage); }
+    .related span { display: block; font-size: 12px; color: var(--mid); font-weight: 400; margin-top: 4px; }
+
+    .cta-band { background: var(--sage); border-radius: 24px; padding: 36px 28px; text-align: center; margin-top: 64px; }
+    .cta-band-title { font-family: 'Noto Serif JP', serif; font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 8px; }
+    .cta-band-desc { font-size: 13px; color: rgba(255,255,255,0.75); margin-bottom: 20px; }
+    .cta-band-btn { display: inline-block; background: #fff; color: var(--sage-dk); font-size: 14px; font-weight: 700; padding: 13px 28px; border-radius: 100px; text-decoration: none; }
+
+    footer { background: var(--ink); padding: 28px 24px; text-align: center; margin-top: 40px; }
+    .footer-links { display: flex; justify-content: center; gap: 24px; margin-bottom: 12px; flex-wrap: wrap; }
+    .footer-links a { font-size: 12px; color: rgba(255,255,255,0.35); text-decoration: none; }
+    .footer-links a:hover { color: rgba(255,255,255,0.7); }
+    .footer-copy { font-size: 12px; color: rgba(255,255,255,0.2); }
+
+    @media (max-width: 640px) { nav { padding: 0 16px; } .page-wrap { padding: 40px 20px 80px; } .type-grid { grid-template-columns: repeat(3, 1fr); } }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="https://flowra.taskra.jp/lp/" class="nav-logo">Flow<span>ra</span></a>
+  <a href="https://flowra.taskra.jp/lp/guide/" class="nav-back">← ガイド一覧</a>
+</nav>
+
+<div class="page-wrap">
+  <div class="crumbs">
+    <a href="https://flowra.taskra.jp/lp/">ホーム</a><span>／</span>
+    <a href="https://flowra.taskra.jp/lp/guide/">使い方ガイド</a><span>／</span>
+    <span>口座を管理する</span>
+  </div>
+  <div class="page-label">Guide 02</div>
+  <h1 class="page-title">口座を管理する</h1>
+  <p class="page-lead">
+    現金・銀行口座・電子マネー・クレジットカードなど、実際に使っているお財布の数だけ口座を登録できます。
+    サイドバー（PC）またはボトムナビ（スマホ）の「口座管理」から設定します。
+  </p>
+
+  <div class="toc">
+    <div class="toc-title">この記事の内容</div>
+    <ol>
+      <li><a href="#types">登録できる口座の種類</a></li>
+      <li><a href="#add">口座を追加する</a></li>
+      <li><a href="#manage">並び替え・非公開・削除</a></li>
+      <li><a href="#faq">よくある質問</a></li>
+    </ol>
+  </div>
+
+  <section class="sec" id="types">
+    <div class="sec-label">Types</div>
+    <h2>登録できる口座の種類</h2>
+    <p class="sec-desc">7種類の口座タイプから選べます。タイプごとに初期カラーが決まっているので、リストを見ただけで何の口座かひと目でわかります。</p>
+    <div class="type-grid">
+      <div class="type-card"><div class="ic">💴</div><div class="lb">現金</div></div>
+      <div class="type-card"><div class="ic">🏦</div><div class="lb">銀行</div></div>
+      <div class="type-card"><div class="ic">📱</div><div class="lb">電子マネー</div></div>
+      <div class="type-card"><div class="ic">💳</div><div class="lb">クレカ</div></div>
+      <div class="type-card"><div class="ic">🐷</div><div class="lb">積立・資産</div></div>
+      <div class="type-card"><div class="ic">🎁</div><div class="lb">ポイント</div></div>
+      <div class="type-card"><div class="ic">📦</div><div class="lb">その他</div></div>
+    </div>
+  </section>
+
+  <section class="sec" id="add">
+    <div class="sec-label">Step</div>
+    <h2>口座を追加する</h2>
+    <div class="step-row">
+      <div class="step-badge">1</div>
+      <div class="step-body">
+        <h3>「口座を追加」を開く</h3>
+        <p>口座管理画面の「＋ 口座を追加」から、口座名（例：みずほ銀行）・種別・初期残高・カラーを設定します。クレジットカードは初期残高がマイナス表示になり、引き落とし前の利用額を管理しやすくなります。</p>
+      </div>
+    </div>
+    <div class="step-row">
+      <div class="step-badge">2</div>
+      <div class="step-body">
+        <h3>カラーを選ぶ</h3>
+        <p>8色のカラーパレットから見分けやすい色を選べます。口座タイプごとにおすすめの色が最初から選ばれているので、迷ったらそのままでも問題ありません。</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title">口座を追加</div>
+      <div style="font-size:12px;color:var(--mid);margin-bottom:8px;">カラー</div>
+      <div class="swatch-row">
+        <div class="swatch active" style="background:#4A7C59;"></div>
+        <div class="swatch" style="background:#3B6FBF;"></div>
+        <div class="swatch" style="background:#C4602A;"></div>
+        <div class="swatch" style="background:#7B5EA7;"></div>
+        <div class="swatch" style="background:#7A9485;"></div>
+        <div class="swatch" style="background:#B8973E;"></div>
+        <div class="swatch" style="background:#B83232;"></div>
+        <div class="swatch" style="background:#2F5239;"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="manage">
+    <div class="sec-label">Manage</div>
+    <h2>並び替え・非公開・削除</h2>
+    <p class="sec-desc">口座一覧はドラッグ操作で自由に並び替えられます。よく使う口座を上に置いておくと、記録追加時の口座選択がスムーズになります。</p>
+
+    <div class="panel">
+      <div class="panel-title">口座管理</div>
+      <div class="acct-row"><div class="acct-icon green">🏦</div><div><div class="acct-name">サンプル銀行</div><div class="acct-type">銀行</div></div><div class="acct-balance">¥182,400</div><div class="acct-drag">⋮⋮</div></div>
+      <div class="acct-row"><div class="acct-icon purple">💳</div><div><div class="acct-name">サンプルカード</div><div class="acct-type">クレカ</div></div><div class="acct-balance neg">−¥23,100</div><div class="acct-drag">⋮⋮</div></div>
+      <div class="acct-row"><div class="acct-icon stone">💴</div><div><div class="acct-name">現金</div><div class="acct-type">現金</div></div><div class="acct-balance">¥8,000</div><div class="acct-drag">⋮⋮</div></div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-badge">▸</div>
+      <div class="step-body">
+        <h3>非公開口座（パートナーに見せたくない口座）</h3>
+        <p>口座の編集画面で「非公開」をオンにすると、その口座はパートナーなど他のチームメンバーからは見えなくなります。自分専用のへそくり口座やプレゼント資金の管理に便利です。</p>
+      </div>
+    </div>
+    <div class="warn-tip"><strong>注意：</strong>すでに記録が1件以上ある口座は、後から非公開に切り替えることができません。非公開にしたい口座は、記録を入力する前に設定しておきましょう。</div>
+
+    <div class="step-row">
+      <div class="step-badge">▸</div>
+      <div class="step-body">
+        <h3>口座を削除する</h3>
+        <p>編集画面の「削除する」をタップすると確認メッセージが表示され、もう一度タップすると削除されます。誤って使わなくなった口座を消しても、紐づく記録のデータ自体が失われることはありません。</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="sec" id="faq">
+    <div class="sec-label">FAQ</div>
+    <h2>よくある質問</h2>
+    <div class="faq-mini">
+      <div class="faq-item">
+        <div class="faq-q">口座はいくつまで登録できますか？</div>
+        <div class="faq-a">Freeプランには件数の上限がありますが、Premiumプランなら無制限に登録できます。プランの違いは<a href="https://flowra.taskra.jp/lp/guide/premium/" style="color:var(--sage);">AIアドバイス・Premiumプランのガイド</a>をご覧ください。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">銀行口座と自動で連携（残高同期）できますか？</div>
+        <div class="faq-a">Flowraは銀行APIとの自動連携は行っておらず、記録した収支から残高を計算する仕組みです。初期残高を正しく設定しておけば、記録を続けるだけで現在の残高が自動的に反映されます。</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q">口座の並び順は家族で共有されますか？</div>
+        <div class="faq-a">はい、同じチームのメンバーには同じ並び順で表示されます（非公開口座を除く）。使いやすい順に整理しておくと、パートナーも迷わず入力できます。</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="related">
+    <a href="https://flowra.taskra.jp/lp/guide/records/">記録をつける<span>手入力・レシート読み取りの基本操作</span></a>
+    <a href="https://flowra.taskra.jp/lp/guide/team/">パートナーと共有する<span>口座を共有チームで使う方法</span></a>
+  </div>
+
+  <div class="cta-band">
+    <div class="cta-band-title">よく使う口座を登録してみましょう</div>
+    <div class="cta-band-desc">Googleアカウントで、今すぐ無料で使えます。</div>
+    <a href="https://flowra.taskra.jp" class="cta-band-btn">Flowraを開く →</a>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-links">
+    <a href="https://flowra.taskra.jp/lp/">Flowra トップ</a>
+    <a href="https://flowra.taskra.jp/lp/guide/">使い方ガイド</a>
+    <a href="https://flowra.taskra.jp/lp/privacy/">プライバシーポリシー</a>
+    <a href="https://flowra.taskra.jp/lp/terms/">利用規約</a>
+    <a href="https://flowra.taskra.jp/lp/contact/">お問い合わせ</a>
+  </div>
+  <p class="footer-copy">© 2026 Flowra. All rights reserved.</p>
+</footer>
+
+</body>
+</html>
