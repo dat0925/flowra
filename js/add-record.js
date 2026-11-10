@@ -1441,19 +1441,10 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
     });
 
     document.getElementById('btn-receipt-acct')?.addEventListener('click', () => {
-      // シンプルな口座選択シート
-      const sheet = document.createElement('div');
-      sheet.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--stone);border-radius:20px 20px 0 0;padding:16px;z-index:600;max-height:50vh;overflow-y:auto;';
-      sheet.innerHTML = '<div style="font-size:13px;font-weight:600;margin-bottom:12px;text-align:center;">口座を選択</div>'
-        + accounts.map(a => '<div class="acct-pick" data-id="' + a.id + '" style="padding:12px;border-radius:10px;margin-bottom:6px;background:' + (a.id === selectedAccountId ? 'var(--sage-bg)' : 'var(--mist)') + ';cursor:pointer;font-size:13px;">' + a.name + '</div>').join('');
-      document.body.appendChild(sheet);
-      sheet.querySelectorAll('.acct-pick').forEach(el => {
-        el.addEventListener('click', () => {
-          selectedAccountId = el.dataset.id;
-          sheet.remove();
-          renderConfirmUI();
-        });
-      });
+      // 口座選択は共通ピッカーを使う（以前はここだけ独自の簡易シートで、
+      // 閉じる導線がなく選択後にドロワーが残る不具合があったため一本化）
+      showAccountPicker({ accounts, currentId: selectedAccountId, title: '口座を選択',
+        onSelect: id => { selectedAccountId = id; renderConfirmUI(); } });
     });
 
     // 行タップ：左44pxのチェックゾーン → チェック切替 / それ以外 → 詳細シート
