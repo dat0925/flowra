@@ -54,6 +54,61 @@ function afterTransition(el, ms, fn) {
   el.addEventListener('transitionend', () => { clearTimeout(timer); run(); }, { once: true });
 }
 
+
+// ── ページスケルトン ──────────────────────────────────
+// 読み込み中にスピナーの代わりに出す、実画面と同じ形の仮表示。
+// navigate() がページ切替時に即表示し、各画面ハンドラが
+// キャッシュ未ヒット時に使う。実データが届いたら差し替わる。
+function skelRow(w1, w2, amountW = 64) {
+  const line2  = w2      ? `<div class="skel skel-line" style="width:${w2}%"></div>` : '';
+  const amount = amountW ? `<div class="skel skel-amount" style="width:${amountW}px"></div>` : '';
+  return `<div class="skel-row">
+    <div class="skel skel-icon"></div>
+    <div class="skel-lines">
+      <div class="skel skel-line" style="width:${w1}%"></div>
+      ${line2}
+    </div>
+    ${amount}
+  </div>`;
+}
+
+export function pageSkeletonHTML(page) {
+  const rows = (specs) => specs.map(([a, b, w]) => skelRow(a, b, w)).join('');
+  let body = '';
+  if (page === 'dashboard') {
+    body = `
+      <div class="skel skel-card"></div>
+      <div class="skel-grid2">
+        <div class="skel skel-card-half"></div>
+        <div class="skel skel-card-half"></div>
+      </div>
+      <div class="skel skel-label"></div>
+      ${rows([[52, 30], [64, 26], [44, 34], [58, 24]])}`;
+  } else if (page === 'records') {
+    body = `
+      <div class="skel skel-summary"></div>
+      <div class="skel skel-label"></div>
+      ${rows([[56, 28], [48, 32], [62, 25]])}
+      <div class="skel skel-label"></div>
+      ${rows([[50, 30], [60, 27], [45, 31]])}`;
+  } else if (page === 'accounts') {
+    body = `
+      <div class="skel skel-label"></div>
+      ${rows([[46, 24, 76], [58, 28, 76], [40, 22, 76], [52, 26, 76], [48, 25, 76]])}`;
+  } else if (page === 'settings') {
+    body = `
+      <div class="skel skel-label"></div>
+      ${rows([[42, 0, 0], [55, 0, 0], [38, 0, 0]])}
+      <div class="skel skel-label"></div>
+      ${rows([[50, 0, 0], [44, 0, 0], [58, 0, 0]])}`;
+  } else {
+    body = `
+      <div class="skel skel-label"></div>
+      ${rows([[52, 30], [48, 28], [58, 26], [44, 32]])}`;
+  }
+  return `<div class="page-skeleton">${body}</div>`;
+}
+
 // ─────────────────────────────────────────────────────
 export const Router = {
   currentPage: 'dashboard',
@@ -66,6 +121,7 @@ export const Router = {
 
   // 画面遷移
   navigate(page) {
+    const prevPage = this.currentPage;
     this.currentPage = page;
     localStorage.setItem('flowra_last_page', page);
     Sound.playTap();
@@ -86,9 +142,13 @@ export const Router = {
     if (titleEl) titleEl.textContent = PAGE_TITLES[page] || page;
 
     // コンテンツ描画
+    // ページが変わるときだけ、次画面の形をしたスケルトンを即表示する
+    // （スピナーの空白・ちらつきをなくす）。同一ページへの再遷移
+    // （プル更新・チーム切替など）では今の表示を壊さず、
+    // ハンドラ側の再描画に任せる。
     const content = document.getElementById('page-content');
-    if (content) {
-      content.innerHTML = '<div class="spinner"></div>';
+    if (content && page !== prevPage) {
+      content.innerHTML = pageSkeletonHTML(page);
       content.scrollTop = 0;
     }
     this._syncPageClass();

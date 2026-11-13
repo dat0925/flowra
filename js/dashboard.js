@@ -3,7 +3,7 @@
 //  キャッシュ優先 + 差分同期（Stale-While-Revalidate）
 // ─────────────────────────────────────
 import { DB }         from './db.js';
-import { MonthState } from './router.js';
+import { MonthState, pageSkeletonHTML } from './router.js';
 import { fmt }        from './app.js';
 import {
   getCachedAccounts, putAccounts,
@@ -151,7 +151,7 @@ export async function renderDashboard() {
   if (hasCached) {
     renderContent(content, cachedAccounts, cachedTxs, year, month, true);
   } else {
-    content.innerHTML = '<div class="spinner"></div>';
+    content.innerHTML = pageSkeletonHTML('dashboard');
   }
 
   // ── STEP 2: バックグラウンドで差分同期 ────────────

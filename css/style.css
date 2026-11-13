@@ -1509,4 +1509,28 @@ body.page-records #mobile-month-label {
 .ob-complete-icon { width: 72px; height: 72px; border-radius: 50%; background: var(--sage); color: #fff; font-size: 32px; display: flex; align-items: center; justify-content: center; margin-bottom: 24px; animation: ob-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) both; }
 @keyframes ob-pop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 
-
+/* ══════════════════════════════
+   SKELETON（ページ読み込み中の仮表示）
+   スピナーの代わりに実画面と同じ形のプレースホルダを出す。
+   形が保たれるので、データが届いて差し替わっても画面が揺れない。
+   生成側は router.js の pageSkeletonHTML()。
+══════════════════════════════ */
+.page-skeleton { animation: skel-fadein 0.18s ease both; }
+@keyframes skel-fadein { from { opacity: 0; } to { opacity: 1; } }
+.skel { background: var(--mist); border-radius: 8px; animation: skel-pulse 1.3s ease-in-out infinite; }
+@keyframes skel-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.skel-card { border-radius: var(--radius); height: 108px; margin-bottom: 10px; }
+.skel-card-half { height: 92px; margin-bottom: 0; }
+.skel-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.skel-summary { height: 64px; border-radius: var(--radius); margin-bottom: 12px; }
+.skel-label { height: 12px; width: 96px; margin: 18px 0 10px; }
+.skel-row { display: flex; align-items: center; gap: 13px; padding: 11px 18px; }
+.skel-icon { width: 40px; height: 40px; border-radius: 50%; flex: none; }
+.skel-lines { flex: 1; }
+.skel-line { height: 12px; margin-bottom: 7px; }
+.skel-line:last-child { margin-bottom: 0; }
+.skel-amount { width: 64px; height: 14px; flex: none; }
+@media (prefers-reduced-motion: reduce) {
+  .skel { animation: none; }
+  .page-skeleton { animation: none; }
+}

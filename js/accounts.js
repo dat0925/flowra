@@ -5,6 +5,7 @@
 import { DB }        from './db.js';
 import { fmt, showToast, openModal, closeModal } from './app.js';
 import { getCachedAccounts, putAccounts, removeAccount } from './cache.js';
+import { pageSkeletonHTML } from './router.js';
 
 const ACCT_TYPES = [
   { value: 'cash',   label: '現金' },
@@ -75,7 +76,7 @@ export async function renderAccounts() {
   if (cachedAccounts.length > 0) {
     renderAccountsContent(content, cachedAccounts);
   } else {
-    content.innerHTML = '<div class="spinner"></div>';
+    content.innerHTML = pageSkeletonHTML('accounts');
   }
 
   // ── STEP 2: バックグラウンドで最新取得 ──
