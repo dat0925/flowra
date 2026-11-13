@@ -5,7 +5,7 @@ import { Auth }  from './auth.js';
 import { Sound } from './sound.js';
 import { supabase } from './config.js';
 import { DB }    from './db.js';
-import { showToast, openModal, closeModal } from './utils.js';
+import { showToast, openModal, closeModal, showDialog } from './utils.js';
 import { getCachedTags, putTags } from './cache.js';
 import { pageSkeletonHTML } from './router.js';
 import { warmupAddRecord } from './add-record.js';
@@ -1503,9 +1503,7 @@ function openMemberSheet(member, onUpdate) {
 
 // ── メンバー削除確認モーダル ──
 function showRemoveMemberModal(member, name, onUpdate) {
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(28,43,34,0.6);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 0.25s;';
-  overlay.innerHTML = `
+  const { el: overlay, close } = showDialog({ html: `
     <div style="background:var(--stone);width:100%;max-width:480px;border-radius:28px 28px 0 0;padding:32px 24px 48px;">
       <h3 style="font-family:'Noto Serif JP',serif;font-size:18px;font-weight:600;color:var(--ink);margin-bottom:10px;">${name}を削除しますか？</h3>
       <p style="font-size:14px;color:var(--mid);line-height:1.7;margin-bottom:28px;">
@@ -1519,10 +1517,8 @@ function showRemoveMemberModal(member, name, onUpdate) {
         style="width:100%;padding:10px;background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;">
         キャンセル
       </button>
-    </div>`;
-
-  document.body.appendChild(overlay);
-  requestAnimationFrame(() => overlay.style.opacity = '1');
+    </div>
+  ` });
 
   overlay.querySelector('#btn-remove-confirm')?.addEventListener('click', async () => {
     const btn = overlay.querySelector('#btn-remove-confirm');
@@ -1530,7 +1526,7 @@ function showRemoveMemberModal(member, name, onUpdate) {
     btn.textContent = '処理中…';
     try {
       await DB.removeMember(member.user_id);
-      overlay.remove();
+      close();
       showToast('メンバーを削除しました');
       onUpdate();
     } catch (e) {
@@ -1541,8 +1537,7 @@ function showRemoveMemberModal(member, name, onUpdate) {
   });
 
   overlay.querySelector('#btn-remove-cancel')?.addEventListener('click', () => {
-    overlay.style.opacity = '0';
-    setTimeout(() => overlay.remove(), 250);
+    close();
   });
 }
 
@@ -1595,9 +1590,7 @@ function renderJoinedTeamsList(joinedTeams, currentUser) {
 
 // ── 招待URL表示ダイアログ（クリップボードAPI失敗時のフォールバック）──
 function showInviteUrlDialog(url) {
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(28,43,34,0.6);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 0.3s;';
-  overlay.innerHTML = `
+  const { close } = showDialog({ html: `
     <div style="background:var(--stone);width:100%;max-width:480px;border-radius:28px 28px 0 0;padding:28px 24px 48px;">
       <h3 style="font-size:16px;font-weight:600;color:var(--ink);margin-bottom:8px;">招待リンク</h3>
       <p style="font-size:13px;color:var(--mid);margin-bottom:16px;">以下のリンクをコピーしてパートナーに送ってください（7日間有効）</p>
@@ -1605,16 +1598,14 @@ function showInviteUrlDialog(url) {
       <button id="btn-invite-share" style="width:100%;padding:14px;border-radius:14px;border:none;background:var(--sage);color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:10px;">共有する</button>
       <button id="btn-invite-close" style="width:100%;padding:10px;background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;">閉じる</button>
     </div>
-  `;
-  document.body.appendChild(overlay);
-  requestAnimationFrame(() => overlay.style.opacity = '1');
+  ` });
 
   // Web Share API（iOSで使える）
   document.getElementById('btn-invite-share')?.addEventListener('click', async () => {
     if (navigator.share) {
       try {
         await navigator.share({ title: 'Flowra 招待リンク', url });
-        overlay.remove();
+        close();
       } catch (_) {}
     } else {
       // Web Share APIもない場合はテキスト選択を促す
@@ -1622,14 +1613,12 @@ function showInviteUrlDialog(url) {
     }
   });
 
-  document.getElementById('btn-invite-close')?.addEventListener('click', () => overlay.remove());
+  document.getElementById('btn-invite-close')?.addEventListener('click', () => close());
 }
 
 // ── チーム脱退確認モーダル ──
 function showLeaveTeamModal(teamId = null) {
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(28,43,34,0.6);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 0.3s;';
-  overlay.innerHTML = `
+  const { el: overlay, close } = showDialog({ html: `
     <div style="background:var(--stone);width:100%;max-width:480px;border-radius:28px 28px 0 0;padding:32px 24px 48px;">
       <h3 style="font-family:'Noto Serif JP',serif;font-size:18px;font-weight:600;color:var(--ink);margin-bottom:12px;">チームから脱退しますか？</h3>
       <p style="font-size:14px;color:var(--mid);line-height:1.7;margin-bottom:24px;">脱退するとこのチームのデータが<br>閲覧・編集できなくなります。<br>自分の個人データに切り替わります。</p>
@@ -1645,9 +1634,7 @@ function showLeaveTeamModal(teamId = null) {
         キャンセル
       </button>
     </div>
-  `;
-  document.body.appendChild(overlay);
-  requestAnimationFrame(() => overlay.style.opacity = '1');
+  ` });
 
   const input = overlay.querySelector('#leave-confirm-input');
   const confirmBtn = overlay.querySelector('#btn-leave-confirm');
@@ -1666,7 +1653,7 @@ function showLeaveTeamModal(teamId = null) {
     try {
       const targetTeamId = teamId || await DB.getTeamId();
       await DB.leaveTeam(targetTeamId);
-      overlay.remove();
+      close();
       showToast('チームから脱退しました');
       window.location.reload();
     } catch (e) {
@@ -1677,8 +1664,7 @@ function showLeaveTeamModal(teamId = null) {
   });
 
   overlay.querySelector('#btn-leave-cancel')?.addEventListener('click', () => {
-    overlay.style.opacity = '0';
-    setTimeout(() => overlay.remove(), 300);
+    close();
   });
 }
 

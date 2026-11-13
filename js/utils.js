@@ -206,6 +206,43 @@ export function showSheet({ id = '', title = '', bodyHTML = '', zIndex = 1100, o
 }
 
 // ─────────────────────────────────────
+//  共通ダイアログ土台（UI洗練9-2）
+//  z-index 9000 のブラー背景オーバーレイで出る確認・招待系
+//  ダイアログ（設定と招待フローに個別実装が5か所あった）を寄せる。
+//  土台が面倒を見るのはオーバーレイの生成とフェードイン/アウトだけ。
+//  パネルの中身は呼び出し側が html で渡す。判断を仰ぐダイアログなので
+//  背景クリック・Esc では閉じない、サウンドも鳴らさない（従来どおり）。
+// ─────────────────────────────────────
+
+/**
+ * @param {Object}   opts
+ * @param {string}   opts.html       パネルのHTML
+ * @param {number}   [opts.zIndex]   重なり（既定 9000）
+ * @param {Function} [opts.onClose]  閉じ終わった後に呼ばれる
+ * @returns {{ el: HTMLElement, close: Function }} el はオーバーレイ要素
+ */
+export function showDialog({ html = '', zIndex = 9000, onClose } = {}) {
+  const overlay = document.createElement('div');
+  overlay.className = 'ui-dialog-overlay';
+  overlay.style.zIndex = zIndex;
+  overlay.innerHTML = html;
+  document.body.appendChild(overlay);
+  requestAnimationFrame(() => overlay.classList.add('open'));
+
+  let closed = false;
+  function close() {
+    if (closed) return;
+    closed = true;
+    overlay.classList.remove('open');
+    setTimeout(() => {
+      overlay.remove();
+      onClose?.();
+    }, 300);
+  }
+  return { el: overlay, close };
+}
+
+// ─────────────────────────────────────
 //  メモ欄（新規・複製・編集で共通）
 //  改行を扱える textarea + URLリンクチップを1か所にまとめ、
 //  どの画面から開いても同じ見た目・挙動になるようにしている。

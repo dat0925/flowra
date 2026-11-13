@@ -8,7 +8,7 @@ import { renderAddRecord, warmupAddRecord, resetAddRecordCache } from './add-rec
 import { checkAndShowOnboarding } from './onboarding.js';
 import { renderAccounts }     from './accounts.js';
 import { renderSettings }     from './settings.js';
-import { fmt, showToast, openModal, closeModal } from './utils.js';
+import { fmt, showToast, openModal, closeModal, showDialog } from './utils.js';
 import { renderRecords, isSearchActive } from './records.js';
 import { clearAll }          from './cache.js';
 import { DB }                from './db.js';
@@ -336,9 +336,7 @@ async function showInviteAcceptDialog(token) {
   // ログイン確認：未ログインならGoogleログインを促す
   const currentUser = await Auth.getUser();
   if (!currentUser) {
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(28,43,34,0.6);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 0.3s;';
-    overlay.innerHTML = `
+    const { close } = showDialog({ html: `
       <div style="background:var(--stone);width:100%;max-width:480px;border-radius:28px 28px 0 0;padding:32px 24px 48px;text-align:center;">
         <div style="font-size:40px;margin-bottom:16px;">🤝</div>
         <h2 style="font-family:'Noto Serif JP',serif;font-size:20px;font-weight:600;color:var(--ink);margin-bottom:12px;">共有への招待</h2>
@@ -346,9 +344,7 @@ async function showInviteAcceptDialog(token) {
         <button id="btn-login-for-invite" style="width:100%;padding:16px;border-radius:14px;border:none;background:var(--sage);color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:12px;">Googleでログイン</button>
         <button id="btn-decline-invite-noauth" style="background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;padding:8px;">キャンセル</button>
       </div>
-    `;
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => overlay.style.opacity = '1');
+    ` });
     document.getElementById('btn-login-for-invite')?.addEventListener('click', async () => {
       await supabase.auth.signInWithOAuth({
         provider: 'google',
@@ -356,7 +352,7 @@ async function showInviteAcceptDialog(token) {
       });
     });
     document.getElementById('btn-decline-invite-noauth')?.addEventListener('click', () => {
-      overlay.remove();
+      close();
       checkAndShowOnboarding(() => { warmupAddRecord(); });
     });
     return;
@@ -382,9 +378,7 @@ async function showInviteAcceptDialog(token) {
     return;
   }
 
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(28,43,34,0.6);backdrop-filter:blur(6px);display:flex;align-items:flex-end;justify-content:center;opacity:0;transition:opacity 0.3s;';
-  overlay.innerHTML = `
+  const { close } = showDialog({ html: `
     <div style="background:var(--stone);width:100%;max-width:480px;border-radius:28px 28px 0 0;padding:32px 24px 48px;text-align:center;">
       <div style="font-size:40px;margin-bottom:16px;">🤝</div>
       <h2 style="font-family:'Noto Serif JP',serif;font-size:20px;font-weight:600;color:var(--ink);margin-bottom:12px;">共有への招待</h2>
@@ -392,9 +386,7 @@ async function showInviteAcceptDialog(token) {
       <button id="btn-accept-invite" style="width:100%;padding:16px;border-radius:14px;border:none;background:var(--sage);color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-bottom:12px;">参加する</button>
       <button id="btn-decline-invite" style="background:none;border:none;color:var(--mid);font-size:13px;cursor:pointer;padding:8px;">断る</button>
     </div>
-  `;
-  document.body.appendChild(overlay);
-  requestAnimationFrame(() => overlay.style.opacity = '1');
+  ` });
 
   document.getElementById('btn-accept-invite')?.addEventListener('click', async () => {
     const btn = document.getElementById('btn-accept-invite');
@@ -402,7 +394,7 @@ async function showInviteAcceptDialog(token) {
     btn.textContent = '参加中…';
     try {
       await DB.acceptInvite(token);
-      overlay.remove();
+      close();
       showToast('✓ 共有に参加しました');
       window.location.reload();
     } catch (e) {
@@ -413,7 +405,7 @@ async function showInviteAcceptDialog(token) {
   });
 
   document.getElementById('btn-decline-invite')?.addEventListener('click', () => {
-    overlay.remove();
+    close();
     checkAndShowOnboarding(() => { warmupAddRecord(); });
   });
 }
