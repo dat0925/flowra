@@ -3,7 +3,10 @@
 //  add-record.js / edit-record.js から共用する。
 //  以前は両ファイルに同一実装が重複しており、片方だけ
 //  修正して不整合が起きる事故の温床だったため一本化した。
+//  土台は utils.js の showSheet（UI洗練9）に寄せてある。
 // ══════════════════════════════════════════════
+
+import { showSheet } from './utils.js';
 
 const TYPE_PATH = {
   cash:    '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/>',
@@ -37,9 +40,7 @@ const SHEET_ID = 'acct-picker-sheet';
  * @param {Function} opts.onSelect    口座が選ばれたときに id を受け取るコールバック
  */
 export function showAccountPicker({ accounts = [], currentId = null, title = '口座を選択', onSelect } = {}) {
-  // 既存のピッカーが残っていれば除去（多重表示防止）
-  document.getElementById(SHEET_ID)?.remove();
-
+  // 多重表示防止は showSheet の id 判定に任せる
   const itemsHTML = accounts.map(a => {
     const bg       = TYPE_BG[a.type]    || '#F0EDE8';
     const stroke   = TYPE_COLOR[a.type] || '#7A9485';
@@ -61,39 +62,21 @@ export function showAccountPicker({ accounts = [], currentId = null, title = '�
       </div>`;
   }).join('');
 
-  const sheet = document.createElement('div');
-  sheet.id = SHEET_ID;
-  // z-index:1100 は #save-bar(1000) より前面に出すための値。
+  // 土台は共通シート（UI洗練9: utils.showSheet）。
+  // z-index 1100 は #save-bar(1000) より前面に出すための値（showSheet の既定値）。
   // これを下げると保存バーがピッカー最下部の口座を覆ってしまうので注意。
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:1100;background:rgba(28,43,34,0.45);display:flex;align-items:flex-end;justify-content:center;';
-  sheet.innerHTML = `
-    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;
-      display:flex;flex-direction:column;max-height:85vh;">
-      <div style="flex-shrink:0;">
-        <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 0;"></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;">
-          <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">${title}</div>
-          <button class="acct-picker-close" style="width:28px;height:28px;border-radius:50%;background:var(--mist);border:none;
-            display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">
-            <svg viewBox="0 0 24 24" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-      </div>
-      <div style="overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 14px calc(40px + env(safe-area-inset-bottom));flex:1;min-height:0;">
-        <div style="background:#fff;border-radius:14px;overflow:hidden;border:1px solid var(--border);">
-          ${itemsHTML}
-        </div>
-      </div>
-    </div>`;
+  const { el, close } = showSheet({
+    id: SHEET_ID,
+    title,
+    bodyHTML: `
+      <div style="background:#fff;border-radius:14px;overflow:hidden;border:1px solid var(--border);">
+        ${itemsHTML}
+      </div>`,
+  });
 
-  const close = () => sheet.remove();
-
-  document.body.appendChild(sheet);
-  sheet.querySelector('.acct-picker-close')?.addEventListener('click', close);
-  sheet.addEventListener('click', e => { if (e.target === sheet) close(); });
-  sheet.querySelectorAll('.acct-picker-item').forEach(el => {
-    el.addEventListener('click', () => {
-      const id = el.dataset.id;
+  el.querySelectorAll('.acct-picker-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const id = item.dataset.id;
       close();
       onSelect?.(id);
     });

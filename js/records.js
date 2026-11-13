@@ -4,7 +4,7 @@
 // ─────────────────────────────────────
 import { DB }         from './db.js';
 import { MonthState, pageSkeletonHTML } from './router.js';
-import { fmt, showToast } from './utils.js';
+import { fmt, showToast, showSheet } from './utils.js';
 import { getCachedTransactions, upsertTransactions, replaceMonthTransactions, putAccounts, filterPendingDeletes, txListSignature } from './cache.js';
 import { openEditRecord } from './edit-record.js';
 import { showAccountPicker } from './account-picker.js';
@@ -39,8 +39,7 @@ const TAG_PICKER_SHEET_ID = 'bulk-tag-picker-sheet';
 // カテゴリ（タグ）一括変更用のボトムシート。account-picker.jsの構造を踏襲。
 // 選択した1件のタグに、対象記録のタグを丸ごと置き換える（主タグのみ・サブタグ選択は非対応）。
 function showTagPicker({ tags = [], budgetTagIds = new Set(), title = 'カテゴリを選択', onSelect } = {}) {
-  document.getElementById(TAG_PICKER_SHEET_ID)?.remove();
-
+  // 多重表示防止は showSheet の id 判定に任せる
   const itemsHTML = tags.map(t => {
     const isPrimary = budgetTagIds.has(t.id);
     return `
@@ -53,37 +52,19 @@ function showTagPicker({ tags = [], budgetTagIds = new Set(), title = 'カテゴ
       </div>`;
   }).join('');
 
-  const sheet = document.createElement('div');
-  sheet.id = TAG_PICKER_SHEET_ID;
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:1100;background:rgba(28,43,34,0.45);display:flex;align-items:flex-end;justify-content:center;';
-  sheet.innerHTML = `
-    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;
-      display:flex;flex-direction:column;max-height:85vh;">
-      <div style="flex-shrink:0;">
-        <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 0;"></div>
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px 10px;">
-          <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">${title}</div>
-          <button class="bulk-tag-picker-close" style="width:28px;height:28px;border-radius:50%;background:var(--mist);border:none;
-            display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">
-            <svg viewBox="0 0 24 24" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-      </div>
-      <div style="overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 14px calc(40px + env(safe-area-inset-bottom));flex:1;min-height:0;">
-        <div style="background:#fff;border-radius:14px;overflow:hidden;border:1px solid var(--border);">
-          ${itemsHTML}
-        </div>
-      </div>
-    </div>`;
+  // 土台は共通シート（UI洗練9: utils.showSheet）
+  const { el, close } = showSheet({
+    id: TAG_PICKER_SHEET_ID,
+    title,
+    bodyHTML: `
+      <div style="background:#fff;border-radius:14px;overflow:hidden;border:1px solid var(--border);">
+        ${itemsHTML}
+      </div>`,
+  });
 
-  const close = () => sheet.remove();
-
-  document.body.appendChild(sheet);
-  sheet.querySelector('.bulk-tag-picker-close')?.addEventListener('click', close);
-  sheet.addEventListener('click', e => { if (e.target === sheet) close(); });
-  sheet.querySelectorAll('.bulk-tag-picker-item').forEach(el => {
-    el.addEventListener('click', () => {
-      const id = el.dataset.id;
+  el.querySelectorAll('.bulk-tag-picker-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const id = item.dataset.id;
       close();
       onSelect?.(id);
     });
