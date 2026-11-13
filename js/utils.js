@@ -16,9 +16,45 @@ export function showToast(msg, duration = 2500) {
     document.body.appendChild(toast);
   }
   toast.textContent = msg;
+  toast.classList.remove('actionable');
   toast.classList.add('show');
   clearTimeout(toast._timer);
   toast._timer = setTimeout(() => toast.classList.remove('show'), duration);
+}
+
+// アクションボタン付きトースト（「元に戻す」など）。
+// 通常トーストと同じ #toast 要素を使い回す。
+export function showActionToast(msg, { label, onAction, duration = 6000 } = {}) {
+  let toast = document.getElementById('toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.className = 'toast';
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = '';
+  const span = document.createElement('span');
+  span.textContent = msg;
+  toast.appendChild(span);
+  if (label) {
+    const btn = document.createElement('button');
+    btn.className = 'toast-action';
+    btn.textContent = label;
+    btn.addEventListener('click', () => {
+      clearTimeout(toast._timer);
+      toast.classList.remove('show');
+      toast.classList.remove('actionable');
+      if (onAction) onAction();
+    });
+    toast.appendChild(btn);
+  }
+  toast.classList.add('actionable');
+  toast.classList.add('show');
+  clearTimeout(toast._timer);
+  toast._timer = setTimeout(() => {
+    toast.classList.remove('show');
+    toast.classList.remove('actionable');
+  }, duration);
 }
 
 export function openModal(contentHTML) {

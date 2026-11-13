@@ -4,8 +4,8 @@
 // ─────────────────────────────────────
 import { DB }    from './db.js';
 import { Sound } from './sound.js';
-import { showToast, openModal, closeModal, memoRowHTML, setupMemoField } from './utils.js';
-import { upsertTransactions, markDeletedTransaction } from './cache.js';
+import { showToast, showActionToast, openModal, closeModal, memoRowHTML, setupMemoField } from './utils.js';
+import { upsertTransactions, markDeletedTransaction, unmarkDeletedTransaction, clearPendingDelete } from './cache.js';
 import { renderAddRecord } from './add-record.js';
 import { showAccountPicker } from './account-picker.js';
 
@@ -43,6 +43,41 @@ function buildMetaHTML(tx, members) {
 
   if (!rows.length) return '';
   return `<div style="margin-top:20px;padding:0 2px 4px;">${rows.join('')}</div>`;
+}
+
+// ── Undo可能な削除（UI洗練2）──────────────────────────
+// サーバー削除の実行予約。シートを閉じた後もモジュール側で保持する。
+// 予約中（6秒）はキャッシュの削除フラグと予約集合で表示から除外し続け、
+// 「元に戻す」で完全に元の状態に戻る。タイマー満了でサーバー削除を実行。
+// アプリが閉じられて予約が消えた場合は削除未確定となり、記録は残る。
+const _deleteTimers = new Map();
+
+function scheduleTransactionDelete(id, onSave) {
+  const prev = _deleteTimers.get(id);
+  if (prev) clearTimeout(prev);
+  const timer = setTimeout(async () => {
+    _deleteTimers.delete(id);
+    try {
+      await DB.deleteTransaction(id);
+      clearPendingDelete(id);
+    } catch (e) {
+      await unmarkDeletedTransaction(id);
+      if (onSave) onSave();
+      showToast('削除に失敗しました。記録は戻っています');
+    }
+  }, 6000);
+  _deleteTimers.set(id, timer);
+  showActionToast('記録を削除しました', {
+    label: '元に戻す',
+    duration: 6000,
+    onAction: async () => {
+      const t = _deleteTimers.get(id);
+      if (t) { clearTimeout(t); _deleteTimers.delete(id); }
+      await unmarkDeletedTransaction(id);
+      if (onSave) onSave();
+      showToast('削除を取り消しました');
+    },
+  });
 }
 
 export async function openEditRecord(tx, onSave) {
@@ -731,7 +766,7 @@ export async function openEditRecord(tx, onSave) {
       if (!recordDangerZone) return;
       recordDangerZone.innerHTML = `
         <div style="font-size:12.5px;color:var(--red);text-align:center;margin-bottom:10px;">
-          本当に削除しますか？この操作は取り消せません
+          この記録を削除しますか？
         </div>
         <div style="display:flex;gap:8px;">
           <button id="btn-delete-record-cancel"
@@ -751,24 +786,31 @@ export async function openEditRecord(tx, onSave) {
         </div>`;
       recordDangerZone.querySelector('#btn-delete-record-cancel')?.addEventListener('click', renderRecordDeleteIdle, { once: true });
       recordDangerZone.querySelector('#btn-delete-record-confirm')?.addEventListener('click', async function() {
-        const btn = this;
-        btn.disabled = true;
-        btn.textContent = '削除中…';
-        const cancelBtn = recordDangerZone.querySelector('#btn-delete-record-cancel');
-        if (cancelBtn) cancelBtn.disabled = true;
+        // UI洗練2: 削除は「即・画面に反映＋元に戻せる」を既定にする。
+        // サーバー削除は6秒後（Undoトースト表示中は未実行）。
+        Sound.playClose();
+        const saveBar = document.getElementById('save-bar');
+        if (saveBar) saveBar.hidden = true;
+        sheet.remove();
+        let marked = true;
         try {
-          await DB.deleteTransaction(tx.id);
           await markDeletedTransaction(tx.id);
-          Sound.playClose();
-          const saveBar = document.getElementById('save-bar');
-          if (saveBar) saveBar.hidden = true;
-          sheet.remove();
-          showToast('記録を削除しました');
-          if (onSave) onSave();
         } catch (e) {
-          showToast('削除エラー: ' + e.message);
-          renderRecordDeleteIdle();
+          marked = false;
         }
+        if (!marked) {
+          // キャッシュに触れなかった場合は従来どおり即時にサーバー削除する
+          try {
+            await DB.deleteTransaction(tx.id);
+            showToast('記録を削除しました');
+          } catch (e) {
+            showToast('削除エラー: ' + e.message);
+          }
+          if (onSave) onSave();
+          return;
+        }
+        if (onSave) onSave();
+        scheduleTransactionDelete(tx.id, onSave);
       }, { once: true });
     }
 

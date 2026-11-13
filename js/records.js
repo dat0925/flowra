@@ -5,7 +5,7 @@
 import { DB }         from './db.js';
 import { MonthState, pageSkeletonHTML } from './router.js';
 import { fmt, showToast } from './utils.js';
-import { getCachedTransactions, upsertTransactions, replaceMonthTransactions, putAccounts } from './cache.js';
+import { getCachedTransactions, upsertTransactions, replaceMonthTransactions, putAccounts, filterPendingDeletes } from './cache.js';
 import { openEditRecord } from './edit-record.js';
 import { showAccountPicker } from './account-picker.js';
 
@@ -142,6 +142,9 @@ export async function renderRecords({ focusSearch = false } = {}) {
       DB.getBudgetTagIds(),
     ]);
     _budgetTagIds = budgetTagIds;
+
+    // 削除予約中（Undo待ち）の行はサーバーにまだ残っているので除外する
+    result.data = filterPendingDeletes(result.data);
 
     // キャッシュ更新（当月分は正解データで丸ごと置き換え、削除済み取引の
     // ゴースト残留によりダッシュボード側の合計とズレる問題を防ぐ）
@@ -295,7 +298,7 @@ function renderShell(transactions, year, month, focusSearch = false) {
     if (tx) openEditRecord(tx, () => {
       import('./router.js').then(({ MonthState: ms }) => {
         DB.getTransactions({ year: ms.year, month: ms.month, pageSize: 500 })
-          .then(r => { _allTx = r.data; renderList(); })
+          .then(r => { _allTx = filterPendingDeletes(r.data); renderList(); })
           .catch(() => {});
       });
     });
@@ -459,7 +462,7 @@ async function renderList() {
         }
       }
       if (myGen !== _searchGen) return;
-      _searchResults  = result.rows;
+      _searchResults  = filterPendingDeletes(result.rows);
       _searchHasMore  = result.hasMore;
       _searchCursor   = result.nextCursor;
       filtered = _searchResults;
@@ -618,7 +621,7 @@ async function loadMoreSearch() {
     });
     if (myGen !== _searchGen) return; // その間に別の検索が始まっていたら破棄
 
-    _searchResults = _searchResults.concat(result.rows);
+    _searchResults = _searchResults.concat(filterPendingDeletes(result.rows));
     _searchHasMore = result.hasMore;
     _searchCursor  = result.nextCursor;
 
@@ -895,6 +898,7 @@ async function refreshAfterBulkChange() {
   try {
     const { year, month } = MonthState;
     const result = await DB.getTransactions({ year, month, pageSize: 500 });
+    result.data = filterPendingDeletes(result.data);
     _allTx = result.data;
     await replaceMonthTransactions(year, month, result.data);
   } catch (e) {
