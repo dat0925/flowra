@@ -1661,3 +1661,23 @@ body.page-records #mobile-month-label {
   .ui-sheet { border-radius: var(--radius); max-height: 90vh; }
   .ui-sheet .modal-handle { display: none; }
 }
+
+/* ══════════════════════════════
+   UI洗練9-2: 共通ダイアログ土台（.ui-dialog-overlay）
+   utils.js の showDialog() が生成する。確認・招待系ダイアログの
+   ブラー背景オーバーレイ（従来は5か所に cssText で個別実装）。
+   パネルの見た目は呼び出し側のHTMLが持つ。
+   ══════════════════════════════ */
+.ui-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(28,43,34,0.6);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.ui-dialog-overlay.open { opacity: 1; }
