@@ -5,7 +5,7 @@ import { Auth }  from './auth.js';
 import { Sound } from './sound.js';
 import { supabase } from './config.js';
 import { DB }    from './db.js';
-import { showToast, openModal, closeModal, showDialog } from './utils.js';
+import { showToast, openModal, closeModal, showDialog, showSheet } from './utils.js';
 import { getCachedTags, putTags } from './cache.js';
 import { pageSkeletonHTML } from './router.js';
 import { warmupAddRecord } from './add-record.js';
@@ -453,7 +453,6 @@ async function renderBudgetList(tags) {
 }
 
 function openBudgetMonthSheet(tag, defaultBudget) {
-  Sound.playOpen();
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
 
@@ -472,13 +471,11 @@ function openBudgetMonthSheet(tag, defaultBudget) {
 
   const defaultAmt = defaultBudget ? Number(defaultBudget.amount).toLocaleString('ja-JP') : null;
 
-  const sheet = document.createElement('div');
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:1100;background:rgba(28,43,34,0.45);display:flex;align-items:flex-end;justify-content:center;';
-  sheet.innerHTML = `
-    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;
-      padding:0 16px calc(36px + env(safe-area-inset-bottom));max-height:85vh;overflow-y:auto;">
-      <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 16px;"></div>
-      <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;margin-bottom:4px;">月別予算 — ${tag.name}</div>
+  const { el: sheet, close } = showSheet({
+    title: `月別予算 — ${tag.name}`,
+    hideClose: true,
+    zIndex: 1100,
+    bodyHTML: `
       <div style="font-size:12px;color:var(--mid);margin-bottom:4px;line-height:1.6;">
         特定の月だけ予算を変えたいときに入力します。<br>
         空欄の月はデフォルト予算（${defaultAmt ? '¥' + defaultAmt : '未設定'}）が使われます。
@@ -528,9 +525,8 @@ function openBudgetMonthSheet(tag, defaultBudget) {
         </button>
         <button id="btn-save-month-budget" class="btn-primary" style="flex:1;margin-bottom:0;">保存</button>
       </div>
-    </div>`;
-
-  document.body.appendChild(sheet);
+  `,
+  });
 
   // カスタム値を適用し、設定済み行をビジュアルで明示する
   function applyCustomValue(m, amount) {
@@ -577,8 +573,7 @@ function openBudgetMonthSheet(tag, defaultBudget) {
     });
   });
 
-  sheet.addEventListener('click', e => { if (e.target === sheet) { Sound.playClose(); sheet.remove(); } });
-  document.getElementById('btn-close-month-budget')?.addEventListener('click', () => { Sound.playClose(); sheet.remove(); });
+  document.getElementById('btn-close-month-budget')?.addEventListener('click', () => close());
 
   document.getElementById('btn-save-month-budget')?.addEventListener('click', async () => {
     try {
@@ -590,7 +585,7 @@ function openBudgetMonthSheet(tag, defaultBudget) {
       }
       showToast('✓ 月別予算を保存しました');
       Sound.playTap();
-      sheet.remove();
+      close();
     } catch(e) {
       showToast('エラー: ' + e.message);
     }
@@ -663,30 +658,12 @@ function renderTagColorPicker(containerId, selectedColor, onChange) {
 }
 
 function openTagEditSheet(tag, allTags, budgetMap = {}) {
-  Sound.playOpen();
 
-  const sheet = document.createElement('div');
-  sheet.id = 'tag-edit-sheet';
-  sheet.style.cssText = `
-    position:fixed;inset:0;z-index:700;
-    background:rgba(28,43,34,0.45);
-    display:flex;align-items:flex-end;justify-content:center;
-  `;
-
-  sheet.innerHTML = `
-    <div style="background:var(--stone);width:100%;max-width:480px;
-      border-radius:20px 20px 0 0;padding:0 16px 36px;
-      max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
-      <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 16px;"></div>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-        <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">タグを編集</div>
-        <button id="btn-close-tag-sheet"
-          style="width:28px;height:28px;border-radius:50%;background:var(--mist);border:none;
-          display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">
-          <svg viewBox="0 0 24 24" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
+  const { close } = showSheet({
+    id: 'tag-edit-sheet',
+    title: 'タグを編集',
+    zIndex: 700,
+    bodyHTML: `
 
       <div class="form-section" style="margin-bottom:14px;">
         <div class="form-row no-tap">
@@ -755,13 +732,10 @@ function openTagEditSheet(tag, allTags, budgetMap = {}) {
           このタグを削除…
         </button>
       </div>
-    </div>`;
+  `,
+  });
 
-  document.body.appendChild(sheet);
-
-  const closeSheet = () => { Sound.playClose(); sheet.remove(); };
-  sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
-  document.getElementById('btn-close-tag-sheet')?.addEventListener('click', closeSheet);
+  const closeSheet = close;
   document.getElementById('btn-cancel-tag')?.addEventListener('click', closeSheet);
 
 
@@ -858,7 +832,6 @@ function openTagEditSheet(tag, allTags, budgetMap = {}) {
     try {
       await DB.deleteTag(tag.id);
       await warmupAddRecord();
-      Sound.playClose();
       closeSheet();
       showToast('タグを削除しました');
       const updatedTags2 = await DB.getTags();
@@ -1413,14 +1386,13 @@ function renderMembersList(members, currentUser) {
 
 // ── メンバー管理ボトムシート ──
 function openMemberSheet(member, onUpdate) {
-  Sound.playOpen();
   const name = member.full_name || member.email?.split('@')[0] || 'メンバー';
 
-  const sheet = document.createElement('div');
-  sheet.style.cssText = 'position:fixed;inset:0;z-index:700;background:rgba(28,43,34,0.45);display:flex;align-items:flex-end;justify-content:center;';
-  sheet.innerHTML = `
-    <div style="background:var(--stone);width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:0 16px 40px;">
-      <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 20px;"></div>
+  const { el: sheet, close } = showSheet({
+    head: false,
+    zIndex: 700,
+    bodyHTML: `
+      <div style="margin-top:10px;"></div>
 
       <!-- メンバー情報 -->
       <div style="display:flex;align-items:center;gap:12px;padding:0 2px 20px;border-bottom:1px solid var(--border);margin-bottom:20px;">
@@ -1463,11 +1435,9 @@ function openMemberSheet(member, onUpdate) {
         background:var(--white);color:var(--mid);font-size:14px;font-weight:500;cursor:pointer;">
         このメンバーを削除…
       </button>
-    </div>`;
-
-  document.body.appendChild(sheet);
-  const closeSheet = () => { Sound.playClose(); sheet.remove(); };
-  sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
+  `,
+  });
+  const closeSheet = close;
 
   // 権限ボタン
   let currentRole = member.role;
@@ -1672,30 +1642,12 @@ function showLeaveTeamModal(teamId = null) {
 function openTeamNameSheet(team, teamId) {
   // teamIdが明示されていない場合はteam.idを使う（後方互換）
   const resolvedTeamId = teamId || (Array.isArray(team) ? team[0]?.id : team?.id);
-  Sound.playOpen();
 
-  const sheet = document.createElement('div');
-  sheet.id = 'team-name-sheet';
-  sheet.style.cssText = `
-    position:fixed;inset:0;z-index:700;
-    background:rgba(28,43,34,0.45);
-    display:flex;align-items:flex-end;justify-content:center;
-  `;
-
-  sheet.innerHTML = `
-    <div style="background:var(--stone);width:100%;max-width:480px;
-      border-radius:20px 20px 0 0;padding:0 16px 36px;
-      max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
-      <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 16px;"></div>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-        <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">チーム名を変更</div>
-        <button id="btn-close-team-name-sheet"
-          style="width:28px;height:28px;border-radius:50%;background:var(--mist);border:none;
-          display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">
-          <svg viewBox="0 0 24 24" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
+  const { close } = showSheet({
+    id: 'team-name-sheet',
+    title: 'チーム名を変更',
+    zIndex: 700,
+    bodyHTML: `
 
       <div class="form-section" style="margin-bottom:14px;">
         <div class="form-row no-tap">
@@ -1712,15 +1664,12 @@ function openTeamNameSheet(team, teamId) {
         <svg viewBox="0 0 24 24" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>
         変更を保存
       </button>
-    </div>`;
-
-  document.body.appendChild(sheet);
+  `,
+  });
 
   setTimeout(() => document.getElementById('edit-team-name')?.focus(), 100);
 
-  const closeSheet = () => { Sound.playClose(); sheet.remove(); };
-  sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
-  document.getElementById('btn-close-team-name-sheet')?.addEventListener('click', closeSheet);
+  const closeSheet = close;
 
   document.getElementById('btn-save-team-name')?.addEventListener('click', async () => {
     const name    = document.getElementById('edit-team-name').value.trim();
@@ -1758,30 +1707,11 @@ function openTeamNameSheet(team, teamId) {
 
 // ── タグ追加ボトムシート ──
 function openTagAddSheet(tags) {
-  Sound.playOpen();
-
-  const sheet = document.createElement('div');
-  sheet.id = 'tag-add-sheet';
-  sheet.style.cssText = `
-    position:fixed;inset:0;z-index:700;
-    background:rgba(28,43,34,0.45);
-    display:flex;align-items:flex-end;justify-content:center;
-  `;
-
-  sheet.innerHTML = `
-    <div style="background:var(--stone);width:100%;max-width:480px;
-      border-radius:20px 20px 0 0;padding:0 16px 36px;
-      max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;">
-      <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 16px;"></div>
-
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-        <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">タグを追加</div>
-        <button id="btn-close-add-sheet"
-          style="width:28px;height:28px;border-radius:50%;background:var(--mist);border:none;
-          display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">
-          <svg viewBox="0 0 24 24" width="13" height="13"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
+  const { close } = showSheet({
+    id: 'tag-add-sheet',
+    title: 'タグを追加',
+    zIndex: 700,
+    bodyHTML: `
 
       <div class="form-section" style="margin-bottom:14px;">
         <div class="form-row no-tap">
@@ -1798,16 +1728,13 @@ function openTagAddSheet(tags) {
         <svg viewBox="0 0 24 24" width="15" height="15"><polyline points="20 6 9 17 4 12"/></svg>
         追加する
       </button>
-    </div>`;
-
-  document.body.appendChild(sheet);
+  `,
+  });
 
   // フォーカス
   setTimeout(() => document.getElementById('add-tag-name')?.focus(), 100);
 
-  const closeSheet = () => { Sound.playClose(); sheet.remove(); };
-  sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
-  document.getElementById('btn-close-add-sheet')?.addEventListener('click', closeSheet);
+  const closeSheet = close;
 
   const doAdd = async () => {
     const name    = document.getElementById('add-tag-name').value.trim();
