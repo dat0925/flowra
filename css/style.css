@@ -1534,3 +1534,14 @@ body.page-records #mobile-month-label {
   .skel { animation: none; }
   .page-skeleton { animation: none; }
 }
+
+/* ══════════════════════════════
+   PAGE TRANSITION（画面切替のフェードイン）
+   router.js が切替時だけ #page-content に .page-enter を付ける。
+   旧画面の絵は使わず、新画面（スケルトン→実画面）だけが入る。
+══════════════════════════════ */
+#page-content.page-enter > * { animation: page-fadein 0.22s ease both; }
+@keyframes page-fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  #page-content.page-enter > * { animation: none; }
+}
