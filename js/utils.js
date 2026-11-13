@@ -119,6 +119,93 @@ export function closeModal() {
 }
 
 // ─────────────────────────────────────
+//  共通ボトムシート土台（UI洗練9）
+//  個別実装が乱立していたピッカー系シートをここへ寄せる。
+//  開閉アニメーション・背景クリック・下スワイプ・Esc・背景の
+//  スクロール固定を1か所で面倒みる。呼び出し側は title と
+//  bodyHTML（スクロール領域の中身）だけを渡す。
+// ─────────────────────────────────────
+
+/**
+ * @param {Object}   opts
+ * @param {string}   [opts.id]       シート識別子（多重表示防止に使う）
+ * @param {string}   [opts.title]    見出し
+ * @param {string}   opts.bodyHTML   スクロール領域に入れるHTML
+ * @param {number}   [opts.zIndex]   重なり（既定 1100: 保存バー1000より前面）
+ * @param {Function} [opts.onClose]  閉じ終わった後に呼ばれる
+ * @returns {{ el: HTMLElement, close: Function }} el はオーバーレイ要素
+ */
+export function showSheet({ id = '', title = '', bodyHTML = '', zIndex = 1100, onClose } = {}) {
+  if (id) document.getElementById(id)?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'ui-sheet-overlay';
+  if (id) overlay.id = id;
+  overlay.style.zIndex = zIndex;
+  overlay.innerHTML = `
+    <div class="ui-sheet">
+      <div class="modal-handle"></div>
+      <div class="ui-sheet-head">
+        <div class="ui-sheet-title">${title}</div>
+        <button class="ui-sheet-close" aria-label="閉じる">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="ui-sheet-scroll">${bodyHTML}</div>
+    </div>`;
+
+  const sheet = overlay.querySelector('.ui-sheet');
+  const scroller = overlay.querySelector('.ui-sheet-scroll');
+  // 親モーダルが開いている間に出すこともあるため、元の overflow を保存して戻す
+  const prevOverflow = document.body.style.overflow;
+  document.body.style.overflow = 'hidden';
+  Sound.playOpen();
+
+  let closed = false;
+  const onKey = (e) => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onKey);
+
+  function close() {
+    if (closed) return;
+    closed = true;
+    document.removeEventListener('keydown', onKey);
+    Sound.playClose();
+    let finished = false;
+    const finish = () => {
+      if (finished) return;
+      finished = true;
+      overlay.remove();
+      document.body.style.overflow = prevOverflow;
+      onClose?.();
+    };
+    sheet.classList.add('closing');
+    const fallbackTimer = setTimeout(finish, 400);
+    sheet.addEventListener('animationend', () => {
+      clearTimeout(fallbackTimer);
+      finish();
+    }, { once: true });
+  }
+
+  overlay.querySelector('.ui-sheet-close')?.addEventListener('click', close);
+  overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
+
+  // 下スワイプで閉じる（openModal と同じ判定: スクロール最上部で 60px 以上）
+  let startY = 0;
+  let startScrollTop = 0;
+  sheet.addEventListener('touchstart', (e) => {
+    startY = e.touches[0].clientY;
+    startScrollTop = scroller.scrollTop;
+  }, { passive: true });
+  sheet.addEventListener('touchend', (e) => {
+    const dy = e.changedTouches[0].clientY - startY;
+    if (startScrollTop === 0 && dy > 60) close();
+  }, { passive: true });
+
+  document.body.appendChild(overlay);
+  return { el: overlay, close };
+}
+
+// ─────────────────────────────────────
 //  メモ欄（新規・複製・編集で共通）
 //  改行を扱える textarea + URLリンクチップを1か所にまとめ、
 //  どの画面から開いても同じ見た目・挙動になるようにしている。

@@ -1594,3 +1594,70 @@ body.page-records #mobile-month-label {
     }
   }
 }
+
+/* ══════════════════════════════
+   UI洗練9: 共通ボトムシート土台（.ui-sheet）
+   utils.js の showSheet() が生成する。見た目と動きは本流の
+   #modal-add-record（sheet-slide-up / down）に合わせてある。
+   個別ピッカーはこの土台に寄せ、実装を1か所に保つ。
+   ══════════════════════════════ */
+.ui-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(28,43,34,0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.ui-sheet {
+  background: var(--stone);
+  width: 100%;
+  max-width: 480px;
+  border-radius: 20px 20px 0 0;
+  display: flex;
+  flex-direction: column;
+  max-height: 85vh;
+  animation: sheet-slide-up 0.28s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.ui-sheet.closing {
+  animation: sheet-slide-down 0.25s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+.ui-sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 10px;
+  flex-shrink: 0;
+}
+.ui-sheet-title {
+  font-family: 'Noto Serif JP', serif;
+  font-size: 15px;
+  font-weight: 600;
+}
+.ui-sheet-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--mist);
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--mid);
+  flex-shrink: 0;
+}
+.ui-sheet-scroll {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 14px calc(40px + env(safe-area-inset-bottom));
+  flex: 1;
+  min-height: 0;
+}
+@media (min-width: 769px) {
+  .ui-sheet-overlay { align-items: center; }
+  .ui-sheet { border-radius: var(--radius); max-height: 90vh; }
+  .ui-sheet .modal-handle { display: none; }
+}
