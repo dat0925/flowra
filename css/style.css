@@ -1559,3 +1559,38 @@ body.page-records #mobile-month-label {
    スクロール位置の飛びも起きにくい。未対応ブラウザでは無視される。
 ══════════════════════════════ */
 .tx-item { content-visibility: auto; contain-intrinsic-size: auto 62px; }
+
+/* ══════════════════════════════
+   iOS 27 PWA 上端ブラー対策（2026-11-13）
+   iOS 27 のホーム画面アプリでは画面上端にプログレッシブブラー
+   （WebKit の scroll pocket）がかかり、ヘッダーの月切り替えが読めなくなる。
+   仕組みと対処（検証記事: https://zenn.dev/uakihir0/articles/260920-ios27-pwa-blur ）:
+   - ブラーは「上端に fixed の color extension view があると消える」の1条件で決まる
+   - その機構はステータスバーをプラットフォームが持つ場合にだけ生きるため、
+     index.html の apple-mobile-web-app-status-bar-style: black-translucent は削除済み
+   - このストリップは上端中央のサンプリング点を受けるための「色見本」。
+     background-color にアプリ色を持ちながら background-clip: text で
+     1px も塗らない（空要素なので描画されない）。色は computed style から読まれる。
+   - 高さ 11px は WebKit の thin 判定（10px）を超えるための値で、デザインではない
+   - 公開 API ではない内部挙動への対処。将来 theme-color 等で制御できるようになったら
+     この要素とメタタグ削除は最初に見直すこと
+   ══════════════════════════════ */
+.ios-status-strip { display: none; }
+
+@supports (-webkit-touch-callout: none) {
+  @media (display-mode: standalone) {
+    .ios-status-strip {
+      display: block;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 11px;
+      z-index: 2147483647;
+      pointer-events: none;
+      background-color: var(--ink);
+      -webkit-background-clip: text;
+      background-clip: text;
+    }
+  }
+}

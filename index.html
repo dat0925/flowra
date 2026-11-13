@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="theme-color" content="#1C2B22">
   <title>家計管理アプリ Flowra（フローラ）— レシートを撮るだけ。</title>
   <meta name="description" content="フローラ（Flowra）はレシートを撮るだけでAIが品目・金額を自動読み取り。パートナーとリアルタイム共有できる家計管理アプリ。無料で使えます。">
@@ -27,6 +26,9 @@
   </script>
 </head>
 <body style="margin:0;">
+
+  <!-- iOS 27 PWA: 上端ブラー（scroll pocket）抑制用の色見本ストリップ。何も描かない（css/style.css 末尾の .ios-status-strip 参照） -->
+  <div class="ios-status-strip" aria-hidden="true"></div>
 
   <!-- ── スプラッシュスクリーン ── -->
   <div id="splash" style="position:fixed;inset:0;z-index:9999;background:#1C2B22;display:flex;align-items:center;justify-content:center;flex-direction:column;">
