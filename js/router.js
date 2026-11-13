@@ -150,6 +150,14 @@ export const Router = {
     if (content && page !== prevPage) {
       content.innerHTML = pageSkeletonHTML(page);
       content.scrollTop = 0;
+      // 画面切替のフェードイン（UI洗練1: View Transition）
+      // 旧画面のスナップショットは使わず、新画面だけがふわりと入る。
+      // クラスは短時間で外すため、効くのはスケルトンと、その直後に
+      // ハンドラが描く実画面の子要素だけ（後からの追記・再描画には効かない）。
+      content.classList.remove('page-enter');
+      content.classList.add('page-enter');
+      clearTimeout(this._enterTimer);
+      this._enterTimer = setTimeout(() => content.classList.remove('page-enter'), 700);
     }
     this._syncPageClass();
     const handler = this._pageHandlers[page];
