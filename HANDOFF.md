@@ -4,6 +4,38 @@
 
 ---
 
+## 📱 iOS 27 の上端ブラー対策（ステータスバーをプラットフォームへ返却）（2026-11-13）
+
+**背景**: iOS 27 に上げてから、ホーム画面アプリの画面上端にプログレッシブ
+ブラー（WebKit の scroll edge effect / scroll pocket）がかかり、ヘッダーの
+月切り替え（< 2026年11月 >）がぼやけて操作しづらくなった（本人申告・実機スクショで確認）。
+Safari でも同現象が出る OS 側の仕様で、アプリの不具合ではない。
+
+**仕組み**（出典: https://zenn.dev/uakihir0/articles/260920-ios27-pwa-blur ）
+- ブラーは「上端に fixed の color extension view があると消える」の1条件で決まる。
+- その機構は `_obscuredInsets.top > 0`、つまりステータスバーをプラットフォームが
+  持っているときにだけ生きる。`black-translucent`（edge-to-edge）では機構自体が
+  死ぬため、ページ側の工夫ではブラーを消せない。
+
+**変更内容**:
+- `index.html`: `apple-mobile-web-app-status-bar-style: black-translucent` を削除。
+  ステータスバーはプラットフォーム側に戻り、帯はアプリ色（--ink）で平たく塗られる。
+  レイアウトビューポートはステータスバー分（約59px）縮む。PWA では
+  `env(safe-area-inset-top)` が 0 になり、#mobile-header の padding-top は
+  12px に落ちる（想定どおり。高さは --app-h が innerHeight 実測なので自動追随）。
+- `index.html` + `css/style.css`: 色見本ストリップ `.ios-status-strip` を追加。
+  上端中央のサンプリング点を受ける fixed 要素で、background-color: var(--ink) を
+  持ちながら `background-clip: text` で何も描かない（空要素）。色は computed style
+  から読まれる。高さ 11px は WebKit の thin 判定（10px）超えのため。
+  表示は iOS のホーム画面アプリ（display-mode: standalone）だけに限定。
+
+**注意**: 公開 API ではない WebKit 内部挙動への対処。iOS の将来バージョンで
+theme-color や manifest から制御できるようになったら、この2点は最初に見直す。
+実機確認ポイント: ヘッダーがくっきり見える／月切り替えが読みやすい／
+ステータスバーの帯が濃緑で時計が読める／画面の上下に余白や被りが出ない。
+
+---
+
 ## 🎨 UI洗練6: content-visibility（長い一覧の描画コスト削減）（2026-11-13）
 
 **背景**: UI 洗練セットの5項目め（最終）。記録一覧とホームの取引リストは
