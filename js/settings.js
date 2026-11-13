@@ -7,6 +7,7 @@ import { supabase } from './config.js';
 import { DB }    from './db.js';
 import { showToast, openModal, closeModal } from './utils.js';
 import { getCachedTags, putTags } from './cache.js';
+import { pageSkeletonHTML } from './router.js';
 import { warmupAddRecord } from './add-record.js';
 import { showOnboardingForReplay } from './onboarding.js';
 
@@ -103,7 +104,7 @@ export async function renderSettings() {
   const mySeq = ++_settingsRenderSeq;
 
   const content = document.getElementById('page-content');
-  content.innerHTML = '<div class="spinner"></div>';
+  content.innerHTML = pageSkeletonHTML('settings');
 
   try {
     // ユーザー・タグは即時取得して先に描画
@@ -1756,7 +1757,6 @@ function openTeamNameSheet(team, teamId) {
         displayEl.textContent = name;
       } else {
         // フォールバック: フルre-render
-        document.getElementById('page-content').innerHTML = '<div class="spinner"></div>';
         await renderSettings();
       }
     } catch (e) {
@@ -1845,7 +1845,6 @@ function openTagAddSheet(tags) {
       Sound.playSave();
       closeSheet();
       showToast('✓ タグを追加しました');
-      document.getElementById('page-content').innerHTML = '<div class="spinner"></div>';
       await renderSettings();
     } catch (e) {
       errorEl.textContent = '追加に失敗しました。';

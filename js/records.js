@@ -3,7 +3,7 @@
 //  キャッシュ優先 + バックグラウンド同期
 // ─────────────────────────────────────
 import { DB }         from './db.js';
-import { MonthState } from './router.js';
+import { MonthState, pageSkeletonHTML } from './router.js';
 import { fmt, showToast } from './utils.js';
 import { getCachedTransactions, upsertTransactions, replaceMonthTransactions, putAccounts } from './cache.js';
 import { openEditRecord } from './edit-record.js';
@@ -130,7 +130,7 @@ export async function renderRecords({ focusSearch = false } = {}) {
     _allTx = cachedTxs;
     renderShell(cachedTxs, year, month, focusSearch);
   } else {
-    content.innerHTML = '<div class="spinner"></div>';
+    content.innerHTML = pageSkeletonHTML('records');
   }
 
   // ── STEP 2: バックグラウンドで最新取得 ──
