@@ -8,7 +8,7 @@ import { fmt }        from './app.js';
 import {
   getCachedAccounts, putAccounts,
   getCachedTransactions, upsertTransactions, replaceMonthTransactions,
-  getLastSync, setLastSync, filterPendingDeletes
+  getLastSync, setLastSync, filterPendingDeletes, txListSignature
 } from './cache.js';
 import { openEditRecord } from './edit-record.js';
 import { supabase }     from './config.js';
@@ -135,6 +135,14 @@ function resetPaging() {
   if (_observer) { _observer.disconnect(); _observer = null; }
 }
 
+// 差分更新（UI洗練3）: 表示中データのシグネチャ
+let _dashSig = '';
+function dashboardSignature(accounts, txs, year, month) {
+  const hidden = localStorage.getItem('flowra_balance_hidden') === '1' ? 'h' : 's';
+  const acctSig = accounts.map(a => a.id + ':' + a.balance).join(',');
+  return year + '-' + month + ':' + hidden + ':' + acctSig + ':' + txListSignature(txs);
+}
+
 export async function renderDashboard() {
   const content = document.getElementById('page-content');
   const { year, month } = MonthState;
@@ -149,7 +157,13 @@ export async function renderDashboard() {
   // 口座が0件でもキャッシュ済みとみなす（口座なし状態も正常）
   const hasCached = cachedAccounts.length > 0 || cachedTxs.length > 0;
   if (hasCached) {
-    renderContent(content, cachedAccounts, cachedTxs, year, month, true);
+    const sig = dashboardSignature(cachedAccounts, cachedTxs, year, month);
+    if (sig === _dashSig && document.getElementById('s-card-total')) {
+      // 表示中の内容と同一 → 再描画しない（STEP2の静かな更新に任せる）
+    } else {
+      renderContent(content, cachedAccounts, cachedTxs, year, month, true);
+      _dashSig = sig;
+    }
   } else {
     content.innerHTML = pageSkeletonHTML('dashboard');
   }
@@ -491,7 +505,10 @@ async function syncInBackground(year, month, hadCache, cachedTxCount = 0) {
     })();
     if (!hadCache || cachedTxCount === 0 || !isCurrentMonth) {
       const content = document.getElementById('page-content');
-      if (content) renderContent(content, accounts, result.data, year, month, false);
+      if (content) {
+        renderContent(content, accounts, result.data, year, month, false);
+        _dashSig = dashboardSignature(accounts, result.data, year, month);
+      }
     } else {
       // キャッシュありの場合：サマリー数字だけ静かに更新（スクロール位置を維持）
       // 注意: 以前は DB.getDelta(lastSync) が空だった場合に更新自体をスキップして

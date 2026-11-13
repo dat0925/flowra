@@ -5,7 +5,7 @@
 import { DB }         from './db.js';
 import { MonthState, pageSkeletonHTML } from './router.js';
 import { fmt, showToast } from './utils.js';
-import { getCachedTransactions, upsertTransactions, replaceMonthTransactions, putAccounts, filterPendingDeletes } from './cache.js';
+import { getCachedTransactions, upsertTransactions, replaceMonthTransactions, putAccounts, filterPendingDeletes, txListSignature } from './cache.js';
 import { openEditRecord } from './edit-record.js';
 import { showAccountPicker } from './account-picker.js';
 
@@ -95,6 +95,8 @@ let currentFilter  = 'all';
 let searchQuery    = '';
 let _allTx         = [];   // 当月トランザクション
 let _searchResults = [];   // 検索結果（タップ用）
+let _shellSig = '';        // 表示中シェルのデータシグネチャ（UI洗練3）
+let _lastListHTML = null;  // 最後に描いたリストHTML（UI洗練3）
 let _searchDebounce = null; // デバウンスタイマー
 let _searchGen     = 0;    // 競合防止カウンター（古い非同期結果を破棄）
 let _searchScope   = 'recent'; // 'recent'=直近1ヶ月（デフォルト・高速） / 'all'=全期間
@@ -115,6 +117,12 @@ export async function renderRecords({ focusSearch = false } = {}) {
   const content = document.getElementById('page-content');
   const { year, month } = MonthState;
 
+  // 差分更新（UI洗練3）: 既定表示のまま・同一データならシェル再構築を省略する
+  // （プル更新・画面復帰・編集シートを閉じた直後のちらつき防止）。
+  // 判定はこの後のリセット前の表示状態で行う。
+  const canSkipShell = !focusSearch && !searchQuery.trim()
+    && currentFilter === 'all' && !selectionMode;
+
   currentFilter  = 'all';
   searchQuery    = '';
   _searchResults = [];
@@ -128,7 +136,12 @@ export async function renderRecords({ focusSearch = false } = {}) {
   const cachedTxs = await getCachedTransactions({ year, month });
   if (cachedTxs.length > 0) {
     _allTx = cachedTxs;
-    renderShell(cachedTxs, year, month, focusSearch);
+    const sig = year + '-' + month + ':' + txListSignature(cachedTxs);
+    if (canSkipShell && sig === _shellSig && document.getElementById('records-list')) {
+      // 表示中の内容と同一 → 再描画しない（STEP2の静かな更新に任せる）
+    } else {
+      renderShell(cachedTxs, year, month, focusSearch);
+    }
   } else {
     content.innerHTML = pageSkeletonHTML('records');
   }
@@ -179,6 +192,8 @@ export async function renderRecords({ focusSearch = false } = {}) {
 }
 
 function renderShell(transactions, year, month, focusSearch = false) {
+  _shellSig = year + '-' + month + ':' + txListSignature(transactions);
+  _lastListHTML = null;
   const content = document.getElementById('page-content');
   const income  = transactions.filter(t=>t.type==='income' ).reduce((s,t)=>s+t.amount,0);
   const expense = transactions.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
@@ -507,11 +522,15 @@ async function renderList() {
 
   // ── 空状態 ──────────────────────────────
   if (filtered.length === 0) {
-    listEl.innerHTML = `<div class="empty-state">
+    const html = `<div class="empty-state">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <div class="empty-state-title">${isGlobal ? '見つかりませんでした' : '記録がありません'}</div>
       <div class="empty-state-sub">${isGlobal ? 'メモ・口座・タグ名で検索できます' : '＋ボタンから記録を追加してください'}</div>
     </div>`;
+    if (isGlobal || html !== _lastListHTML) {
+      listEl.innerHTML = html;
+      _lastListHTML = html;
+    }
     return;
   }
 
@@ -522,8 +541,14 @@ async function renderList() {
     grouped[tx.date].push(tx);
   });
 
-  listEl.innerHTML = buildTxGroupsHTML(grouped, isGlobal)
+  const html = buildTxGroupsHTML(grouped, isGlobal)
     + (isGlobal && _searchHasMore ? loadMoreButtonHTML() : '');
+  // 差分更新（UI洗練3）: 当月表示で同一内容なら DOM を差し替えない
+  // （スクロール位置と行の状態を保つ。検索中はスピナー表示済みのため常時描く）
+  if (isGlobal || html !== _lastListHTML) {
+    listEl.innerHTML = html;
+    _lastListHTML = html;
+  }
 
   // クリックはrenderShellのイベントデリゲーションで処理
 }
@@ -639,6 +664,7 @@ async function loadMoreSearch() {
 
     listEl.innerHTML = buildTxGroupsHTML(grouped, true)
       + (_searchHasMore ? loadMoreButtonHTML() : '');
+    _lastListHTML = null;
   } catch (e) {
     if (btn) { btn.textContent = 'もっと見る（失敗・タップして再試行）'; btn.disabled = false; }
   }
@@ -909,6 +935,7 @@ async function refreshAfterBulkChange() {
 
 // 保存後に_allTxに追加してリストを差し込む（再描画なし）
 export function patchAddRecord(tx) {
+  _lastListHTML = null;
   _allTx = [tx, ..._allTx];
 
   const listEl = document.getElementById('records-list');

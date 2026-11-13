@@ -180,6 +180,13 @@ export async function replaceMonthTransactions(year, month, rows) {
   ))));
 }
 
+// 表示中データの同一性判定用シグネチャ（UI洗練3: 差分更新）
+// id と updated_at の並びが同じなら、描画結果も同じとみなす。
+export function txListSignature(txs) {
+  if (!txs) return '';
+  return txs.map(t => t.id + ':' + (t.updated_at || '')).join('|');
+}
+
 // ── 削除予約（UI洗練2: Undo可能な削除）──────────────────
 // サーバー削除を実行するまでの間、対象IDをメモリに保持する。
 // 描画側は filterPendingDeletes() で、サーバーにまだ残っている行を
