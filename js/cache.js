@@ -149,7 +149,11 @@ export async function upsertTransactions(rows) {
   if (!rows || rows.length === 0) return;
   await openDB();
   const store = _db.transaction(STORES.transactions, 'readwrite').objectStore(STORES.transactions);
-  await Promise.all(rows.map(r => promisify(store.put(r))));
+  // 削除予約中の行は、サーバー由来の新しい行で上書きされても
+  // _deleted フラグを維持する（表示から消えたままにする）
+  await Promise.all(rows.map(r => promisify(store.put(
+    _pendingDeleteIds.has(r.id) ? { ...r, _deleted: true } : r
+  ))));
 }
 
 // 指定月の「正解データ」で丸ごと置き換える（ゴースト残留防止）
@@ -170,15 +174,54 @@ export async function replaceMonthTransactions(year, month, rows) {
     .map(t => t.id);
 
   await Promise.all(staleIds.map(id => promisify(store.delete(id))));
-  await Promise.all((rows || []).map(r => promisify(store.put(r))));
+  // 削除予約中の行はフラグを維持したまま書き込む（裏同期で復活させない）
+  await Promise.all((rows || []).map(r => promisify(store.put(
+    _pendingDeleteIds.has(r.id) ? { ...r, _deleted: true } : r
+  ))));
+}
+
+// ── 削除予約（UI洗練2: Undo可能な削除）──────────────────
+// サーバー削除を実行するまでの間、対象IDをメモリに保持する。
+// 描画側は filterPendingDeletes() で、サーバーにまだ残っている行を
+// 表示から除外する。アプリを閉じて予約が消えた場合は未確定の削除として
+// 扱われ、記録は次回同期でそのまま残る（消えない側に倒す）。
+const _pendingDeleteIds = new Set();
+
+export function isPendingDelete(id) {
+  return _pendingDeleteIds.has(id);
+}
+
+export function filterPendingDeletes(rows) {
+  if (_pendingDeleteIds.size === 0 || !rows) return rows;
+  return rows.filter(r => !_pendingDeleteIds.has(r.id));
+}
+
+// サーバー削除が確定したら予約だけを解除する
+// （キャッシュ行の _deleted フラグは残し、次の全件同期で物理削除される）
+export function clearPendingDelete(id) {
+  _pendingDeleteIds.delete(id);
 }
 
 // 削除フラグ付きでマーク（実データは残す）
 export async function markDeletedTransaction(id) {
+  _pendingDeleteIds.add(id);
   await openDB();
   const store = _db.transaction(STORES.transactions, 'readwrite').objectStore(STORES.transactions);
   const row = await promisify(store.get(id));
   if (row) await promisify(store.put({ ...row, _deleted: true }));
+}
+
+// 削除の取り消し：フラグを外して表示対象に戻す
+export async function unmarkDeletedTransaction(id) {
+  _pendingDeleteIds.delete(id);
+  await openDB();
+  const store = _db.transaction(STORES.transactions, 'readwrite').objectStore(STORES.transactions);
+  const row = await promisify(store.get(id));
+  if (row && row._deleted) {
+    const restored = { ...row };
+    delete restored._deleted;
+    await promisify(store.put(restored));
+  }
 }
 
 // キャッシュ全消去（ログアウト時など）

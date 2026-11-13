@@ -8,7 +8,7 @@ import { fmt }        from './app.js';
 import {
   getCachedAccounts, putAccounts,
   getCachedTransactions, upsertTransactions, replaceMonthTransactions,
-  getLastSync, setLastSync
+  getLastSync, setLastSync, filterPendingDeletes
 } from './cache.js';
 import { openEditRecord } from './edit-record.js';
 import { supabase }     from './config.js';
@@ -472,6 +472,9 @@ async function syncInBackground(year, month, hadCache, cachedTxCount = 0) {
       DB.getAccounts(),
       DB.getTransactions({ year, month, pageSize: 500 }),
     ]);
+
+    // 削除予約中（Undo待ち）の行はサーバーにまだ残っているので除外する
+    result.data = filterPendingDeletes(result.data);
 
     // IndexedDB に保存
     // 当月分は「正解データ」で丸ごと置き換える（サーバー側で削除済みの取引が

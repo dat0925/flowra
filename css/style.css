@@ -1025,6 +1025,12 @@ body.page-records #mobile-month-label {
   white-space: nowrap;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.actionable { pointer-events: auto; display: flex; align-items: center; gap: 14px; }
+.toast-action {
+  background: none; border: none; color: var(--sage-lt);
+  font-family: inherit; font-size: 13px; font-weight: 700;
+  cursor: pointer; padding: 2px 4px; white-space: nowrap;
+}
 
 /* SPINNER */
 .spinner {
