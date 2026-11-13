@@ -7,6 +7,8 @@ import { fmt, showToast, openModal, closeModal } from './app.js';
 import { getCachedAccounts, putAccounts, removeAccount } from './cache.js';
 import { pageSkeletonHTML } from './router.js';
 
+let _acctSig = '';  // 表示中データのシグネチャ（UI洗練3: 差分更新）
+
 const ACCT_TYPES = [
   { value: 'cash',   label: '現金' },
   { value: 'bank',   label: '銀行' },
@@ -93,6 +95,10 @@ export async function renderAccounts() {
 }
 
 async function renderAccountsContent(content, accounts) {
+    // 差分更新（UI洗練3）: 同一データなら再描画しない
+    const sig = accounts.map(a => [a.id, a.balance, a.sort_order ?? '', a.name, a.color || ''].join(':')).join('|');
+    if (sig === _acctSig && content.querySelector('.acct-total')) return;
+    _acctSig = sig;
     const total = accounts.reduce((s, a) => s + a.balance, 0);
     const totalPositive = accounts.reduce((s, a) => s + (a.balance > 0 ? a.balance : 0), 0);
 
