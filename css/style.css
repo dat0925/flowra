@@ -1551,3 +1551,11 @@ body.page-records #mobile-month-label {
 @media (prefers-reduced-motion: reduce) {
   #page-content.page-enter > * { animation: none; }
 }
+
+/* ══════════════════════════════
+   CONTENT-VISIBILITY（長い一覧の描画コスト削減）
+   画面外の取引行はレイアウト・描画を省略してスクロールを軽くする。
+   contain-intrinsic-size の auto は一度描いた行の高さを覚えるため、
+   スクロール位置の飛びも起きにくい。未対応ブラウザでは無視される。
+══════════════════════════════ */
+.tx-item { content-visibility: auto; contain-intrinsic-size: auto 62px; }
