@@ -1523,8 +1523,8 @@ body.page-records #mobile-month-label {
 ══════════════════════════════ */
 .page-skeleton { animation: skel-fadein 0.18s ease both; }
 @keyframes skel-fadein { from { opacity: 0; } to { opacity: 1; } }
-.skel { background: var(--mist); border-radius: 8px; animation: skel-pulse 1.3s ease-in-out infinite; }
-@keyframes skel-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+.skel { background: #C8D5CD; border-radius: 8px; animation: skel-pulse 1.3s ease-in-out infinite; }
+@keyframes skel-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.62; } }
 .skel-card { border-radius: var(--radius); height: 108px; margin-bottom: 10px; }
 .skel-card-half { height: 92px; margin-bottom: 0; }
 .skel-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
