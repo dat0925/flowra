@@ -132,25 +132,29 @@ export function closeModal() {
  * @param {string}   [opts.title]    見出し
  * @param {string}   opts.bodyHTML   スクロール領域に入れるHTML
  * @param {number}   [opts.zIndex]   重なり（既定 1100: 保存バー1000より前面）
+ * @param {boolean}  [opts.head]     見出し行を出すか（既定 true）
+ * @param {boolean}  [opts.hideClose] 見出し行の×を隠すか（既定 false）
  * @param {Function} [opts.onClose]  閉じ終わった後に呼ばれる
  * @returns {{ el: HTMLElement, close: Function }} el はオーバーレイ要素
  */
-export function showSheet({ id = '', title = '', bodyHTML = '', zIndex = 1100, onClose } = {}) {
+export function showSheet({ id = '', title = '', bodyHTML = '', zIndex = 1100, head = true, hideClose = false, onClose } = {}) {
   if (id) document.getElementById(id)?.remove();
 
   const overlay = document.createElement('div');
   overlay.className = 'ui-sheet-overlay';
   if (id) overlay.id = id;
   overlay.style.zIndex = zIndex;
+  const headHTML = head ? `
+      <div class="ui-sheet-head">
+        <div class="ui-sheet-title">${title}</div>
+        ${hideClose ? '' : `<button class="ui-sheet-close" aria-label="閉じる">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>`}
+      </div>` : '';
   overlay.innerHTML = `
     <div class="ui-sheet">
       <div class="modal-handle"></div>
-      <div class="ui-sheet-head">
-        <div class="ui-sheet-title">${title}</div>
-        <button class="ui-sheet-close" aria-label="閉じる">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
+      ${headHTML}
       <div class="ui-sheet-scroll">${bodyHTML}</div>
     </div>`;
 
