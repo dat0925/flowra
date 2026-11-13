@@ -2,6 +2,7 @@
 //  router.js  画面遷移・月ナビ
 // ─────────────────────────────────────
 import { Sound } from './sound.js';
+import { showSheet } from './utils.js';
 
 // 現在の月（グローバル状態）
 export const MonthState = {
@@ -331,15 +332,6 @@ export const Router = {
 
   // 年月ピッカーモーダルを表示
   _showMonthPicker() {
-    Sound.playOpen();
-    const overlay = document.createElement('div');
-    overlay.id = 'month-picker-overlay';
-    overlay.style.cssText = `
-      position:fixed;inset:0;z-index:700;
-      background:rgba(0,0,0,0.45);
-      display:flex;align-items:flex-end;justify-content:center;
-    `;
-
     const now    = new Date();
     const curY   = MonthState.year;
     const curM   = MonthState.month;
@@ -350,18 +342,12 @@ export const Router = {
     const years = [];
     for (let y = maxYear; y >= minYear; y--) years.push(y);
 
-    overlay.innerHTML = `
-      <div id="month-picker-sheet" style="
-        background:var(--stone);border-radius:20px 20px 0 0;
-        width:100%;max-width:480px;padding:0 0 env(safe-area-inset-bottom,16px);
-        max-height:80vh;display:flex;flex-direction:column;
-      ">
-        <div style="display:flex;align-items:center;justify-content:space-between;
-          padding:16px 20px 12px;border-bottom:1px solid var(--border);">
-          <span style="font-size:15px;font-weight:600;">年月を選択</span>
-          <button id="mp-close" style="background:none;border:none;font-size:22px;color:var(--mid);cursor:pointer;line-height:1;">×</button>
-        </div>
-        <div style="overflow-y:auto;padding:12px 16px 8px;flex:1;">
+    const { el, close } = showSheet({
+      id: 'month-picker-overlay',
+      title: '年月を選択',
+      zIndex: 700,
+      bodyHTML: `
+        <div style="padding:4px 2px 0;">
           ${years.map(y => `
             <div class="mp-year-block" style="margin-bottom:12px;">
               <div style="font-size:12px;color:var(--mid);font-weight:600;margin-bottom:6px;padding-left:4px;">${y}年</div>
@@ -381,23 +367,15 @@ export const Router = {
               </div>
             </div>
           `).join('')}
-        </div>
-      </div>
-    `;
+        </div>`,
+    });
 
-    document.body.appendChild(overlay);
-
-    overlay.addEventListener('click', e => {
+    el.addEventListener('click', e => {
       const btn = e.target.closest('button[data-y]');
       if (btn) {
         Sound.playTap();
         this._jumpToMonth(+btn.dataset.y, +btn.dataset.m);
-        overlay.remove();
-        return;
-      }
-      if (e.target === overlay || e.target.id === 'mp-close') {
-        Sound.playClose();
-        overlay.remove();
+        close();
       }
     });
   },

@@ -2,6 +2,7 @@
 import { DB } from './db.js';
 import { MonthState } from './router.js';
 import { supabase } from './config.js';
+import { Sound } from './sound.js';
 
 const fmt = n => Math.abs(n).toLocaleString('ja-JP');
 
@@ -24,7 +25,7 @@ export async function openSummarySheet() {
 
   const overlay = document.createElement('div');
   overlay.id = 'summary-sheet-overlay';
-  overlay.style.cssText = `position:fixed;inset:0;z-index:800;background:rgba(0,0,0,0.45);display:flex;align-items:flex-end;justify-content:center;`;
+  overlay.style.cssText = `position:fixed;inset:0;z-index:800;background:rgba(28,43,34,0.5);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:flex-end;justify-content:center;`;
   overlay.innerHTML = `
     <div id="summary-sheet" style="width:100%;max-width:640px;background:var(--stone);border-radius:20px 20px 0 0;height:90vh;display:flex;flex-direction:column;overflow:hidden;">
       <!-- ヘッダー（ホームと同じレイアウト：左タイトル、中央月ナビ、右今月+閉じる） -->
@@ -58,6 +59,7 @@ export async function openSummarySheet() {
       </div>
     </div>`;
   document.body.appendChild(overlay);
+  Sound.playOpen();
 
   const sheet = document.getElementById('summary-sheet');
   sheet.style.transform = 'translateY(100%)';
@@ -67,9 +69,13 @@ export async function openSummarySheet() {
   });
 
   const close = () => {
+    Sound.playClose();
+    document.removeEventListener('keydown', onSummaryKey);
     sheet.style.transform = 'translateY(100%)';
     setTimeout(() => overlay.remove(), 300);
   };
+  const onSummaryKey = (e) => { if (e.key === 'Escape') close(); };
+  document.addEventListener('keydown', onSummaryKey);
   document.getElementById('btn-close-summary').addEventListener('click', close);
   overlay.addEventListener('click', e => { if (e.target === overlay) close(); });
 

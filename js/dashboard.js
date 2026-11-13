@@ -12,6 +12,7 @@ import {
 } from './cache.js';
 import { openEditRecord } from './edit-record.js';
 import { supabase }     from './config.js';
+import { showSheet }    from './utils.js';
 
 const PAGE_SIZE = 50;
 
@@ -724,11 +725,6 @@ function setupAiSummary(transactions, year, month) {
   }
 
   function showUpgradeSheet(isPremium = false) {
-    if (document.getElementById('upgrade-sheet')) return;
-    const sheet = document.createElement('div');
-    sheet.id = 'upgrade-sheet';
-    sheet.style.cssText = 'position:fixed;inset:0;z-index:800;background:rgba(28,43,34,0.5);'
-      + 'display:flex;align-items:flex-end;justify-content:center;';
 
     const premiumContent = `
       <div style="font-size:32px;margin-bottom:12px;">✨</div>
@@ -794,16 +790,13 @@ function setupAiSummary(transactions, year, month) {
         来月まで待つ
       </button>`;
 
-    sheet.innerHTML = `
-      <div style="background:var(--stone);width:100%;max-width:480px;border-radius:24px 24px 0 0;
-        padding:32px 24px 48px;text-align:center;">
-        <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:0 auto 24px;"></div>
-        ${isPremium ? premiumContent : freeContent}
-      </div>`;
-
-    document.body.appendChild(sheet);
-    sheet.addEventListener('click', e => { if (e.target === sheet) sheet.remove(); });
-    document.getElementById('upgrade-sheet-close')?.addEventListener('click', () => sheet.remove());
+    const { close } = showSheet({
+      id: 'upgrade-sheet',
+      head: false,
+      zIndex: 800,
+      bodyHTML: `<div style="padding:16px 10px 8px;text-align:center;">${isPremium ? premiumContent : freeContent}</div>`,
+    });
+    document.getElementById('upgrade-sheet-close')?.addEventListener('click', () => close());
   }
 
   // 自動一言表示（ページ読み込み時・既存データのみ使用）
