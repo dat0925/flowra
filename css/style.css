@@ -1022,10 +1022,13 @@ body.page-records #mobile-month-label {
   opacity: 0;
   transition: all 0.25s;
   pointer-events: none;
-  white-space: nowrap;
+  max-width: calc(100vw - 32px);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: center;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-.toast.actionable { pointer-events: auto; display: flex; align-items: center; gap: 14px; }
+.toast.actionable { pointer-events: auto; display: flex; align-items: center; gap: 14px; text-align: left; }
 .toast-action {
   background: none; border: none; color: var(--sage-lt);
   font-family: inherit; font-size: 13px; font-weight: 700;
