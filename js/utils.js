@@ -87,6 +87,16 @@ export function openModal(contentHTML) {
     // リスナーを保持しておく（将来の削除に備えて）
     sheet._swipeHandlers = { onTouchStart, onTouchEnd };
   }
+
+  // Esc で閉じる（上にシート/ダイアログがある時はそちらを優先）
+  if (!overlay._escInit) {
+    overlay._escInit = true;
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || overlay.hidden) return;
+      if (document.querySelector('.ui-sheet-overlay, .ui-dialog-overlay, #receipt-overlay, #scan-overlay')) return;
+      closeModal();
+    });
+  }
 }
 
 export function closeModal() {
