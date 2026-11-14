@@ -144,10 +144,11 @@ export function closeModal() {
  * @param {number}   [opts.zIndex]   重なり（既定 1100: 保存バー1000より前面）
  * @param {boolean}  [opts.head]     見出し行を出すか（既定 true）
  * @param {boolean}  [opts.hideClose] 見出し行の×を隠すか（既定 false）
+ * @param {Function} [opts.onBeforeClose] 閉じ始め（DOMが残っている間）に呼ばれる
  * @param {Function} [opts.onClose]  閉じ終わった後に呼ばれる
  * @returns {{ el: HTMLElement, close: Function }} el はオーバーレイ要素
  */
-export function showSheet({ id = '', title = '', bodyHTML = '', zIndex = 1100, head = true, hideClose = false, onClose } = {}) {
+export function showSheet({ id = '', title = '', bodyHTML = '', zIndex = 1100, head = true, hideClose = false, onBeforeClose, onClose } = {}) {
   if (id) document.getElementById(id)?.remove();
 
   const overlay = document.createElement('div');
@@ -182,6 +183,7 @@ export function showSheet({ id = '', title = '', bodyHTML = '', zIndex = 1100, h
   function close() {
     if (closed) return;
     closed = true;
+    onBeforeClose?.();
     document.removeEventListener('keydown', onKey);
     Sound.playClose();
     let finished = false;
