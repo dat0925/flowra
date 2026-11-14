@@ -134,7 +134,7 @@ export async function openEditRecord(tx, onSave) {
     head: false,
     zIndex: 600,
     bodyHTML: '',
-    onClose: () => {
+    onBeforeClose: () => {
       const saveBar = document.getElementById('save-bar');
       if (saveBar) saveBar.hidden = true;
     },
