@@ -7,7 +7,7 @@
 // ─────────────────────────────────────
 import { DB }        from './db.js';
 import { Sound }     from './sound.js';
-import { openModal, closeModal, showToast, escapeHtml, memoRowHTML, setupMemoField } from './utils.js';
+import { openModal, closeModal, showToast, escapeHtml, memoRowHTML, setupMemoField, showSheet } from './utils.js';
 import { getCachedTransactions } from './cache.js';
 import { showAccountPicker } from './account-picker.js';
 
@@ -1167,21 +1167,13 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
   // body.overflow を解除（モーダルが設定していた可能性）
   document.body.style.overflow = '';
 
-  const overlay = document.createElement('div');
-  overlay.id = 'receipt-overlay';
-  overlay.style.cssText = 'position:fixed;inset:0;z-index:500;display:flex;flex-direction:column;justify-content:flex-end;background:rgba(0,0,0,0.4);';
-  document.body.appendChild(overlay);
-
-  const sheet = document.createElement('div');
-  sheet.id = 'receipt-sheet';
-  sheet.style.cssText = 'background:var(--stone);border-radius:20px 20px 0 0;max-height:90dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:env(safe-area-inset-bottom);';
-  overlay.appendChild(sheet);
-
-  const closeReceipt = () => {
-    overlay.remove();
-    // 既存モーダルがhiddenになっていたら元に戻す（必要なければそのまま）
-  };
-  overlay.addEventListener('click', e => { if (e.target === overlay) closeReceipt(); });
+  const { el: overlay, close: closeReceipt } = showSheet({
+    id: 'receipt-overlay',
+    head: false,
+    zIndex: 500,
+    bodyHTML: '',
+  });
+  const sheetBody = overlay.querySelector('.ui-sheet-scroll');
 
   const { DB } = await import('./db.js');
   const budgetMap = await DB.getBudgetTagIds();
@@ -1270,8 +1262,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
   // budgetMap は上で取得済み
 
   function renderConfirmUI() {
-    const modal = document.getElementById('receipt-sheet');
-    if (!modal) return;
+    const modal = sheetBody;
 
     const acctName = (id) => accounts.find(a => a.id === id)?.name || '選択';
     const checkedItems = itemStates.filter(i => i.checked);
@@ -1377,8 +1368,7 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
         + '</div></div>'
       : '';
 
-    const html = '<div style="padding:0 14px 80px;">'
-      + '<div class="modal-handle" style="margin:0 auto 14px;"></div>'
+    const html = '<div style="padding:0 0 80px;">'
       + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">'
       + '<div style="font-family:var(--font-serif,serif);font-size:15px;font-weight:600;">レシート確認</div>'
       + '<button id="btn-receipt-cancel" style="width:30px;height:30px;border-radius:50%;background:var(--mist);border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--mid);">'
@@ -1508,13 +1498,8 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
     const primaryTags = tags.filter(t => budgetMap.has(t.id));
     const subTags     = tags.filter(t => !budgetMap.has(t.id));
 
-    const sheet = document.createElement('div');
-    sheet.style.cssText = 'position:fixed;inset:0;z-index:700;display:flex;flex-direction:column;justify-content:flex-end;';
-    sheet.innerHTML = '<div id="item-detail-backdrop" style="position:absolute;inset:0;background:rgba(0,0,0,0.3);"></div>'
-      + '<div style="position:relative;background:var(--stone);border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom));max-height:80dvh;overflow-y:auto;">'
-      + '<div style="width:36px;height:4px;background:var(--mist);border-radius:2px;margin:0 auto 16px;"></div>'
-      // 品目名
-      + '<div style="margin-bottom:14px;">'
+    // 品目名
+    const detailHTML = '<div style="margin-bottom:14px;">'
       + '<div style="font-size:11px;color:var(--mid);margin-bottom:4px;">品目名</div>'
       + '<input id="item-detail-name" value="' + item.name.replace(/"/g, '&quot;') + '" style="width:100%;padding:10px 12px;border-radius:10px;border:1.5px solid var(--mist);font-size:14px;background:var(--stone);box-sizing:border-box;">'
       + '</div>'
@@ -1555,9 +1540,24 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
         : '')
       // 税率トグル
       + '<div style="margin-bottom:20px;">'      + '<div style="font-size:11px;color:var(--mid);font-weight:600;margin-bottom:8px;">消費税率</div>'      + '<div style="display:flex;gap:8px;">'      + (() => {          const cur = item.taxRate || (getTaxRate(item) === 1.08 ? 8 : 10);          const btn8 = '<button id="tax-rate-8" style="flex:1;padding:9px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;'            + (cur === 8              ? 'border:2px solid var(--sage);background:var(--sage-bg);color:var(--sage-dk);'              : 'border:1.5px solid var(--mist);background:transparent;color:var(--mid);')            + '">軽減8%（食品）</button>';          const btn10 = '<button id="tax-rate-10" style="flex:1;padding:9px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;'            + (cur === 10              ? 'border:2px solid #9A90B8;background:#F0EEF5;color:#5A5070;'              : 'border:1.5px solid var(--mist);background:transparent;color:var(--mid);')            + '">標準10%</button>';          return btn8 + btn10;        })()      + '</div></div>'      // 完了ボタン
-      + '<button id="item-detail-done" style="width:100%;padding:14px;border-radius:14px;background:var(--sage);color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;">完了</button>'      + '</div>';
+      + '<button id="item-detail-done" style="width:100%;padding:14px;border-radius:14px;background:var(--sage);color:#fff;font-size:15px;font-weight:700;border:none;cursor:pointer;">完了</button>';
 
-    document.body.appendChild(sheet);
+    const { el: sheet, close: closeDetail } = showSheet({
+      id: 'item-detail-sheet',
+      head: false,
+      zIndex: 700,
+      bodyHTML: detailHTML,
+      onBeforeClose: () => {
+        const nameVal   = document.getElementById('item-detail-name')?.value.trim();
+        const amountVal = parseFloat(document.getElementById('item-detail-amount')?.value) || 0;
+        if (nameVal)   item.name   = nameVal;
+        if (amountVal) {
+          item.amount = item.amount < 0 ? -amountVal : amountVal;
+          item.baseAmount = item.amount; // 手動編集したら基準値もリセット
+        }
+      },
+      onClose: () => renderConfirmUI(),
+    });
 
     // 税率トグル
     const updateTaxBtns = (selected) => {
@@ -1606,20 +1606,8 @@ async function showReceiptConfirm(result, onSave, onReady, accounts, tags) {
       });
     });
 
-    // 完了
-    const close = () => {
-      const nameVal   = document.getElementById('item-detail-name')?.value.trim();
-      const amountVal = parseFloat(document.getElementById('item-detail-amount')?.value) || 0;
-      if (nameVal)   item.name   = nameVal;
-      if (amountVal) {
-        item.amount = item.amount < 0 ? -amountVal : amountVal;
-        item.baseAmount = item.amount; // 手動編集したら基準値もリセット
-      }
-      sheet.remove();
-      renderConfirmUI();
-    };
-    document.getElementById('item-detail-done')?.addEventListener('click', close);
-    document.getElementById('item-detail-backdrop')?.addEventListener('click', close);
+    // 完了（入力の反映は onBeforeClose、閉じた後の再描画は onClose で行う）
+    document.getElementById('item-detail-done')?.addEventListener('click', closeDetail);
   }
 
   // モーダルに確認UIをレンダリング
