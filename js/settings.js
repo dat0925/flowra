@@ -724,11 +724,11 @@ function openTagEditSheet(tag, allTags, budgetMap = {}) {
       </div>
 
       <!-- 削除は十分な余白をとって別ゾーンに -->
-      <div style="border-top:1px solid var(--border);padding-top:16px;">
+      <div style="border-top:1px solid var(--border);padding-top:20px;margin-top:8px;">
         <button id="btn-delete-tag"
-          style="width:100%;padding:13px;border-radius:14px;border:1px solid var(--border);
-          background:var(--white);color:var(--mid);font-family:'Noto Sans JP',sans-serif;
-          font-size:13px;font-weight:400;cursor:pointer;">
+          style="width:100%;padding:13px;border-radius:14px;border:1.5px solid var(--red);
+          background:var(--red-bg);color:var(--red);font-family:'Noto Sans JP',sans-serif;
+          font-size:13px;font-weight:600;cursor:pointer;">
           このタグを削除…
         </button>
       </div>
@@ -815,16 +815,16 @@ function openTagEditSheet(tag, allTags, budgetMap = {}) {
     if (!deleteConfirmPending) {
       deleteConfirmPending = true;
       delBtn.textContent = '本当に削除しますか？ もう一度タップ';
-      delBtn.style.background = 'var(--red-bg)';
-      delBtn.style.color = 'var(--red)';
-      delBtn.style.borderColor = 'var(--red-bg)';
+      delBtn.style.background = 'var(--red)';
+      delBtn.style.color = '#fff';
+      delBtn.style.borderColor = 'var(--red)';
       setTimeout(() => {
         deleteConfirmPending = false;
         if (delBtn.isConnected) {
           delBtn.textContent = 'このタグを削除…';
-          delBtn.style.background = 'var(--white)';
-          delBtn.style.color = 'var(--mid)';
-          delBtn.style.borderColor = 'var(--border)';
+          delBtn.style.background = 'var(--red-bg)';
+          delBtn.style.color = 'var(--red)';
+          delBtn.style.borderColor = 'var(--red)';
         }
       }, 3000);
       return;
@@ -1431,8 +1431,8 @@ function openMemberSheet(member, onUpdate) {
 
       <!-- 削除 -->
       <button id="btn-sheet-remove"
-        style="width:100%;padding:13px;border-radius:14px;border:1px solid var(--border);
-        background:var(--white);color:var(--mid);font-size:14px;font-weight:500;cursor:pointer;">
+        style="width:100%;padding:13px;border-radius:14px;border:1.5px solid var(--red);
+        background:var(--red-bg);color:var(--red);font-size:14px;font-weight:600;cursor:pointer;">
         このメンバーを削除…
       </button>
   `,
@@ -1758,7 +1758,8 @@ function openTagAddSheet(tags) {
       Sound.playSave();
       closeSheet();
       showToast('✓ タグを追加しました');
-      await renderSettings();
+      const updatedTags = await DB.getTags();
+      await renderTagList(updatedTags);
     } catch (e) {
       errorEl.textContent = '追加に失敗しました。';
       errorEl.style.display = 'block';
