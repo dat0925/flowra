@@ -4,7 +4,7 @@
 // ─────────────────────────────────────
 import { DB }    from './db.js';
 import { Sound } from './sound.js';
-import { showToast, showActionToast, openModal, closeModal, memoRowHTML, setupMemoField } from './utils.js';
+import { showToast, showActionToast, openModal, closeModal, memoRowHTML, setupMemoField, showSheet } from './utils.js';
 import { upsertTransactions, markDeletedTransaction, unmarkDeletedTransaction, clearPendingDelete } from './cache.js';
 import { renderAddRecord } from './add-record.js';
 import { showAccountPicker } from './account-picker.js';
@@ -129,19 +129,17 @@ export async function openEditRecord(tx, onSave) {
     selectedTags: new Set(txTags.map(t => t.id)),
   };
 
-  Sound.playOpen();
-
-  const sheetId = 'edit-record-sheet';
-  document.getElementById(sheetId)?.remove();
-
-  const sheet = document.createElement('div');
-  sheet.id = sheetId;
-  sheet.style.cssText = `
-    position:fixed;inset:0;z-index:600;
-    background:rgba(28,43,34,0.5);
-    display:flex;align-items:flex-end;justify-content:center;
-  `;
-  document.body.appendChild(sheet);
+  const { el: sheet, close } = showSheet({
+    id: 'edit-record-sheet',
+    head: false,
+    zIndex: 600,
+    bodyHTML: '',
+    onClose: () => {
+      const saveBar = document.getElementById('save-bar');
+      if (saveBar) saveBar.hidden = true;
+    },
+  });
+  const sheetBody = sheet.querySelector('.ui-sheet-scroll');
 
   function acctName(id) {
     return accounts.find(a => a.id === id)?.name || '選択してください';
@@ -179,14 +177,8 @@ export async function openEditRecord(tx, onSave) {
         </div>
       </div>`;
 
-    sheet.innerHTML = `
-      <div style="background:var(--stone);width:100%;max-width:480px;
-        border-radius:20px 20px 0 0;max-height:92vh;overflow-y:auto;
-        padding:0 14px 120px;-webkit-overflow-scrolling:touch;">
-
-        <div style="width:36px;height:4px;border-radius:2px;background:var(--border);margin:12px auto 0;"></div>
-
-        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 4px 12px;">
+    sheetBody.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 4px 12px;">
           <div style="font-family:'Noto Serif JP',serif;font-size:15px;font-weight:600;">${isViewer ? '記録を表示' : '記録を編集'}</div>
           <button id="btn-close-edit-record"
             style="width:30px;height:30px;border-radius:50%;background:var(--mist);border:none;
@@ -345,19 +337,14 @@ export async function openEditRecord(tx, onSave) {
           </div>
         </div>
         `}
-      </div>`;
+        <div style="height:80px;"></div>
+      `;
 
     bindEvents();
   }
 
   function bindEvents() {
-    const closeSheet = () => {
-      const saveBar = document.getElementById('save-bar');
-      if (saveBar) saveBar.hidden = true;
-      Sound.playClose();
-      sheet.remove();
-    };
-    sheet.addEventListener('click', e => { if (e.target === sheet) closeSheet(); });
+    const closeSheet = close;
     sheet.querySelector('#btn-close-edit-record')?.addEventListener('click', closeSheet);
 
     // 種別
@@ -734,7 +721,7 @@ export async function openEditRecord(tx, onSave) {
         Sound.playSave();
         const saveBar = document.getElementById('save-bar');
         if (saveBar) saveBar.hidden = true;
-        sheet.remove();
+        close();
         if (onSave) onSave();
       } catch (e) {
         showToast('⚠️ 保存に失敗しました: ' + e.message);
@@ -788,10 +775,9 @@ export async function openEditRecord(tx, onSave) {
       recordDangerZone.querySelector('#btn-delete-record-confirm')?.addEventListener('click', async function() {
         // UI洗練2: 削除は「即・画面に反映＋元に戻せる」を既定にする。
         // サーバー削除は6秒後（Undoトースト表示中は未実行）。
-        Sound.playClose();
         const saveBar = document.getElementById('save-bar');
         if (saveBar) saveBar.hidden = true;
-        sheet.remove();
+        close();
         let marked = true;
         try {
           await markDeletedTransaction(tx.id);
