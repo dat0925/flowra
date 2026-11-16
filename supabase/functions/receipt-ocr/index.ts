@@ -95,12 +95,18 @@ async function callAnthropic(model: string, image: string, mediaType: string, pr
 
 async function callGoogle(model: string, image: string, mediaType: string, promptText: string): Promise<string> {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_API_KEY}`;
-  // Gemini 2.5 Pro はthinkingを完全に無効化できず、thinkingBudget:0を送るとAPIが
-  // 400エラーで即座に拒否する（Flash/Flash-Liteは0が有効なのでこれまで問題なかった）。
-  // Proのみ最小の有効値（128トークン）を設定し、その分だけ出力上限にも余裕を持たせる。
+  // thinking の指定方法は世代で異なるため、モデル名で分岐する。
+  // Gemini 3 系: thinkingBudget は廃止され thinkingLevel（low/medium/high）に置き換わった。
+  //   thinkingBudget を送った場合の挙動は未定義（400エラーの可能性）なので送らない。
+  //   レシートOCRは抽出タスクのため low で十分。出力上限は 2048 のまま。
+  // Gemini 2.5 系: 従来どおり thinkingBudget。Pro はthinkingを完全に無効化できず、
+  //   thinkingBudget:0を送るとAPIが400エラーで即座に拒否する（Flash/Flash-Liteは0が有効）。
+  //   Proのみ最小の有効値（128トークン）を設定し、その分だけ出力上限にも余裕を持たせる。
+  const isGemini3 = model.includes('gemini-3');
   const isPro = /-pro\b/.test(model);
   const thinkingBudget = isPro ? 128 : 0;
-  const maxOutputTokens = isPro ? 2048 + thinkingBudget : 2048;
+  const maxOutputTokens = !isGemini3 && isPro ? 2048 + thinkingBudget : 2048;
+  const thinkingConfig = isGemini3 ? { thinkingLevel: 'low' } : { thinkingBudget };
   const res = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -113,7 +119,7 @@ async function callGoogle(model: string, image: string, mediaType: string, promp
       }],
       generationConfig: {
         maxOutputTokens,
-        thinkingConfig: { thinkingBudget },
+        thinkingConfig,
       }
     })
   });
