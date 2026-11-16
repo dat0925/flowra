@@ -1,6 +1,36 @@
 # Flowra 引き継ぎドキュメント
 
-最終更新: 2026-11-14
+最終更新: 2026-11-16
+
+---
+
+## 🔧 対応: レシートOCRの Gemini 3 世代対応（thinkingLevel 分岐）（2026-11-16・PRレビュー待ち）
+
+**背景**: Google が 2026-11-02 に発表。2026-12-01 から `gemini-2.5-flash` への
+リクエストは `gemini-3.5-flash-lite` へ自動振替され、新モデル側の料金で課金される。
+あわせて Gemini 3 系では `thinking_budget` が廃止され `thinking_level` に置き換わる。
+現行の `receipt-ocr` は `thinkingConfig: { thinkingBudget }` を送っており、振替先で
+thinkingBudget を送った場合の挙動は未定義（400エラーの可能性）。本番設定
+（app_settings `receipt_ocr_model`）は `google/gemini-2.5-flash` のため対象になる。
+移行先は本人の判断で `gemini-3.8-flash` に決定。
+
+**修正（`supabase/functions/receipt-ocr/index.ts` の `callGoogle` のみ）**:
+モデル名で世代分岐を追加。Gemini 3 系（モデル名に `gemini-3` を含む）は
+`thinkingConfig: { thinkingLevel: 'low' }` を送り thinkingBudget は送らない
+（OCRは抽出タスクのため low で十分。3.8 Flash は minimal を受け付けない点にも注意）。
+出力上限は 2048 のまま。Gemini 2.5 系は従来の thinkingBudget ロジックをそのまま維持。
+サンプリングパラメータ・関数呼び出しは元々使っていないため変更なし。
+
+**反映手順（順序が重要）**:
+1. このPRをマージ
+2. **先に** Edge Function `receipt-ocr` を Supabase ダッシュボードから手動デプロイ
+   （CLI不可の制約のため従来どおりダッシュボード経由）
+3. **その後で** app_settings の `receipt_ocr_model` を `google/gemini-3.8-flash` に変更
+   - 旧コード＋3.8 Flash の組み合わせ（thinkingBudget を 3 系へ送信）が危険側。
+     新コード＋旧設定（2.5-flash）は従来動作のまま安全なので、関数を先に上げる。
+
+**実機確認ポイント**: 設定変更後にレシートを1枚読み取り、従来どおり品目・金額が
+抽出できること。エラー時は関数のエラーメッセージ（Gemini error: …）を確認。
 
 ---
 
