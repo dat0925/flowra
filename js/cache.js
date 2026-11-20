@@ -121,17 +121,23 @@ export async function putTags(tags) {
 
 // ── transactions ────────────────────
 
+// 取引が属する月キー（YYYY-MM）。basis='budget' は計上月（budget_month、
+// 未保存の旧キャッシュ行は使用日の月で代替）、'date' は使用日の月。
+export function monthKeyOf(t, basis = 'budget') {
+  if (basis === 'date') return (t.date || '').slice(0, 7);
+  return t.budget_month || (t.date || '').slice(0, 7);
+}
+
 // 月フィルタ付きで取得
-export async function getCachedTransactions({ year, month } = {}) {
+export async function getCachedTransactions({ year, month, basis = 'budget' } = {}) {
   await openDB();
   const all = await promisify(tx(STORES.transactions).getAll());
 
   let rows = all.filter(t => !t._deleted);
 
   if (year && month) {
-    const from = `${year}-${String(month).padStart(2,'0')}-01`;
-    const to   = `${year}-${String(month).padStart(2,'0')}-${String(new Date(year, month, 0).getDate()).padStart(2,'0')}`;
-    rows = rows.filter(t => t.date >= from && t.date <= to);
+    const key = `${year}-${String(month).padStart(2,'0')}`;
+    rows = rows.filter(t => monthKeyOf(t, basis) === key);
   }
 
   // 日付降順
@@ -160,17 +166,16 @@ export async function upsertTransactions(rows) {
 // サーバーから取得した当月の全件（rows）と、キャッシュ上の当月データを突き合わせ、
 // サーバー側にもう存在しないID（削除済み等）をキャッシュから物理削除してから rows を書き込む。
 // putAccounts が口座に対してやっている「clear→書き直し」と同じ思想を、月単位に絞って行う。
-export async function replaceMonthTransactions(year, month, rows) {
+export async function replaceMonthTransactions(year, month, rows, basis = 'budget') {
   await openDB();
-  const from = `${year}-${String(month).padStart(2,'0')}-01`;
-  const to   = `${year}-${String(month).padStart(2,'0')}-${String(new Date(year, month, 0).getDate()).padStart(2,'0')}`;
+  const key = `${year}-${String(month).padStart(2,'0')}`;
 
   const store = _db.transaction(STORES.transactions, 'readwrite').objectStore(STORES.transactions);
   const all = await promisify(store.getAll());
   const freshIds = new Set((rows || []).map(r => r.id));
 
   const staleIds = all
-    .filter(t => t.date >= from && t.date <= to && !freshIds.has(t.id))
+    .filter(t => monthKeyOf(t, basis) === key && !freshIds.has(t.id))
     .map(t => t.id);
 
   await Promise.all(staleIds.map(id => promisify(store.delete(id))));

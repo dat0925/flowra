@@ -241,6 +241,7 @@ export const DB = {
 
   async getTransactions({
     year, month, accountId, unsettledOnly,
+    basis = 'budget',   // 'budget'=計上月（budget_month）基準 / 'date'=使用日基準（照合用）
     page = 0,           // 0始まり
     pageSize = PAGE_SIZE
   } = {}) {
@@ -262,10 +263,15 @@ export const DB = {
       .range(from_row, to_row);       // ← ページネーション
 
     if (year && month) {
-      const dateFrom = `${year}-${String(month).padStart(2,'0')}-01`;
-      const lastDay  = new Date(year, month, 0).getDate();
-      const dateTo   = `${year}-${String(month).padStart(2,'0')}-${lastDay}`;
-      query = query.gte('date', dateFrom).lte('date', dateTo);
+      if (basis === 'date') {
+        const dateFrom = `${year}-${String(month).padStart(2,'0')}-01`;
+        const lastDay  = new Date(year, month, 0).getDate();
+        const dateTo   = `${year}-${String(month).padStart(2,'0')}-${lastDay}`;
+        query = query.gte('date', dateFrom).lte('date', dateTo);
+      } else {
+        // 計上月基準: budget_month がその月の取引（使用日が前月でも含む）
+        query = query.eq('budget_month', `${year}-${String(month).padStart(2,'0')}`);
+      }
     }
     if (accountId) {
       query = query.or(`account_id.eq.${accountId},to_account_id.eq.${accountId}`);
@@ -292,19 +298,25 @@ export const DB = {
 
   // 月サマリー（type+amount のみ取得 → 軽量）
   // 集計はDB側で行うためスキャン行数が少ない
-  async getMonthlySummary(year, month) {
+  async getMonthlySummary(year, month, basis = 'budget') {
     const teamId  = await this.getTeamId();
-    const dateFrom = `${year}-${String(month).padStart(2,'0')}-01`;
-    const lastDay  = new Date(year, month, 0).getDate();
-    const dateTo   = `${year}-${String(month).padStart(2,'0')}-${lastDay}`;
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('transactions')
       .select('type, amount')         // 必要カラムのみ
       .eq('team_id', teamId)
-      .gte('date', dateFrom)
-      .lte('date', dateTo)
       .in('type', ['income', 'expense']);
+
+    if (basis === 'date') {
+      const dateFrom = `${year}-${String(month).padStart(2,'0')}-01`;
+      const lastDay  = new Date(year, month, 0).getDate();
+      const dateTo   = `${year}-${String(month).padStart(2,'0')}-${lastDay}`;
+      query = query.gte('date', dateFrom).lte('date', dateTo);
+    } else {
+      query = query.eq('budget_month', `${year}-${String(month).padStart(2,'0')}`);
+    }
+
+    const { data, error } = await query;
 
     if (error) throw error;
 

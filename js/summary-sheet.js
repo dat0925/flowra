@@ -254,17 +254,12 @@ async function loadAndRender(baseYear, baseMonth, mode = 'primary') {
     // 集計シート専用取得：search_transactions RPCでタグ情報も含めて取得
     const fetchMonthTxs = async (year, month) => {
       const teamId = await DB.getTeamId();
-      // 月の全取引をRPC経由で取得（transaction_tagsのRLS回避）
-      const dateFrom = `${year}-${String(month).padStart(2,'0')}-01`;
-      const lastDay = new Date(year, month, 0).getDate();
-      const dateTo = `${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
-
+      // 月の全取引を取得（計上月 budget_month 基準。一覧・ホームと集計を一致させる）
       const { data: txs } = await supabase
         .from('transactions')
-        .select('id, type, amount, date')
+        .select('id, type, amount, date, budget_month')
         .eq('team_id', teamId)
-        .gte('date', dateFrom)
-        .lte('date', dateTo)
+        .eq('budget_month', `${year}-${String(month).padStart(2,'0')}`)
         .eq('type', 'expense')
         .eq('is_excluded', false)
         .limit(5000);

@@ -84,6 +84,8 @@ let _searchScope   = 'recent'; // 'recent'=直近1ヶ月（デフォルト・高
 let _searchCursor  = null;     // もっと見る用カーソル
 let _searchHasMore = false;    // 続きがあるか
 let _budgetTagIds  = new Set(); // 主タグ判定用（budgetsテーブルのtag_id群）
+let _monthBasis    = 'budget';  // 月の表示基準: 'budget'=計上月（既定） / 'date'=使用日（照合用）
+let _basisRendered = 'budget';  // 現在描画中のシェルの基準（切替検知用）
 
 // ── 一括編集（複数選択）状態 ──
 let selectionMode  = false;
@@ -102,7 +104,7 @@ export async function renderRecords({ focusSearch = false } = {}) {
   // （プル更新・画面復帰・編集シートを閉じた直後のちらつき防止）。
   // 判定はこの後のリセット前の表示状態で行う。
   const canSkipShell = !focusSearch && !searchQuery.trim()
-    && currentFilter === 'all' && !selectionMode;
+    && currentFilter === 'all' && !selectionMode && _basisRendered === _monthBasis;
 
   currentFilter  = 'all';
   searchQuery    = '';
@@ -114,10 +116,10 @@ export async function renderRecords({ focusSearch = false } = {}) {
   exitSelectionMode();   // 月切替時は選択状態を破棄
 
   // ── STEP 1: キャッシュから即表示 ──
-  const cachedTxs = await getCachedTransactions({ year, month });
+  const cachedTxs = await getCachedTransactions({ year, month, basis: _monthBasis });
   if (cachedTxs.length > 0) {
     _allTx = cachedTxs;
-    const sig = year + '-' + month + ':' + txListSignature(cachedTxs);
+    const sig = year + '-' + month + ':' + _monthBasis + ':' + txListSignature(cachedTxs);
     if (canSkipShell && sig === _shellSig && document.getElementById('records-list')) {
       // 表示中の内容と同一 → 再描画しない（STEP2の静かな更新に任せる）
     } else {
@@ -130,8 +132,8 @@ export async function renderRecords({ focusSearch = false } = {}) {
   // ── STEP 2: バックグラウンドで最新取得 ──
   try {
     const [summary, result, accounts, budgetTagIds] = await Promise.all([
-      DB.getMonthlySummary(year, month),
-      DB.getTransactions({ year, month, pageSize: 500 }),
+      DB.getMonthlySummary(year, month, _monthBasis),
+      DB.getTransactions({ year, month, pageSize: 500, basis: _monthBasis }),
       DB.getAccounts(),
       DB.getBudgetTagIds(),
     ]);
@@ -142,7 +144,7 @@ export async function renderRecords({ focusSearch = false } = {}) {
 
     // キャッシュ更新（当月分は正解データで丸ごと置き換え、削除済み取引の
     // ゴースト残留によりダッシュボード側の合計とズレる問題を防ぐ）
-    await replaceMonthTransactions(year, month, result.data);
+    await replaceMonthTransactions(year, month, result.data, _monthBasis);
     await putAccounts(accounts);
 
     _allTx = result.data;
@@ -173,7 +175,8 @@ export async function renderRecords({ focusSearch = false } = {}) {
 }
 
 function renderShell(transactions, year, month, focusSearch = false) {
-  _shellSig = year + '-' + month + ':' + txListSignature(transactions);
+  _basisRendered = _monthBasis;
+  _shellSig = year + '-' + month + ':' + _monthBasis + ':' + txListSignature(transactions);
   _lastListHTML = null;
   const content = document.getElementById('page-content');
   const income  = transactions.filter(t=>t.type==='income' ).reduce((s,t)=>s+t.amount,0);
@@ -247,12 +250,27 @@ function renderShell(transactions, year, month, focusSearch = false) {
             選択
           </button>
         </div>
+        <!-- 3行目：表示基準（計上月/使用日）の切替 -->
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:0 12px 6px;">
+          <span style="font-size:11px;color:var(--mid-lt);">${_monthBasis === 'budget' ? '計上月で表示中' : '使用日で表示中（照合用）'}</span>
+          <button id="btn-basis-toggle"
+            style="font-size:11px;font-weight:700;color:var(--sage-dk);background:var(--sage-bg);
+              border:1.5px solid var(--sage);border-radius:8px;padding:2px 8px;cursor:pointer;white-space:nowrap;">
+            ${_monthBasis === 'budget' ? '使用日に切替' : '計上月に切替'}
+          </button>
+        </div>
       </div>
     </div>
 
     <div id="records-list"></div>`;
 
   renderList();
+
+  document.getElementById('btn-basis-toggle')?.addEventListener('click', () => {
+    _monthBasis = _monthBasis === 'budget' ? 'date' : 'budget';
+    _lastListHTML = null;
+    renderRecords();
+  });
 
   // スクロールで影を付ける
   const pageContent = document.getElementById('page-content');
@@ -293,7 +311,7 @@ function renderShell(transactions, year, month, focusSearch = false) {
     const tx = pool.find(t => t.id === item.dataset.txId);
     if (tx) openEditRecord(tx, () => {
       import('./router.js').then(({ MonthState: ms }) => {
-        DB.getTransactions({ year: ms.year, month: ms.month, pageSize: 500 })
+        DB.getTransactions({ year: ms.year, month: ms.month, pageSize: 500, basis: _monthBasis })
           .then(r => { _allTx = filterPendingDeletes(r.data); renderList(); })
           .catch(() => {});
       });
@@ -597,6 +615,15 @@ function buildTxGroupsHTML(grouped, isGlobal) {
                     : `<span class="tx-acct">${acctName}</span>`
                   }
                   ${tx.is_unsettled ? '<span class="unsettled-dot"></span><span style="font-size:11px;color:var(--gold);font-weight:500;">未精算</span>' : ''}
+                  ${(() => {
+                    const bm = tx.budget_month || (tx.date || '').slice(0, 7);
+                    return bm !== (tx.date || '').slice(0, 7)
+                      ? `<span style="font-size:10px;color:var(--mid-lt);background:var(--mist);padding:1px 5px;border-radius:4px;">${Number(bm.slice(5))}月分</span>`
+                      : '';
+                  })()}
+                  ${tx.balance_applied === false
+                    ? `<span style="font-size:11px;color:var(--gold);font-weight:500;">${Number((tx.date || '').slice(5, 7))}/${Number((tx.date || '').slice(8, 10))}に反映予定</span>`
+                    : ''}
                 </div>
               </div>
               <div class="tx-right">
@@ -904,10 +931,10 @@ async function refreshAfterBulkChange() {
   }
   try {
     const { year, month } = MonthState;
-    const result = await DB.getTransactions({ year, month, pageSize: 500 });
+    const result = await DB.getTransactions({ year, month, pageSize: 500, basis: _monthBasis });
     result.data = filterPendingDeletes(result.data);
     _allTx = result.data;
-    await replaceMonthTransactions(year, month, result.data);
+    await replaceMonthTransactions(year, month, result.data, _monthBasis);
   } catch (e) {
     // 取得失敗時もローカル状態からは除去済みなので致命的ではない
   }
@@ -917,6 +944,12 @@ async function refreshAfterBulkChange() {
 // 保存後に_allTxに追加してリストを差し込む（再描画なし）
 export function patchAddRecord(tx) {
   _lastListHTML = null;
+  // 表示中の月・基準に属さない取引（例: 計上月を来月にした登録）は差し込まず再描画に任せる
+  const viewKey = `${MonthState.year}-${String(MonthState.month).padStart(2, '0')}`;
+  const txKey = _monthBasis === 'date'
+    ? (tx.date || '').slice(0, 7)
+    : (tx.budget_month || (tx.date || '').slice(0, 7));
+  if (txKey !== viewKey) { renderRecords(); return; }
   _allTx = [tx, ..._allTx];
 
   const listEl = document.getElementById('records-list');

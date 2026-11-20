@@ -97,6 +97,10 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       ? new Set(initialState.selectedTags)
       : new Set(),
   };
+  // 計上月（budget_month）: 既定は使用日の月。手で変えた場合だけ custom とする
+  state.budgetMonth = initialState.budget_month || state.date.slice(0, 7);
+  state.budgetMonthCustom = !!initialState.budget_month_custom
+    && state.budgetMonth !== state.date.slice(0, 7);
 
   function acctName(id) {
     return accounts.find(a => a.id === id)?.name || '選択してください';
@@ -260,6 +264,16 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
             <div class="row-body">
               <div class="row-label">日付</div>
               <input class="date-input" id="date-input" type="date" value="${state.date}">
+            </div>
+          </div>
+          <div class="form-row no-tap">
+            <div class="row-icon" style="background:#F0EDE8;">
+              <svg viewBox="0 0 24 24" style="stroke:var(--mid)"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>
+            </div>
+            <div class="row-body">
+              <div class="row-label">計上月</div>
+              <input class="date-input" id="budget-month-input" type="month" value="${state.budgetMonth}">
+              <div id="budget-month-hint" style="font-size:11px;color:var(--mid-lt);margin-top:2px;">${state.budgetMonth === state.date.slice(0, 7) ? '使用月と同じ' : '使用日と違う月に計上します'}</div>
             </div>
           </div>
           ${memoRowHTML(state.memo)}
@@ -486,8 +500,25 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       Sound.playTap();
     });
 
+    const budgetMonthInput = document.getElementById('budget-month-input');
+    const budgetMonthHint  = document.getElementById('budget-month-hint');
+    const syncBudgetMonthUI = () => {
+      if (budgetMonthInput) budgetMonthInput.value = state.budgetMonth;
+      if (budgetMonthHint) budgetMonthHint.textContent =
+        state.budgetMonth === state.date.slice(0, 7) ? '使用月と同じ' : '使用日と違う月に計上します';
+    };
     document.getElementById('date-input')?.addEventListener('change', e => {
       state.date = e.target.value;
+      if (!state.budgetMonthCustom && state.date) {
+        state.budgetMonth = state.date.slice(0, 7);
+        syncBudgetMonthUI();
+      }
+    });
+    budgetMonthInput?.addEventListener('change', e => {
+      if (!e.target.value) return;
+      state.budgetMonth = e.target.value;
+      state.budgetMonthCustom = state.budgetMonth !== state.date.slice(0, 7);
+      syncBudgetMonthUI();
     });
 
     // メモ候補
@@ -631,6 +662,8 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       type:          state.type,
       amount,
       date:          state.date,
+      budget_month:  state.budgetMonth || state.date.slice(0, 7),
+      budget_month_custom: !!state.budgetMonthCustom && state.budgetMonth !== state.date.slice(0, 7),
       account_id:    state.accountId,
       to_account_id: state.type === 'transfer' ? state.toAccountId : null,
       memo:          state.memo || null,
