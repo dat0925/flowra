@@ -71,6 +71,62 @@ function showTagPicker({ tags = [], budgetTagIds = new Set(), title = 'カテゴ
   });
 }
 
+// 計上月の一括変更用ピッカー。表示中の月を中心に前月/翌月/翌々月の候補と、
+// 任意の月を選べる month 入力を出す（showTagPicker と同じ土台）。
+const BUDGET_MONTH_SHEET_ID = 'bulk-budget-month-sheet';
+
+function showBudgetMonthPicker({ viewYear, viewMonth, count, onSelect } = {}) {
+  const mkKey = (y, m) => `${y}-${String(m).padStart(2, '0')}`;
+  const shift = (y, m, d) => {
+    const idx = y * 12 + (m - 1) + d;
+    return [Math.floor(idx / 12), (idx % 12) + 1];
+  };
+  const candidates = [
+    { d: -1, label: '前月' },
+    { d: 0,  label: '表示中の月' },
+    { d: 1,  label: '翌月' },
+    { d: 2,  label: '翌々月' },
+  ].map(c => {
+    const [y, m] = shift(viewYear, viewMonth, c.d);
+    return { key: mkKey(y, m), text: `${y}年${m}月（${c.label}）` };
+  });
+
+  const { el, close } = showSheet({
+    id: BUDGET_MONTH_SHEET_ID,
+    title: `計上月を選択（${count}件）`,
+    bodyHTML: `
+      <div style="background:#fff;border-radius:14px;overflow:hidden;border:1px solid var(--border);">
+        ${candidates.map(c => `
+          <div class="bulk-bm-item" data-key="${c.key}"
+            style="padding:13px 18px;cursor:pointer;border-bottom:1px solid var(--border);
+            font-size:14px;font-weight:500;color:var(--ink);background:#fff;">${c.text}</div>
+        `).join('')}
+        <div style="display:flex;align-items:center;gap:8px;padding:13px 18px;">
+          <input type="month" id="bulk-bm-input" class="date-input" style="flex:1;min-width:0;">
+          <button id="bulk-bm-apply"
+            style="flex-shrink:0;padding:8px 14px;border-radius:10px;border:1.5px solid var(--sage);
+              background:var(--sage-bg);color:var(--sage-dk);font-size:12px;font-weight:700;cursor:pointer;">
+            この月にする
+          </button>
+        </div>
+      </div>`,
+  });
+
+  el.querySelectorAll('.bulk-bm-item').forEach(item => {
+    item.addEventListener('click', () => {
+      const key = item.dataset.key;
+      close();
+      onSelect?.(key);
+    });
+  });
+  el.querySelector('#bulk-bm-apply')?.addEventListener('click', () => {
+    const v = el.querySelector('#bulk-bm-input')?.value;
+    if (!v) return;
+    close();
+    onSelect?.(v);
+  });
+}
+
 // ── 状態（画面遷移後もリセット）──
 let currentFilter  = 'all';
 let searchQuery    = '';
@@ -309,10 +365,25 @@ function renderShell(transactions, year, month, focusSearch = false) {
     // 検索中は_searchResults、当月表示は_allTxから探す
     const pool = searchQuery.trim() ? _searchResults : _allTx;
     const tx = pool.find(t => t.id === item.dataset.txId);
-    if (tx) openEditRecord(tx, () => {
+    if (tx) openEditRecord(tx, (updatedTx) => {
       import('./router.js').then(({ MonthState: ms }) => {
         DB.getTransactions({ year: ms.year, month: ms.month, pageSize: 500, basis: _monthBasis })
-          .then(r => { _allTx = filterPendingDeletes(r.data); renderList(); })
+          .then(r => {
+            _allTx = filterPendingDeletes(r.data);
+            renderList();
+            // 計上月（表示基準によっては使用日）を変えて保存すると記録が
+            // この月の一覧から消えるため、行き先をトーストで知らせる
+            if (updatedTx) {
+              const keyOf = t => _monthBasis === 'date'
+                ? (t.date || '').slice(0, 7)
+                : (t.budget_month || (t.date || '').slice(0, 7));
+              const viewKey = `${ms.year}-${String(ms.month).padStart(2, '0')}`;
+              const destKey = keyOf(updatedTx);
+              if (keyOf(tx) === viewKey && destKey !== viewKey) {
+                showToast(`${destKey.slice(0, 4)}年${Number(destKey.slice(5))}月分に保存しました`);
+              }
+            }
+          })
           .catch(() => {});
       });
     });
@@ -771,9 +842,9 @@ function renderBulkActionBar() {
       <button id="bulk-select-all" style="background:none;border:none;padding:4px;color:var(--sage-dk);
         font-size:13px;font-weight:600;cursor:pointer;">全選択</button>
     </div>
-    <div style="display:flex;gap:6px;">
+    <div style="display:flex;gap:6px;flex-wrap:wrap;">
       <button id="bulk-change-account" ${count === 0 ? 'disabled' : ''}
-        style="flex:1;min-width:0;padding:10px 4px;border-radius:12px;border:1.5px solid var(--sage);
+        style="flex:1 1 30%;min-width:0;padding:10px 4px;border-radius:12px;border:1.5px solid var(--sage);
         background:${count === 0 ? 'var(--mist)' : 'var(--sage-bg)'};color:${count === 0 ? 'var(--mid-lt)' : 'var(--sage-dk)'};
         font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:600;white-space:nowrap;
         cursor:${count === 0 ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:center;gap:4px;">
@@ -781,7 +852,7 @@ function renderBulkActionBar() {
         口座を変更
       </button>
       <button id="bulk-change-tag" ${count === 0 ? 'disabled' : ''}
-        style="flex:1;min-width:0;padding:10px 4px;border-radius:12px;border:1.5px solid var(--gold);
+        style="flex:1 1 30%;min-width:0;padding:10px 4px;border-radius:12px;border:1.5px solid var(--gold);
         background:${count === 0 ? 'var(--mist)' : 'var(--gold-bg)'};color:${count === 0 ? 'var(--mid-lt)' : 'var(--gold)'};
         font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:600;white-space:nowrap;
         cursor:${count === 0 ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:center;gap:4px;">
@@ -789,13 +860,21 @@ function renderBulkActionBar() {
         カテゴリ変更
       </button>
       <button id="bulk-delete" ${count === 0 ? 'disabled' : ''}
-        style="flex:1;min-width:0;padding:10px 4px;border-radius:12px;border:1.5px solid var(--red);
+        style="flex:1 1 30%;min-width:0;padding:10px 4px;border-radius:12px;border:1.5px solid var(--red);
         background:${count === 0 ? 'var(--mist)' : (deleteConfirmPending ? 'var(--red)' : 'var(--red-bg)')};
         color:${count === 0 ? 'var(--mid-lt)' : (deleteConfirmPending ? '#fff' : 'var(--red)')};
         font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:600;white-space:nowrap;
         cursor:${count === 0 ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:center;gap:4px;">
         <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg>
         ${deleteLabel}
+      </button>
+      <button id="bulk-change-budget-month" ${count === 0 ? 'disabled' : ''}
+        style="flex:1 1 100%;min-width:0;padding:10px 4px;border-radius:12px;border:1.5px solid var(--mid-lt);
+        background:${count === 0 ? 'var(--mist)' : '#fff'};color:${count === 0 ? 'var(--mid-lt)' : 'var(--ink)'};
+        font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:600;white-space:nowrap;
+        cursor:${count === 0 ? 'default' : 'pointer'};display:flex;align-items:center;justify-content:center;gap:4px;">
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="9 16 11 18 15 14"/></svg>
+        計上月を変更
       </button>
     </div>`;
 
@@ -806,6 +885,7 @@ function renderBulkActionBar() {
   bar.querySelector('#bulk-select-all')?.addEventListener('click', selectAllVisible);
   bar.querySelector('#bulk-change-account')?.addEventListener('click', onBulkChangeAccount);
   bar.querySelector('#bulk-change-tag')?.addEventListener('click', onBulkChangeTag);
+  bar.querySelector('#bulk-change-budget-month')?.addEventListener('click', onBulkChangeBudgetMonth);
   bar.querySelector('#bulk-delete')?.addEventListener('click', onBulkDeleteClick);
 }
 
@@ -873,6 +953,28 @@ async function onBulkChangeTag() {
       try {
         await DB.bulkUpdateTransactionTags(ids, tagId);
         showToast(`${ids.length}件のカテゴリを変更しました`);
+        exitSelectionMode();
+        await refreshAfterBulkChange();
+      } catch (e) {
+        showToast('変更に失敗しました: ' + e.message);
+      }
+    },
+  });
+}
+
+async function onBulkChangeBudgetMonth() {
+  if (selectedIds.size === 0) return;
+  const ids = [...selectedIds];
+  const { year, month } = MonthState;
+
+  showBudgetMonthPicker({
+    viewYear: year,
+    viewMonth: month,
+    count: ids.length,
+    onSelect: async (monthKey) => {
+      try {
+        await DB.bulkUpdateBudgetMonth(ids, monthKey);
+        showToast(`${ids.length}件を${monthKey.slice(0, 4)}年${Number(monthKey.slice(5))}月分に変更しました`);
         exitSelectionMode();
         await refreshAfterBulkChange();
       } catch (e) {

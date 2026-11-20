@@ -392,6 +392,23 @@ export const DB = {
     return data;
   },
 
+  // 選択した記録の計上月を一括で変更する（使用日・残高には触れない。
+  // 意図的な変更なので budget_month_custom = true で保存する）
+  async bulkUpdateBudgetMonth(ids, monthKey) {
+    if (!ids || ids.length === 0) return;
+    const { data: { user } } = await supabase.auth.getUser();
+    const { data, error } = await supabase
+      .from('transactions')
+      .update({ budget_month: monthKey, budget_month_custom: true, updated_by: user.id })
+      .in('id', ids)
+      .select('id');
+    if (error) throw error;
+    if (!data || data.length !== ids.length) {
+      throw new Error(`更新が一部拒否されました（${data ? data.length : 0}/${ids.length}件）`);
+    }
+    return data;
+  },
+
   async bulkDeleteTransactions(ids) {
     if (!ids || ids.length === 0) return;
     const { data, error } = await supabase
