@@ -261,12 +261,25 @@ function renderShell(transactions, year, month, focusSearch = false) {
         </div>
       </div>
       <div class="records-filter-bar" id="records-filter-bar" style="flex-direction:column;gap:0;padding:0;">
-        <!-- 1行目：フィルタータブ -->
-        <div class="filter-tabs" id="filter-tabs" style="padding:4px 12px;border-bottom:none;">
-          <button class="filter-tab active" data-filter="all">すべて</button>
-          <button class="filter-tab" data-filter="expense">支出</button>
-          <button class="filter-tab" data-filter="income">収入</button>
-          <button class="filter-tab" data-filter="transfer">振替</button>
+        <!-- 1行目：フィルタータブ＋表示基準（計上月/使用日）セグメント -->
+        <div style="display:flex;align-items:center;gap:6px;padding:4px 12px;">
+          <div class="filter-tabs" id="filter-tabs" style="border-bottom:none;">
+            <button class="filter-tab active" data-filter="all">すべて</button>
+            <button class="filter-tab" data-filter="expense">支出</button>
+            <button class="filter-tab" data-filter="income">収入</button>
+            <button class="filter-tab" data-filter="transfer">振替</button>
+          </div>
+          <div id="basis-seg" role="group" aria-label="表示基準"
+            style="margin-left:auto;display:flex;background:var(--mist);border-radius:9px;padding:2px;flex-shrink:0;">
+            <button data-basis="budget"
+              style="border:none;font-size:11px;font-weight:700;padding:4px 9px;border-radius:7px;cursor:pointer;white-space:nowrap;
+                background:${_monthBasis === 'budget' ? 'var(--sage)' : 'transparent'};
+                color:${_monthBasis === 'budget' ? '#fff' : 'var(--mid)'};">計上月</button>
+            <button data-basis="date"
+              style="border:none;font-size:11px;font-weight:700;padding:4px 9px;border-radius:7px;cursor:pointer;white-space:nowrap;
+                background:${_monthBasis === 'date' ? 'var(--sage)' : 'transparent'};
+                color:${_monthBasis === 'date' ? '#fff' : 'var(--mid)'};">使用日</button>
+          </div>
         </div>
         <!-- 2行目：検索窓＋集計ボタン -->
         <div id="records-search-row" style="display:flex;align-items:center;gap:8px;padding:4px 12px 6px;">
@@ -306,15 +319,6 @@ function renderShell(transactions, year, month, focusSearch = false) {
             選択
           </button>
         </div>
-        <!-- 3行目：表示基準（計上月/使用日）の切替 -->
-        <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:0 12px 6px;">
-          <span style="font-size:11px;color:var(--mid-lt);">${_monthBasis === 'budget' ? '計上月で表示中' : '使用日で表示中（照合用）'}</span>
-          <button id="btn-basis-toggle"
-            style="font-size:11px;font-weight:700;color:var(--sage-dk);background:var(--sage-bg);
-              border:1.5px solid var(--sage);border-radius:8px;padding:2px 8px;cursor:pointer;white-space:nowrap;">
-            ${_monthBasis === 'budget' ? '使用日に切替' : '計上月に切替'}
-          </button>
-        </div>
       </div>
     </div>
 
@@ -322,10 +326,14 @@ function renderShell(transactions, year, month, focusSearch = false) {
 
   renderList();
 
-  document.getElementById('btn-basis-toggle')?.addEventListener('click', () => {
-    _monthBasis = _monthBasis === 'budget' ? 'date' : 'budget';
-    _lastListHTML = null;
-    renderRecords();
+  document.querySelectorAll('#basis-seg button[data-basis]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const next = btn.dataset.basis;
+      if (next === _monthBasis) return;
+      _monthBasis = next;
+      _lastListHTML = null;
+      renderRecords();
+    });
   });
 
   // スクロールで影を付ける
