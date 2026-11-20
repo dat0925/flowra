@@ -756,7 +756,7 @@ export async function openEditRecord(tx, onSave) {
         const saveBar = document.getElementById('save-bar');
         if (saveBar) saveBar.hidden = true;
         close();
-        if (onSave) onSave();
+        if (onSave) onSave(updated);
       } catch (e) {
         showToast('⚠️ 保存に失敗しました: ' + e.message);
       }

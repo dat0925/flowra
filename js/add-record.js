@@ -696,12 +696,17 @@ export async function renderAddRecord(onSave, onReady, initialState = {}) {
       const tmpEl = document.querySelector('[data-tx-id="' + optimisticTx.id + '"]');
       if (tmpEl) tmpEl.dataset.txId = tx.id;
 
-      // 登録後の残高をトーストで表示
-      const acct = accounts.find(a => a.id === state.accountId);
-      if (acct) {
-        const sign = payload.type === 'income' ? 1 : payload.type === 'expense' ? -1 : 0;
-        const newBalance = acct.balance + sign * amount;
-        showToast(acctNameVal + ' ¥' + newBalance.toLocaleString());
+      if (payload.budget_month !== payload.date.slice(0, 7)) {
+        // 計上月を使用月とずらした登録は、その月の一覧に現れるため行き先を知らせる
+        showToast(`${payload.budget_month.slice(0, 4)}年${Number(payload.budget_month.slice(5))}月分に保存しました`);
+      } else {
+        // 登録後の残高をトーストで表示
+        const acct = accounts.find(a => a.id === state.accountId);
+        if (acct) {
+          const sign = payload.type === 'income' ? 1 : payload.type === 'expense' ? -1 : 0;
+          const newBalance = acct.balance + sign * amount;
+          showToast(acctNameVal + ' ¥' + newBalance.toLocaleString());
+        }
       }
     } catch (err) {
       showToast('⚠️ ' + (err.message || JSON.stringify(err)));

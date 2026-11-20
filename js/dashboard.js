@@ -12,7 +12,7 @@ import {
 } from './cache.js';
 import { openEditRecord } from './edit-record.js';
 import { supabase }     from './config.js';
-import { showSheet }    from './utils.js';
+import { showSheet, showToast }    from './utils.js';
 
 const PAGE_SIZE = 50;
 
@@ -469,7 +469,18 @@ async function renderContent(content, accounts, transactions, year, month, fromC
     el.dataset.clickBound = '1';
     el.addEventListener('click', () => {
       const tx = transactions.find(t => t.id === el.dataset.txId);
-      if (tx) openEditRecord(tx, () => renderDashboard());
+      if (tx) openEditRecord(tx, (updatedTx) => {
+        renderDashboard();
+        // 計上月を変えて保存すると記録がこの月から消えるため行き先を知らせる
+        if (updatedTx) {
+          const keyOf = t => t.budget_month || (t.date || '').slice(0, 7);
+          const viewKey = `${year}-${String(month).padStart(2, '0')}`;
+          const destKey = keyOf(updatedTx);
+          if (keyOf(tx) === viewKey && destKey !== viewKey) {
+            showToast(`${destKey.slice(0, 4)}年${Number(destKey.slice(5))}月分に保存しました`);
+          }
+        }
+      });
     });
   });
 
