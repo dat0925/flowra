@@ -263,20 +263,20 @@ function renderShell(transactions, year, month, focusSearch = false) {
       <div class="records-filter-bar" id="records-filter-bar" style="flex-direction:column;gap:0;padding:0;">
         <!-- 1行目：フィルタータブ＋表示基準（計上月/使用日）セグメント -->
         <div style="display:flex;align-items:center;gap:6px;padding:4px 12px;">
-          <div class="filter-tabs" id="filter-tabs" style="border-bottom:none;">
-            <button class="filter-tab active" data-filter="all">すべて</button>
-            <button class="filter-tab" data-filter="expense">支出</button>
-            <button class="filter-tab" data-filter="income">収入</button>
-            <button class="filter-tab" data-filter="transfer">振替</button>
+          <div class="filter-tabs" id="filter-tabs" style="border-bottom:none;flex-shrink:0;">
+            <button class="filter-tab active" data-filter="all" style="white-space:nowrap;padding:4px 10px;">すべて</button>
+            <button class="filter-tab" data-filter="expense" style="white-space:nowrap;padding:4px 10px;">支出</button>
+            <button class="filter-tab" data-filter="income" style="white-space:nowrap;padding:4px 10px;">収入</button>
+            <button class="filter-tab" data-filter="transfer" style="white-space:nowrap;padding:4px 10px;">振替</button>
           </div>
           <div id="basis-seg" role="group" aria-label="表示基準"
             style="margin-left:auto;display:flex;background:var(--mist);border-radius:9px;padding:2px;flex-shrink:0;">
             <button data-basis="budget"
-              style="border:none;font-size:11px;font-weight:700;padding:4px 9px;border-radius:7px;cursor:pointer;white-space:nowrap;
+              style="border:none;font-size:11px;font-weight:700;padding:4px 8px;border-radius:7px;cursor:pointer;white-space:nowrap;
                 background:${_monthBasis === 'budget' ? 'var(--sage)' : 'transparent'};
                 color:${_monthBasis === 'budget' ? '#fff' : 'var(--mid)'};">計上月</button>
             <button data-basis="date"
-              style="border:none;font-size:11px;font-weight:700;padding:4px 9px;border-radius:7px;cursor:pointer;white-space:nowrap;
+              style="border:none;font-size:11px;font-weight:700;padding:4px 8px;border-radius:7px;cursor:pointer;white-space:nowrap;
                 background:${_monthBasis === 'date' ? 'var(--sage)' : 'transparent'};
                 color:${_monthBasis === 'date' ? '#fff' : 'var(--mid)'};">使用日</button>
           </div>
